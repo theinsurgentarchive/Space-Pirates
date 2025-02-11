@@ -1,6 +1,9 @@
 #include "jlo.h"
-#include <cmath>
+#include <bitset>
+#include <cstdint>
+#include <vector>
 
+int s_componentCounter = 0;
 //Start - Vec2
 Vec2::Vec2() : pos{0,0} {}
 
@@ -54,20 +57,87 @@ float Vec2::length_squared() const {
 }
 //End - Vec2 
 
-//Start - Entity
-Entity::Entity(int i) : id(i) {}
 
-int Entity::getId() const {
+
+//Start - Entity
+Entity::Entity(uint32_t i, std::bitset<MAX_COMPONENTS> m) : id{i}, mask{m} {}
+
+uint32_t Entity::getId() const {
     return id;
+}
+
+std::bitset<MAX_COMPONENTS> Entity::getMask() {
+    return mask;
 }
 //End - Entity
 
+
+
+//Start - Component Pool
+ComponentPool::ComponentPool(uint32_t n) : elementSize(n), pData {nullptr} {}
+
+ComponentPool::~ComponentPool() {
+    delete[] pData;
+}
+
+inline void* ComponentPool::get(int32_t index) {
+    return pData + index * elementSize; 
+}
+//End - Component Pool
+
+
+
+//Start - Scene
+uint32_t Scene::createEntity() {
+    entities.push_back({ static_cast<uint32_t>(entities.size()), std::bitset<MAX_COMPONENTS>() });
+    return entities.back().getId();
+}
+
+template <typename T>
+T* Scene::addComponent(uint32_t entityId) {
+    int cid = GetId<T>();
+
+    if (pools.size() <= cid) {
+        pools.resize(cid + 1,nullptr);
+    }
+
+    // if (pools[cid] == nullptr) {
+    //     pools[cid] = new ComponentPool(static_cast<uint32_t>(sizeof(T)));
+    // }
+
+    // T* pComponent = new (pools[cid]->get(id)) T();
+
+    entities[entityId].getMask().set(cid);
+    return nullptr;
+}
+//End - Scene
+
+
+
+//Start - Transform
+Transform::Transform(const Vec2& pos, const Vec2&scale, float rotation) : pos{pos}, scale{scale}, rotation{rotation} {}
+
+Transform::Transform(float posX, float posY, float scaleX, float scaleY, float rotation) : pos{posX,posY}, scale{scaleX,scaleY}, rotation{rotation} {}
+//End - Transform
+
+
+
 //Start - Health
-Health::Health(int h) : health(h) {}
+Health::Health(int current, int max) : current(current), max(max) {}
 //End - Health
 
-//Start - Position
-Position::Position(float x, float y) : pos(x,y) {}
-//End - Position
 
 
+//Start - Velocity
+Velocity::Velocity(const Vec2& v) : velocity(v) {}
+Velocity::Velocity(float x, float y) : velocity(x,y) {}
+//End - Velocity
+
+
+
+//Start - Acceleration
+Acceleration::Acceleration(const Vec2& a) : acceleration(a) {}
+Acceleration::Acceleration(float x, float y) : acceleration(x,y) {}
+//End - Acceleration
+
+template Transform* Scene::addComponent<Transform> (uint32_t entityId);
