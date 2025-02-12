@@ -1,10 +1,6 @@
 #include "jlo.h"
-#include <bitset>
-#include <cstdint>
-#include <vector>
-
-int s_componentCounter = 0;
-//Start - Vec2
+#include <cmath>
+#include <memory>
 Vec2::Vec2() : pos{0,0} {}
 
 Vec2::Vec2(float x, float y) : pos{x,y} {}
@@ -55,89 +51,56 @@ float Vec2::length() const {
 float Vec2::length_squared() const {
     return pos[0] * pos[0] + pos[1] * pos[1];
 }
-//End - Vec2 
-
 
 
 //Start - Entity
-Entity::Entity(uint32_t i, std::bitset<MAX_COMPONENTS> m) : id{i}, mask{m} {}
+Entity::Entity(EntityID i, ComponentMask m) : id{i},mask{m} {}
 
-uint32_t Entity::getId() const {
+EntityID Entity::getId() const 
+{
     return id;
 }
 
-std::bitset<MAX_COMPONENTS> Entity::getMask() {
+ComponentMask& Entity::getMask() 
+{
     return mask;
 }
 //End - Entity
 
-
-
 //Start - Component Pool
-ComponentPool::ComponentPool(uint32_t n) : elementSize(n), pData {nullptr} {}
-
-ComponentPool::~ComponentPool() {
-    delete[] pData;
+ComponentPool::ComponentPool(uint16_t e) : element_size{e}, p_data{nullptr} 
+{
+    p_data = std::make_unique<char[]>(element_size);
 }
 
-inline void* ComponentPool::get(int32_t index) {
-    return pData + index * elementSize; 
+ComponentPool::~ComponentPool() = default;
+
+void* ComponentPool::get(uint16_t idx) 
+{
+    return p_data.get() + idx * element_size;
 }
 //End - Component Pool
 
-
-
 //Start - Scene
-uint32_t Scene::createEntity() {
-    entities.push_back({ static_cast<uint32_t>(entities.size()), std::bitset<MAX_COMPONENTS>() });
-    return entities.back().getId();
+Scene::Scene(uint16_t m) : max_entities{m} 
+{
+    for (uint16_t i ; i < m ; i++) {
+        entities.push({i,ComponentMask()});
+    }
 }
 
-template <typename T>
-T* Scene::addComponent(uint32_t entityId) {
-    int cid = GetId<T>();
+Entity Scene::createEntity() 
+{
+    Entity entity = entities.front();
+    entities.pop();
+    living_entities++;
+    return entity;
+}
 
-    if (pools.size() <= cid) {
-        pools.resize(cid + 1,nullptr);
-    }
-
-    // if (pools[cid] == nullptr) {
-    //     pools[cid] = new ComponentPool(static_cast<uint32_t>(sizeof(T)));
-    // }
-
-    // T* pComponent = new (pools[cid]->get(id)) T();
-
-    entities[entityId].getMask().set(cid);
-    return nullptr;
+void Scene::destroyEntity(Entity entity) 
+{
+    entity.getMask().reset();
+    entities.push(entity);
+    living_entities--;
 }
 //End - Scene
-
-
-
-//Start - Transform
-Transform::Transform(const Vec2& pos, const Vec2&scale, float rotation) : pos{pos}, scale{scale}, rotation{rotation} {}
-
-Transform::Transform(float posX, float posY, float scaleX, float scaleY, float rotation) : pos{posX,posY}, scale{scaleX,scaleY}, rotation{rotation} {}
-//End - Transform
-
-
-
-//Start - Health
-Health::Health(int current, int max) : current(current), max(max) {}
-//End - Health
-
-
-
-//Start - Velocity
-Velocity::Velocity(const Vec2& v) : velocity(v) {}
-Velocity::Velocity(float x, float y) : velocity(x,y) {}
-//End - Velocity
-
-
-
-//Start - Acceleration
-Acceleration::Acceleration(const Vec2& a) : acceleration(a) {}
-Acceleration::Acceleration(float x, float y) : acceleration(x,y) {}
-//End - Acceleration
-
-template Transform* Scene::addComponent<Transform> (uint32_t entityId);

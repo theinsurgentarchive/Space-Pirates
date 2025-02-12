@@ -1,20 +1,23 @@
-#ifndef JLO_H
-#define JLO_H
+#pragma once
 
-#include <cmath>
-#include <bitset>
-#include <vector>
 #include <cstdint>
+#include <string>
+#include <bitset>
 #include <memory>
-const int MAX_COMPONENTS = 16;
+#include <queue>
+#include <vector>
+constexpr uint16_t MAX_COMPONENTS = 16;
+typedef std::bitset<MAX_COMPONENTS> ComponentMask;
+typedef uint32_t EntityID;
 
-extern int s_componentCounter;
-template <class T>
-int GetId()
+extern uint16_t counter;
+template <typename T>
+uint16_t getComponentId() 
 {
-  static int s_componentId = s_componentCounter++;
-  return s_componentId;
+    static uint16_t cid = counter++;
+    return cid;
 }
+
 class Vec2 
 {
     private:
@@ -33,40 +36,44 @@ class Vec2
         Vec2& operator+= (Vec2& v);
         Vec2& operator*= (float scale);
         float length() const;
-
 };
 
 class Entity 
 {
     private:
-        uint32_t id;
-        std::bitset<MAX_COMPONENTS> mask;
+        EntityID id;
+        ComponentMask mask;
     public:
-        Entity(uint32_t i, std::bitset<MAX_COMPONENTS> m);
-        uint32_t getId() const;
-        std::bitset<MAX_COMPONENTS> getMask();
+        Entity(EntityID i, ComponentMask m);
+        EntityID getId() const;
+        ComponentMask& getMask();
 };
 
 class ComponentPool
 {
     private:
-        uint32_t elementSize;
-        char* pData;
+        uint16_t element_size;
+        std::unique_ptr<char[]> p_data;
     public:
+        ComponentPool(uint16_t e);
         ~ComponentPool();
-        ComponentPool(uint32_t e);
-        inline void* get(int32_t index);
+        void* get(uint16_t idx);
 };
 
 class Scene
 {
     private:
-        std::vector<Entity> entities;
-        std::vector<ComponentPool> pools;
+        uint16_t max_entities;
+        std::queue<Entity> entities;
+        std::vector<std::unique_ptr<ComponentPool>> pools;
+        uint16_t living_entities;
     public:
-        uint32_t createEntity();
-        template<typename T> 
-        T* addComponent(uint32_t entityId);
+        Scene(uint16_t m);
+        Entity createEntity();
+        void destroyEntity(Entity entity);
+
+        template <typename T>
+        T* addComponent(Entity entity);
 };
 
 struct Transform
@@ -74,26 +81,29 @@ struct Transform
     Vec2 pos;
     Vec2 scale;
     float rotation;
-    Transform(const Vec2& pos = Vec2(0,0), const Vec2&scale = Vec2(0,0), float rotation = 0.0f);
-    Transform(float posX = 0.0f, float posY = 0.0f, float scaleX = 0.0f, float scaleY = 0.0f, float rotation = 0.0f);
+};
+
+struct Sprite
+{
+    uint16_t width, height;
+    std::string texture;
+};
+
+struct Velocity
+{
+    Vec2 velocity;
+};
+
+struct Acceleration
+{
+    Vec2 acceleration;
 };
 
 struct Health
 {
-    int current;
-    int max;
-    Health(int current = 0, int max = 0);
+    //Hit points
+    float hp;
+    //Max hit points
+    float maxHp;
 };
-
-struct Velocity {
-    Vec2 velocity;
-    Velocity(const Vec2& v = Vec2(0,0));
-    Velocity(float x, float y);
-};
-
-struct Acceleration {
-    Vec2 acceleration;
-    Acceleration(const Vec2& a = Vec2(0,0));
-    Acceleration(float x, float y);
-};
-#endif
+#include "implementation/scene.tpp"
