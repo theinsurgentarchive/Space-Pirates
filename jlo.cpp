@@ -1,7 +1,6 @@
 #include "jlo.h"
 #include <cmath>
-
-//Start - Vec2
+#include <memory>
 Vec2::Vec2() : pos{0,0} {}
 
 Vec2::Vec2(float x, float y) : pos{x,y} {}
@@ -52,22 +51,56 @@ float Vec2::length() const {
 float Vec2::length_squared() const {
     return pos[0] * pos[0] + pos[1] * pos[1];
 }
-//End - Vec2 
+
 
 //Start - Entity
-Entity::Entity(int i) : id(i) {}
+Entity::Entity(EntityID i, ComponentMask m) : id{i},mask{m} {}
 
-int Entity::getId() const {
+EntityID Entity::getId() const 
+{
     return id;
+}
+
+ComponentMask& Entity::getMask() 
+{
+    return mask;
 }
 //End - Entity
 
-//Start - Health
-Health::Health(int h) : health(h) {}
-//End - Health
+//Start - Component Pool
+ComponentPool::ComponentPool(uint16_t e) : element_size{e}, p_data{nullptr} 
+{
+    p_data = std::make_unique<char[]>(element_size);
+}
 
-//Start - Position
-Position::Position(float x, float y) : pos(x,y) {}
-//End - Position
+ComponentPool::~ComponentPool() = default;
 
+void* ComponentPool::get(uint16_t idx) 
+{
+    return p_data.get() + idx * element_size;
+}
+//End - Component Pool
 
+//Start - Scene
+Scene::Scene(uint16_t m) : max_entities{m} 
+{
+    for (uint16_t i ; i < m ; i++) {
+        entities.push({i,ComponentMask()});
+    }
+}
+
+Entity Scene::createEntity() 
+{
+    Entity entity = entities.front();
+    entities.pop();
+    living_entities++;
+    return entity;
+}
+
+void Scene::destroyEntity(Entity entity) 
+{
+    entity.getMask().reset();
+    entities.push(entity);
+    living_entities--;
+}
+//End - Scene

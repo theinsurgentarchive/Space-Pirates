@@ -1,12 +1,28 @@
-#ifndef JLO_H
-#define JLO_H
-#include <cmath>
+#pragma once
+
+#include <cstdint>
+#include <string>
+#include <bitset>
+#include <memory>
+#include <queue>
+#include <vector>
+constexpr uint16_t MAX_COMPONENTS = 16;
+typedef std::bitset<MAX_COMPONENTS> ComponentMask;
+typedef uint32_t EntityID;
+
+extern uint16_t counter;
+template <typename T>
+uint16_t getComponentId() 
+{
+    static uint16_t cid = counter++;
+    return cid;
+}
+
 class Vec2 
 {
     private:
         float pos[2];
         float length_squared() const;
-        
     public:
         Vec2();
         Vec2(float x, float y);
@@ -20,31 +36,74 @@ class Vec2
         Vec2& operator+= (Vec2& v);
         Vec2& operator*= (float scale);
         float length() const;
-
 };
 
 class Entity 
 {
     private:
-        int id;
-    
+        EntityID id;
+        ComponentMask mask;
     public:
-        Entity(int i);
-        int getId() const;
-
+        Entity(EntityID i, ComponentMask m);
+        EntityID getId() const;
+        ComponentMask& getMask();
 };
 
-struct Position
+class ComponentPool
+{
+    private:
+        uint16_t element_size;
+        std::unique_ptr<char[]> p_data;
+    public:
+        ComponentPool(uint16_t e);
+        ~ComponentPool();
+        void* get(uint16_t idx);
+};
+
+class Scene
+{
+    private:
+        uint16_t max_entities;
+        std::queue<Entity> entities;
+        std::vector<std::unique_ptr<ComponentPool>> pools;
+        uint16_t living_entities;
+    public:
+        Scene(uint16_t m);
+        Entity createEntity();
+        void destroyEntity(Entity entity);
+
+        template <typename T>
+        T* addComponent(Entity entity);
+};
+
+struct Transform
 {
     Vec2 pos;
-    Position(float x = 0.f, float y = 0.f);
+    Vec2 scale;
+    float rotation;
+};
+
+struct Sprite
+{
+    uint16_t width, height;
+    std::string texture;
+};
+
+struct Velocity
+{
+    Vec2 velocity;
+};
+
+struct Acceleration
+{
+    Vec2 acceleration;
 };
 
 struct Health
 {
-    int health;
-    Health(int h = 0);
+    //Hit points
+    float hp;
+    //Max hit points
+    float maxHp;
 };
-
-
-#endif JLO_H
+#include "implementation/scene.tpp"
