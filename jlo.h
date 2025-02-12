@@ -66,14 +66,21 @@ class Scene
         uint16_t max_entities;
         std::queue<Entity> entities;
         std::vector<std::unique_ptr<ComponentPool>> pools;
-        uint16_t living_entities;
+        uint16_t active_entities;
     public:
         Scene(uint16_t m);
         Entity createEntity();
-        void destroyEntity(Entity entity);
+        void destroyEntity(Entity& entity);
 
         template <typename T>
-        T* addComponent(Entity entity);
+        T* addComponent(Entity& entity);
+        
+        template <typename T>
+        T* getComponent(Entity& entity);
+
+        template <typename T>
+        bool hasComponent(Entity& entity);
+        uint16_t getActiveEntities() const;
 };
 
 struct Transform
@@ -99,11 +106,21 @@ struct Acceleration
     Vec2 acceleration;
 };
 
-struct Health
+class Health
 {
-    //Hit points
-    float hp;
-    //Max hit points
-    float maxHp;
+    public:
+        float hp, maxHp;
+        Health();
+        Health(float h, float m);
+        float percent();
 };
+
+class AABBHitbox
+{
+    public:
+        Vec2 corners[2];
+        AABBHitbox(float centerX, float centerY, float radius);
+        bool collided(AABBHitbox hitbox);
+};
+
 #include "implementation/scene.tpp"

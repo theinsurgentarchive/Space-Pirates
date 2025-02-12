@@ -68,7 +68,7 @@ ComponentMask& Entity::getMask()
 //End - Entity
 
 //Start - Component Pool
-ComponentPool::ComponentPool(uint16_t e) : element_size{e}, p_data{nullptr} 
+ComponentPool::ComponentPool(uint16_t e) : element_size{ }, p_data{nullptr} 
 {
     p_data = std::make_unique<char[]>(element_size);
 }
@@ -93,14 +93,38 @@ Entity Scene::createEntity()
 {
     Entity entity = entities.front();
     entities.pop();
-    living_entities++;
+    active_entities++;
     return entity;
 }
 
-void Scene::destroyEntity(Entity entity) 
+void Scene::destroyEntity(Entity& entity) 
 {
     entity.getMask().reset();
     entities.push(entity);
-    living_entities--;
+    active_entities--;
 }
+
+uint16_t Scene::getActiveEntities() const
+{
+    return active_entities;
+};
 //End - Scene
+
+//Start - Health
+Health::Health() : hp{0},maxHp{0} {}
+
+Health::Health(float h, float m) : hp{h},maxHp{m} {}
+
+float Health::percent() {
+    return hp / maxHp;
+}
+//End - Health
+
+//Start - AABBHitbox
+AABBHitbox::AABBHitbox(float centerX, float centerY, float radius) {
+    corners[0] = Vec2(centerX - radius, centerY - radius);
+    corners[1] = Vec2(centerX + radius, centerX + radius);
+}
+//TODO: implement collided 
+
+//End - AABBHitbox
