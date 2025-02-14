@@ -35,7 +35,7 @@ float& Vec2::operator[] (int i) {
     return pos[i];
 }
 
-Vec2& Vec2::operator+= (Vec2& v) {
+Vec2& Vec2::operator+= (const Vec2& v) {
     pos[0] += v.pos[0];
     pos[1] += v.pos[1];
     return *this;
@@ -45,6 +45,10 @@ Vec2& Vec2::operator*= (float scale) {
     pos[0] *= scale;
     pos[1] *= scale;
     return *this;
+}
+
+Vec2 Vec2::operator* (float scale) const {
+    return Vec2(pos[0] * scale, pos[1] * scale);
 }
 
 float Vec2::length() const {

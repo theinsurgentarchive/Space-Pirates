@@ -228,12 +228,9 @@ int main()
 	std::cout << entity_system_manager.hasSystem<PhysicsSystem>();
 	ptr = s.createEntity();
 	Transform* tc = s.addComponent<Transform>(ptr);
-	Velocity* vc = s.addComponent<Velocity>(ptr);
-	Acceleration* ac = s.addComponent<Acceleration>(ptr);
-	vc->velocity[0] = 5;
-	vc->velocity[1] = 5;
-	ac->acceleration[1] = 50;
-	ac->acceleration[0] = 50;
+	Physics* pc = s.addComponent<Physics>(ptr);
+	pc->velocity = {500,100};
+	pc->acceleration = {30,30};
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -259,8 +256,7 @@ int main()
 		// }
 		render();
 		x11.swapBuffers();
-		ps.lock()->update(s,(float) 1 / 20);
-		//entity_system_manager.update(s,1/20);
+		entity_system_manager.update(s, (float) 0.016);
 	}
 	cleanup_fonts();
 	logClose();
