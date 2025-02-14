@@ -34,8 +34,9 @@ class Vec2
         Vec2 operator-() const;
         float operator[] (int i) const;
         float& operator[] (int i);
-        Vec2& operator+= (Vec2& v);
+        Vec2& operator+= (const Vec2& v);
         Vec2& operator*= (float scale);
+        Vec2 operator* (float scale) const;
         float length() const;
 };
 
@@ -169,14 +170,11 @@ struct Sprite
     std::string texture;
 };
 
-struct Velocity
+struct Physics
 {
     Vec2 velocity;
-};
-
-struct Acceleration
-{
     Vec2 acceleration;
+    bool gravity;
 };
 
 class Health
