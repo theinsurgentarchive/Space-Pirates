@@ -3,22 +3,6 @@
 #include <memory>
 #include <algorithm>
 
-inline EntityID createEntityId(int index, int version) {
-    return ((EntityID) index << 16) | ((EntityID) version);
-}
-
-inline EntityID getEntityIndex(EntityID id) {
-    return id >> 16;
-}
-
-inline int getEntityVersion(EntityID id) {
-    return (int) id;
-}
-
-inline bool isEntityValid(EntityID id) {
-    return id >> 16 != -1;
-}
-
 Vec2::Vec2() : pos{0,0} {}
 
 Vec2::Vec2(float x, float y) : pos{x,y} {}
@@ -86,7 +70,7 @@ ComponentMask& Entity::getMask()
 //End - Entity
 
 //Start - Component Pool
-ComponentPool::ComponentPool(uint16_t e) : element_size{ }, p_data{nullptr} 
+ComponentPool::ComponentPool(uint16_t e) : element_size{e}, p_data{nullptr} 
 {
     p_data = std::make_unique<char[]>(element_size);
 }
@@ -139,6 +123,9 @@ uint16_t Scene::getComponentCount(Entity* ptr) const
 };
 //End - Scene
 
+//Start - Transform
+Transform::Transform() : pos{0,0},scale{0,0},rotation{0} {}
+//End - Transform
 //Start - Health
 Health::Health() : hp{0},maxHp{0} {}
 

@@ -160,6 +160,7 @@ struct Transform
     Vec2 pos;
     Vec2 scale;
     float rotation;
+    Transform ();
 };
 
 struct Sprite

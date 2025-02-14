@@ -3,24 +3,30 @@
 #include "../jlo.h"
 #include <vector>
 #include <memory>
+#include <iostream>
 class EntitySystem
 {
     public:
-        virtual void update(float dt);
+        virtual ~EntitySystem() = default;
+        virtual void update(Scene& scene, float dt) {};
 };
 
 class PhysicsSystem : public EntitySystem {
     private:
+
+    public:
+        PhysicsSystem();
+        void update(Scene& scene, float dt) override;
 };
 
 class EntitySystemManager
 {
     private:
-        std::vector<std::unique_ptr<EntitySystem>> systems;
+        std::vector<std::shared_ptr<EntitySystem>> systems;
     public:
         void update(Scene& scene, float dt);
         template <typename T>
-        T* registerSystem();
+        std::weak_ptr<T> registerSystem();
         template <typename T>
         bool hasSystem();
 };

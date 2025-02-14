@@ -4,7 +4,7 @@
 
 template <typename T>
 T* Scene::addComponent(Entity* ptr) {
-    int componentId = getComponentId<T>();
+    uint16_t componentId = getComponentId<T>();
             
     if (Scene::hasComponents<T>(ptr)) {
         throw std::runtime_error(

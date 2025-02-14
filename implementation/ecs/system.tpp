@@ -1,13 +1,15 @@
 #include "../../ecs/system.h"
-
+#include <iostream>
 template <typename T>
-T* EntitySystemManager::registerSystem() {
-    if(EntitySystemManager::hasSystem<T>()) {
-        return nullptr;
-    }
-    std::unique_ptr<T> p_system = std::make_unique<T>(sizeof(T));
+std::weak_ptr<T> EntitySystemManager::registerSystem() {
+    // if(EntitySystemManager::hasSystem<T>()) {
+    //     return nullptr;
+    // }
+
+    auto p_system = std::make_shared<T>();  // No arguments, using default constructor
+    // Move the unique_ptr into the vector
     systems.push_back(p_system);
-    return p_system.get();
+    return std::weak_ptr<T>(p_system);
 }
 
 template <typename T>
