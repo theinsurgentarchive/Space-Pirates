@@ -441,7 +441,7 @@ void render() {
     glBindTexture(GL_TEXTURE_2D, *ti->texture);  // Dereference the unique_ptr to access GLuint
 
 	void show_jlo();
-	void show_balrowhany(Rect *r);
+	void show_balrowhany(Rect* r);
 
     float cx = gl.xres / 2.0f;
     float cy = gl.yres / 2.0f;
