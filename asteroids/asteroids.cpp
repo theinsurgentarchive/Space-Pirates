@@ -402,7 +402,7 @@ void render() {
 	#ifdef CREDITS
 
 	void show_jlo();
-	void show_balrowhany(Rect *r);
+	void show_balrowhany(Rect* r);
 
 	#endif
 }
