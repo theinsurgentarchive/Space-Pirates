@@ -1,6 +1,6 @@
 CFLAGS = -I ./include
 LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm #-lXrandr
-SRC = asteroids/asteroids.cpp asteroids/log.cpp asteroids/timers.cpp jlo.cpp ecs/system.cpp
+SRC = asteroids/asteroids.cpp asteroids/log.cpp asteroids/timers.cpp jlo.cpp ecs/system.cpp ecs/components.cpp
 OBJ = $(SRC:.cpp=.o)
 
 # Build everything
