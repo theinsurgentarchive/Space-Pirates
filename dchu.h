@@ -1,55 +1,39 @@
-#ifndef DCHU_H
-#define DCHU_H
+#pragma once
 #include <string>
+#include "asteroids/fonts.h"
 #include "jlo.h"
 
-/*
-class planetBase : public Entity
+//Credit Print Function
+void show_dchu(Rect*);
+
+class upgrade
 {
-    protected:
-        //Inheritables
-        std::string type;
-        Sprite img;
-        color rgb;
-        Transform psr;
-        bool is_exhausted;
-        virtual void randomizePlanet() = 0;
-        void setSprite(Sprite);
-        void setTransform(Transform);
+    private:
+        //Current Level
+        float level;
+        uint8_t current_level;
+	    uint8_t max_level;
+        //modifiers
+	    float difficulty_modifier;
+        float health_modifier;
+        float speed_modifier;
+        float damage_modifier;
+        float fuel_modifier;
+        float oxygen_modifier;
     public:
         //Constructors
-            //Intialize Random Planet
-        planetBase(EntityID, ComponentMask);
-            //Intialize Pre-defined Planet
-        planetBase(EntityID, ComponentMask, std::string, Sprite, color, 
-                                                                    Transform);
-
-        //Getters
-        std::string getType();
-        Vec2 getPosition();
+        upgrade();
         
+        //Getters
+        uint8_t getLevel();
+        uint8_t getHealthMod();
+        float getUpgradableMods();
+
         //Setters
-        void exhausted();
-};
-*/
-
-struct ent_type
-{
-    std::string type;
-};
-
-struct upgrade
-{
-    //Current Level
-    uint8_t level;
-	uint8_t max_level;
-    //modifiers
-	uint8_t level_modifier;
-    uint8_t health_modifier;
-    float speed_modifier;
-    float damage_modifier;
-    float fuel_modifier;
-    float oxygen_modifier;
+        void setDamageMod(float);
+        void setOxygenMod();
+        void setFuelMod(float);
+        void setSpeedMod(float);
 };
 
 struct oxygen_resource
@@ -79,4 +63,3 @@ struct color
     uint8_t green;
     uint8_t alpha;
 };
-#endif

@@ -1,53 +1,12 @@
 #include "dchu.h"
+#include <iostream>
 
-/*planetBase Definitions*/
-
-/*
-planetBase::planetBase(EntityID id, ComponentMask mask) : Entity(id, mask)
+//Credit Print Function
+void show_dchu()
 {
-    is_exhausted = false;
-    rgb.setColors(0, 0, 0);
+    std::cout << "Developer - David Chu\n";
 }
-
-planetBase::planetBase(EntityID id, ComponentMask mask, std::string new_type,
-Sprite new_img, color RGB, Transform PSR) : Entity(id, mask)
+void show_dchu(Rect* r)
 {
-    setSprite(new_img);
-    setTransform(PSR);
-    is_exhausted = false;
-    rgb.setColors(RGB);
+    ggprint8b(r, 16, 0x00ff0000, "Developer - David Chu");
 }
-
-void planetBase::setSprite(Sprite new_img)
-{
-    img.height = new_img.height;
-    img.width = new_img.width;
-    img.texture = new_img.texture;
-}
-
-void planetBase::setTransform(Transform PSR)
-{
-    psr.pos.setX(PSR.pos.getX());
-    psr.pos.setY(PSR.pos.getY());
-    psr.scale.setX(PSR.scale.getX());
-    psr.scale.setY(PSR.scale.getY());
-    psr.rotation = PSR.rotation;
-}
-std::string planetBase::getType()
-{
-    return type;
-}
-
-Vec2 planetBase::getPosition()
-{
-    return psr.pos;
-}
-
-void planetBase::exhausted()
-{
-    is_exhausted = true;
-    rgb.setColors(128, 128, 128);
-}
-
-*/
-/*End planetBase Definitions*/
