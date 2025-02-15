@@ -1,11 +1,12 @@
 #include "system.h"
+
 PhysicsSystem::PhysicsSystem() = default;
+
 void PhysicsSystem::update(Scene& scene, float dt) {
     std::vector<Entity*> entities = scene.queryEntities<Transform, Physics>();
     for (auto ptr : entities) {
         Transform* tc = scene.getComponent<Transform>(ptr);
         Physics* pc = scene.getComponent<Physics>(ptr);
-        pc->acceleration += Vec2{0,-15};
         pc->velocity += pc->acceleration * dt;
         tc->pos += pc->velocity * dt;
     }

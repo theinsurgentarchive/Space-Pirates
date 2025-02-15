@@ -12,8 +12,6 @@ class EntitySystem
 };
 
 class PhysicsSystem : public EntitySystem {
-    private:
-
     public:
         PhysicsSystem();
         void update(Scene& scene, float dt) override;

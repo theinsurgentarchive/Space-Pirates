@@ -7,11 +7,23 @@
 #include <queue>
 #include <vector>
 
-constexpr uint16_t MAX_COMPONENTS = 32;
-typedef std::bitset<MAX_COMPONENTS> ComponentMask;
+constexpr uint16_t MAX_ENTITY_COMPONENTS {32};
+typedef std::bitset<MAX_ENTITY_COMPONENTS> ComponentMask;
 typedef uint32_t EntityID;
 
+enum Direction {
+    NORTH,
+    EAST,
+    SOUTH,
+    WEST,
+    NORTH_EAST,
+    SOUTH_EAST,
+    NORTH_WEST,
+    SOUTH_WEST
+};
+
 extern uint16_t counter;
+extern void show_jlo(void);
 template <typename T>
 uint16_t getComponentId() 
 {
@@ -51,7 +63,6 @@ class Entity
         Entity(EntityID i, ComponentMask m);
         EntityID getId() const;
         ComponentMask& getMask();
-        
 };
 
 /*
@@ -154,44 +165,6 @@ class Scene
 
         void displayMatrix();
         
-};
-
-struct Transform
-{
-    Vec2 pos;
-    Vec2 scale;
-    float rotation;
-    Transform ();
-};
-
-struct Sprite
-{
-    uint16_t width, height;
-    std::string texture;
-};
-
-struct Physics
-{
-    Vec2 velocity;
-    Vec2 acceleration;
-    bool gravity;
-};
-
-class Health
-{
-    public:
-        float hp, maxHp;
-        Health();
-        Health(float h, float m);
-        float percent();
-};
-
-class AABBHitbox
-{
-    public:
-        Vec2 corners[2];
-        AABBHitbox(float centerX, float centerY, float radius);
-        bool collided(AABBHitbox hitbox);
 };
 
 #include "implementation/scene.tpp"
