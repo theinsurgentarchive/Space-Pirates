@@ -8,6 +8,7 @@
 //
 #include "../jlo.h"
 #include "../ecs/system.h"
+#include "../ecs/components.h"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
