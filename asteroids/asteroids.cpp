@@ -225,12 +225,13 @@ int main()
 {
 	EntitySystemManager entity_system_manager;
 	std::weak_ptr<PhysicsSystem> ps = entity_system_manager.registerSystem<PhysicsSystem>();
-	std::cout << entity_system_manager.hasSystem<PhysicsSystem>();
 	ptr = s.createEntity();
 	Transform* tc = s.addComponent<Transform>(ptr);
 	Physics* pc = s.addComponent<Physics>(ptr);
-	pc->velocity = {500,100};
+	tc->pos = {200,200};
+	pc->velocity = {500,300};
 	pc->acceleration = {30,30};
+	tc->pos[0] = 100;
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -397,7 +398,11 @@ void render() {
     glVertex2f(tc->pos[0] + squareSize / 2, tc->pos[1] + squareSize / 2); // Top right
     glVertex2f(tc->pos[0] - squareSize / 2, tc->pos[1] + squareSize / 2); // Top left
     glEnd();  // End drawing the square
+	#ifdef CREDITS
 
+	void show_jlo();
+
+	#endif
 }
 
 

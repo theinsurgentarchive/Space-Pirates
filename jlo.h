@@ -7,11 +7,23 @@
 #include <queue>
 #include <vector>
 
-constexpr uint16_t MAX_COMPONENTS = 32;
-typedef std::bitset<MAX_COMPONENTS> ComponentMask;
+constexpr uint16_t MAX_ENTITY_COMPONENTS {32};
+typedef std::bitset<MAX_ENTITY_COMPONENTS> ComponentMask;
 typedef uint32_t EntityID;
 
+enum Direction {
+    NORTH,
+    EAST,
+    SOUTH,
+    WEST,
+    NORTH_EAST,
+    SOUTH_EAST,
+    NORTH_WEST,
+    SOUTH_WEST
+};
+
 extern uint16_t counter;
+extern void show_jlo(void);
 template <typename T>
 uint16_t getComponentId() 
 {
@@ -51,7 +63,6 @@ class Entity
         Entity(EntityID i, ComponentMask m);
         EntityID getId() const;
         ComponentMask& getMask();
-        
 };
 
 /*
@@ -156,12 +167,13 @@ class Scene
         
 };
 
-struct Transform
+class Transform
 {
-    Vec2 pos;
-    Vec2 scale;
-    float rotation;
-    Transform ();
+    public:
+        Vec2 pos, scale;
+        float rotation;
+        Transform();
+        Direction direction();
 };
 
 struct Sprite
@@ -174,7 +186,6 @@ struct Physics
 {
     Vec2 velocity;
     Vec2 acceleration;
-    bool gravity;
 };
 
 class Health

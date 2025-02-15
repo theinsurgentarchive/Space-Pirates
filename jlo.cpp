@@ -2,7 +2,11 @@
 #include <cmath>
 #include <memory>
 #include <algorithm>
+#include <iostream>
 
+void show_jlo(void) {
+
+}
 Vec2::Vec2() : pos{0,0} {}
 
 Vec2::Vec2(float x, float y) : pos{x,y} {}
@@ -126,25 +130,3 @@ uint16_t Scene::getComponentCount(Entity* ptr) const
     return mask.count();
 };
 //End - Scene
-
-//Start - Transform
-Transform::Transform() : pos{0,0},scale{0,0},rotation{0} {}
-//End - Transform
-//Start - Health
-Health::Health() : hp{0},maxHp{0} {}
-
-Health::Health(float h, float m) : hp{h},maxHp{m} {}
-
-float Health::percent() {
-    return hp / maxHp;
-}
-//End - Health
-
-//Start - AABBHitbox
-AABBHitbox::AABBHitbox(float centerX, float centerY, float radius) {
-    corners[0] = Vec2(centerX - radius, centerY - radius);
-    corners[1] = Vec2(centerX + radius, centerX + radius);
-}
-//TODO: implement collided 
-
-//End - AABBHitbox
