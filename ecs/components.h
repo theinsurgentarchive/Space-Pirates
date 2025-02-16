@@ -82,7 +82,7 @@ class upgrade
         uint8_t current_level;
 	    uint8_t max_level;
         //modifiers
-	    float difficulty_modifier;
+	    std::string difficulty_modifier;
         float health_modifier;
         float speed_modifier;
         float damage_modifier;
@@ -95,7 +95,8 @@ class upgrade
         //Getters
         uint8_t getLevel();
         uint8_t getHealthMod();
-        float getUpgradableMods();
+        float* getUpgradableMods();
+        std::string getDifficulty();
 
         //Setters
         void setDamageMod(float);
