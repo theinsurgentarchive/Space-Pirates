@@ -8,7 +8,7 @@ class EntitySystem
 {
     public:
         virtual ~EntitySystem() = default;
-        virtual void update(Scene& scene, float dt) {};
+        virtual void update(Scene& scene, float dt);
 };
 
 class PhysicsSystem : public EntitySystem {
