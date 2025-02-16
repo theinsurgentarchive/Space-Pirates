@@ -48,6 +48,7 @@ struct Sprite
 {
     uint16_t width, height;
     std::string texture;
+    uint16_t render_order;
 };
 
 struct Physics

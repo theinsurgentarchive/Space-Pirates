@@ -21,6 +21,9 @@
 #include "log.h"
 #include "fonts.h"
 #define GAME_TITLE "Space Pirates"
+#define DEBUG
+#define _TEXTURE_FOLDER_PATH "./textures"
+// #define CREDITS
 //defined types
 typedef float Flt;
 typedef float Vec[3];
@@ -52,9 +55,10 @@ public:
 	int xres, yres;
 	char keys[65536];
 	int mouse_cursor_on;
+	GLuint walkTexture;
 	Global() {
-		xres = 640;
-		yres = 480;
+		xres = 1280;
+		yres = 960;
 		memset(keys, 0, 65536);
 		// mouse value 1 = true = mouse is a regular mouse.
 		mouse_cursor_on = 1;
@@ -218,21 +222,39 @@ int check_keys(XEvent *e);
 void physics();
 void render();
 
+//Start - Justin
+void load_textures(void);
+
+// void load_textures() {
+// 	try {
+// 		if (std::filesystem::exists(_IMAGE_FOLDER_PATH) && std::filesystem::is_directory(_IMAGE_FOLDER_PATH)) {
+// 			for (const auto& entry : std::file_system::directory_iteraotr<)
+// 		}
+// 	} catch ()
+// }
 //==========================================================================
 // M A I N
 //==========================================================================
 Entity* ptr;
+std::vector<std::unique_ptr<TextureInfo>> textures;
 int main()
 {
+	
+	TextureLoader loader { _TEXTURE_FOLDER_PATH };
+	loader.load_textures(textures);
+
+	// for (auto ti : textures) {
+	// 	std::cout << ti.texture;
+	// }
 	EntitySystemManager entity_system_manager;
 	std::weak_ptr<PhysicsSystem> ps = entity_system_manager.registerSystem<PhysicsSystem>();
 	ptr = s.createEntity();
-	Transform* tc = s.addComponent<Transform>(ptr);
-	Physics* pc = s.addComponent<Physics>(ptr);
-	tc->pos = {200,200};
-	pc->velocity = {500,300};
-	pc->acceleration = {30,30};
-	tc->pos[0] = 100;
+	//Transform* tc = s.addComponent<Transform>(ptr);
+	//Physics* pc = s.addComponent<Physics>(ptr);
+	// tc->pos = {200,200};
+	// pc->velocity = {500,300};
+	// pc->acceleration = {30,30};
+	// tc->pos[0] = 100;
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -285,8 +307,40 @@ void init_opengl(void)
 	//Do this to allow fonts
 	glEnable(GL_TEXTURE_2D);
 	initialize_fonts();
-}
 
+	//
+
+}
+unsigned char *buildAlphaData(Image *img)
+{
+	//add 4th component to RGB stream...
+	int i;
+	unsigned char *newdata, *ptr;
+	unsigned char *data = (unsigned char *)img->data;
+	//2 bytes * 2 bytes * 4;
+	newdata = (unsigned char *)malloc(img->width * img->height * sizeof(int));
+	ptr = newdata;
+	unsigned char a,b,c;
+	//use the first pixel in the image as the transparent color.
+	unsigned char t0 = *(data+0);
+	unsigned char t1 = *(data+1);
+	unsigned char t2 = *(data+2);
+	for (i=0; i<img->width * img->height * 3; i+=3) {
+		a = *(data+0); //255
+		b = *(data+1); //0
+		c = *(data+2); //0
+		*(ptr+0) = a; //255
+		*(ptr+1) = b; //0
+		*(ptr+2) = c; //0
+		*(ptr+3) = 1; //1
+		if (a==t0 && b==t1 && c==t2)
+			*(ptr+3) = 0;
+		//-----------------------------------------------
+		ptr += sizeof(int);
+		data += 3;
+	}
+	return newdata;
+}
 void normalize2d(Vec v)
 {
 	Flt len = v[0]*v[0] + v[1]*v[1];
@@ -378,33 +432,43 @@ void physics()
 {
 	
 }
+int frame = 0;
 void render() {
     glClear(GL_COLOR_BUFFER_BIT);
-
-    // Get the Transform component (ensure it is not nullptr)
-    Transform* tc = s.getComponent<Transform>(ptr);
-    if (tc == nullptr) {
-        std::cerr << "Error: Transform pointer is NULL!" << std::endl;
-        return;
-    }
-    // Set up color for the square (Red, Green, Blue)
-    glColor3f(1.0f, 0.0f, 0.0f);  // Red color
-
-    // Render a square at the position (tc->pos[0], tc->pos[1])
-    float squareSize = 20.0f;  // Size of the square (20x20)
+	std::unique_ptr<TextureInfo>& ti = textures[2];  // Reference to the unique_ptr
     
-    glBegin(GL_QUADS);  // Begin drawing a quadrilateral (square)
-    glVertex2f(tc->pos[0] - squareSize / 2, tc->pos[1] - squareSize / 2); // Bottom left
-    glVertex2f(tc->pos[0] + squareSize / 2, tc->pos[1] - squareSize / 2); // Bottom right
-    glVertex2f(tc->pos[0] + squareSize / 2, tc->pos[1] + squareSize / 2); // Top right
-    glVertex2f(tc->pos[0] - squareSize / 2, tc->pos[1] + squareSize / 2); // Top left
-    glEnd();  // End drawing the square
-	#ifdef CREDITS
+    // Bind the texture directly from the unique_ptr
+    glBindTexture(GL_TEXTURE_2D, *ti->texture);  // Dereference the unique_ptr to access GLuint
 
 	void show_jlo();
 	void show_balrowhany(Rect* r);
 
-	#endif
+
+    float cx = gl.xres / 2.0f;
+    float cy = gl.yres / 2.0f;
+    int h = 200;
+	int w = h * 0.5;
+
+	int columns = 8;
+	int rows = 1;
+	int ix = frame % columns;
+	int iy = frame / columns;
+	frame++;
+	float fx = (float) ix / columns;
+	float fy = (float) iy / rows;
+
+    // Draw the texture as a quad
+    glBegin(GL_QUADS);
+        float xo = (float)1 / columns;
+        float xy = (float)1 / rows;
+		glTexCoord2f(fx + xo, fy + xy); glVertex2i(cx - w, cy - h);
+		glTexCoord2f(fx + xo, fy);      glVertex2i(cx - w, cy + h);
+		glTexCoord2f(fx, fy);           glVertex2i(cx + w, cy + h);
+		glTexCoord2f(fx, fy + xy);      glVertex2i(cx + w, cy - h);
+    glEnd();
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_ALPHA_TEST);
 }
 
 
