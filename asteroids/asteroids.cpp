@@ -442,6 +442,10 @@ void render() {
 
 	void show_jlo();
 	void show_balrowhany(Rect* r);
+    float cx = gl.xres / 2.0f;
+    float cy = gl.yres / 2.0f;
+    int h = 200;
+	int w = h * 0.5;
 
     float cx = gl.xres / 2.0f;
     float cy = gl.yres / 2.0f;
