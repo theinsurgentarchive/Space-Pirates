@@ -1,5 +1,8 @@
 #include "components.h"
 #include <cmath>
+#ifdef DEVMODE
+    #include <iostream>
+#endif
 
 //Start - Vector
 Vec2::Vec2() : pos{0,0} {}
@@ -142,7 +145,10 @@ inventory::inventory(uint8_t x)
 
 inventory::~inventory()
 {
-    delete storage;
+    for (uint8_t i = 0; i < sizeX; i++) {
+        delete [] storage[i];
+    }
+    delete [] storage;
 }
 
 inventory::inventory(uint8_t x, uint8_t y)
@@ -152,6 +158,57 @@ inventory::inventory(uint8_t x, uint8_t y)
 
 void inventory::initStoreVolume(uint8_t x, uint8_t y)
 {
-    item* temp = new item[x][y];
-    storage = temp;
+    //Initialize Variables
+    uint8_t sizeX = x;
+    uint8_t sizeY = y;
+
+    //Intialize Inventory Matrix
+    storage = new item*[sizeX];
+    for (uint8_t i = 0; i < sizeX; i++) {
+        storage[i] = new item[sizeY];
+    }
+
+    //Pre-Load Item Slots
+    if (sizeX > 0 && sizeY > 0) {
+        uint8_t counter = 0;
+        for (uint8_t i = 0; i < sizeX; i++) {
+            for (uint8_t j = 0; j < sizeY; j++) {
+                storage[i][j].item_name = ("Slot " + std::to_string(counter));
+                storage[i][j].slot_num = ++counter;
+            }
+        }
+    }
+    //If DEVMODE, Run Unit Test
+    #ifdef DEVMODE
+        std::string test = "testItem";
+        bool flag = false;
+        for (uint8_t i = 0; i < sizeX; i++) {
+            for (uint8_t j = 0; j < sizeY; j++) {
+                storage[i][j].item_name = test;
+            }
+            
+        }
+        for (uint8_t i = 0; i < sizeX; i++) {
+            for (uint8_t j = 0; j < sizeY; j++) {
+                if(storage[i][j].item_name != test) {
+                    flag = true;
+                    break;
+                }
+            }
+            if(flag) {
+                break;
+            }
+        }
+        if (!flag) {
+            for (uint8_t i = 0; i < sizeX; i++) {
+                for (uint8_t j = 0; j < sizeY; j++) {
+                    std::cout << storage[i][j].item_name << " ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << "Inventory Matrix - OK\n\n";
+        } else {
+            std::cout << "ERROR, Inventory Matrix not Loading";
+        }
+    #endif
 }

@@ -137,6 +137,7 @@ struct color
 struct item
 {
     std::string item_name;
+    uint16_t slot_num;
     /*TBD*/
 };
 
@@ -145,8 +146,10 @@ class inventory
     private:
         void initStoreVolume(uint8_t, uint8_t);
         bool full;
-        item* storage;
-    public:
+        item** storage;
+        uint8_t sizeY;
+        uint8_t sizeX;
+        public:
         //Constructor
         inventory();
         inventory(uint8_t);
