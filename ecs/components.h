@@ -138,6 +138,7 @@ struct item
 {
     std::string item_name;
     uint16_t slot_num;
+    Sprite img;
     /*TBD*/
 };
 
