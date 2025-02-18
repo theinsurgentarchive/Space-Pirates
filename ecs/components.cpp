@@ -134,7 +134,7 @@ void upgrade::setSpeedMod(float mod)
 
 inventory::inventory()
 {
-    initStoreVolume(5, 4);
+    initStoreVolume(3, 4);
     full = false;
 }
 
