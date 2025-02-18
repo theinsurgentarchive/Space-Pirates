@@ -29,4 +29,11 @@ class EntitySystemManager
         bool hasSystem();
 };
 
+//@theinsurgentarchive
+class InventorySystem : public EntitySystem
+{
+    public:
+    void update(Scene&, float);
+}
+
 #include "../implementation/ecs/system.tpp"

@@ -128,3 +128,30 @@ void upgrade::setSpeedMod(float mod)
 {
     speed_modifier = mod;
 }
+
+inventory::inventory()
+{
+    initStoreVolume(5, 4);
+    full = false;
+}
+
+inventory::inventory(uint8_t x)
+{
+    initStoreVolume(x, x);
+}
+
+inventory::~inventory()
+{
+    delete storage;
+}
+
+inventory::inventory(uint8_t x, uint8_t y)
+{
+    initStoreVolume(x, y);
+}
+
+void inventory::initStoreVolume(uint8_t x, uint8_t y)
+{
+    item* temp = new item[x][y];
+    storage = temp;
+}

@@ -133,3 +133,33 @@ struct color
     uint8_t green;
     uint8_t alpha;
 };
+
+struct item
+{
+    std::string item_name;
+    /*TBD*/
+};
+
+class inventory
+{
+    private:
+        void initStoreVolume(uint8_t, uint8_t);
+        bool full;
+        item* storage;
+    public:
+        //Constructor
+        inventory();
+        inventory(uint8_t);
+        inventory(uint8_t, uint8_t);
+
+        //Destructor
+        ~inventory();
+
+        //Setters
+        void addItem(/*TBD*/);
+        void useItemSlot(/*TBD*/);
+
+        //getters:
+        void getInventory();
+        item returnItemSlot(uint8_t, uint8_t);
+};
