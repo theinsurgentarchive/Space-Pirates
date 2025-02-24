@@ -1,5 +1,10 @@
 #pragma once
 
+#include "math.h"
+#include "anim.h"
+#include "textures.h"
+#include <memory>
+#include <vector>
 #include <string>
 #include <cstdint>
 
@@ -14,27 +19,6 @@ enum Direction {
     SOUTH_WEST
 };
 
-class Vec2 
-{
-    private:
-        float pos[2];
-        float length_squared() const;
-    public:
-        Vec2();
-        Vec2(float x, float y);
-        float getX();
-        float getY();
-        void setX(float x);
-        void setY(float y);
-        Vec2 operator-() const;
-        float operator[] (int i) const;
-        float& operator[] (int i);
-        Vec2& operator+= (const Vec2& v);
-        Vec2& operator*= (float scale);
-        Vec2 operator* (float scale) const;
-        float length() const;
-};
-
 class Transform
 {
     public:
@@ -44,17 +28,19 @@ class Transform
         Direction direction();
 };
 
-struct Sprite
+class Sprite
 {
-    uint16_t width, height;
-    std::string texture;
-    uint16_t render_order;
+    public:
+        std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
+        uint16_t render_order;
+        std::string c_anim;
 };
 
 struct Physics
 {
     Vec2 velocity;
     Vec2 acceleration;
+    bool physics {true};
 };
 
 class Health

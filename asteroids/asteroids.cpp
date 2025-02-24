@@ -7,6 +7,7 @@
 //
 //
 #include "../jlo.h"
+#include "../ecs/math.h"
 #include "../ecs/system.h"
 #include "../ecs/components.h"
 #include <iostream>
@@ -236,23 +237,30 @@ void load_textures(void);
 // M A I N
 //==========================================================================
 Entity* ptr;
-std::vector<std::unique_ptr<TextureInfo>> textures;
+std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 int main()
 {
 	
 	TextureLoader loader { _TEXTURE_FOLDER_PATH };
 	loader.load_textures(textures);
 
-	// for (auto ti : textures) {
-	// 	std::cout << ti.texture;
-	// }
+	
 	EntitySystemManager entity_system_manager;
 	std::weak_ptr<PhysicsSystem> ps = entity_system_manager.registerSystem<PhysicsSystem>();
+	std::weak_ptr<RenderSystem> render_system = entity_system_manager.registerSystem<RenderSystem>();
 	ptr = s.createEntity();
+	Sprite* sc = s.addComponent<Sprite>(ptr);
+	AnimationBuilder ab ("skip.png",{64,64},0);
+	sc->animations.insert({"idle",std::make_shared<Animation>(ab.addFrame(0,0).build())});
+	sc->animations.insert({"running",std::make_shared<Animation>(ab.addFrame(0,0).addFrame(1,0).addFrame(2,0).addFrame(3,0).addFrame(4,0).addFrame(5,0).addFrame(6,0).addFrame(7,0).build())});
+	sc->c_anim = "running";
+ 	Transform* tc = s.addComponent<Transform>(ptr);
+	Physics* pc = s.addComponent<Physics>(ptr);
+	//sc->textures["skip.png"] = textures["skip.png"];
+	//sc->current = "skip.png";
 	//Transform* tc = s.addComponent<Transform>(ptr);
 	//Physics* pc = s.addComponent<Physics>(ptr);
 	// tc->pos = {200,200};
-	// pc->velocity = {500,300};
 	// pc->acceleration = {30,30};
 	// tc->pos[0] = 100;
 	logOpen();
@@ -273,14 +281,9 @@ int main()
 		clock_gettime(CLOCK_REALTIME, &timeCurrent);
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
 		timeCopy(&timeStart, &timeCurrent);
-		// physicsCountdown += timeSpan;
-		// while (physicsCountdown >= physicsRate) {
-		// 	physics();
-		// 	physicsCountdown -= physicsRate;
-		// }
-		render();
+		// Sprite* sc = s.getComponent<Sprite>(ptr);
 		x11.swapBuffers();
-		entity_system_manager.update(s, (float) 0.016);
+		entity_system_manager.update(s, (float) 0.05);
 	}
 	cleanup_fonts();
 	logClose();
@@ -394,37 +397,62 @@ int check_keys(XEvent *e)
 		//not a keyboard event
 		return 0;
 	}
+	if (!s.hasComponents<Physics>(ptr)) {
+		return 0;
+	}
+	Physics* pc = s.getComponent<Physics>(ptr);
 	int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 	if (e->type == KeyRelease) {
-		gl.keys[key] = 0;
-		if (key == XK_Shift_L || key == XK_Shift_R)
-			shift = 0;
+		//gl.keys[key] = 0;
+		if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
+			pc->velocity = {0,0};
+		}
 		return 0;
 	}
 	if (e->type == KeyPress) {
-		gl.keys[key]=1;
+		//gl.keys[key]=1;
+		static float movement_mag = 300.0;
+		switch(key) {
+			case XK_Right:
+				pc->velocity = {movement_mag,0};
+				break;
+			case XK_Left:
+				pc->velocity = {-movement_mag,0};
+				break;
+			case XK_Up:
+				pc->velocity = {0,movement_mag};
+				break;
+			case XK_Down:
+				pc->velocity = {0,-movement_mag};
+				break;
+		}
 		if (key == XK_Shift_L || key == XK_Shift_R) {
-			shift = 1;
+
 			return 0;
 		}
 	}
 	(void)shift;
-	switch (key) {
-		case XK_Escape:
-			return 1;
-		case XK_m:
-			gl.mouse_cursor_on = !gl.mouse_cursor_on;
-			x11.show_mouse_cursor(gl.mouse_cursor_on);
-			break;
-		case XK_s:
-			break;
-		case XK_Down:
-			break;
-		case XK_equal:
-			break;
-		case XK_minus:
-			break;
-	}
+	// switch (key) {
+	// 	case XK_Escape:
+	// 		return 1;
+	// 	case XK_m:
+	// 		gl.mouse_cursor_on = !gl.mouse_cursor_on;
+	// 		x11.show_mouse_cursor(gl.mouse_cursor_on);
+	// 		break;
+	// 	case XK_Up:
+	// 		std::cout << "up" << '\n';
+	// 		pc->velocity = {0, 300.0};
+	// 		pc->velocity = {0,0.0};
+	// 		break;
+	// 	case XK_s:
+	// 		break;
+	// 	case XK_Down:
+	// 		break;
+	// 	case XK_equal:
+	// 		break;
+	// 	case XK_minus:
+	// 		break;
+	// }
 	return 0;
 }
 
@@ -432,44 +460,44 @@ void physics()
 {
 	
 }
-int frame = 0;
-void render() {
-    glClear(GL_COLOR_BUFFER_BIT);
-	std::unique_ptr<TextureInfo>& ti = textures[2];  // Reference to the unique_ptr
-    
-    // Bind the texture directly from the unique_ptr
-    glBindTexture(GL_TEXTURE_2D, *ti->texture);  // Dereference the unique_ptr to access GLuint
+// void render() {
+//     // glClear(GL_COLOR_BUFFER_BIT);
+// 	// Sprite* sc = s.getComponent<Sprite>(ptr);
+// 	// Transform* tc = s.getComponent<Transform>(ptr);
+// 	// std::shared_ptr<TextureInfo> ti = sc->textures["skip.png"];  // Reference to the unique_ptr
+//     // if (ti == nullptr) {
+// 	// 	exit(0);
+// 	// }
+//     // // Bind the texture directly from the unique_ptr
+//     // glBindTexture(GL_TEXTURE_2D, *ti->texture);  // Dereference the unique_ptr to access GLuint
 
-	void show_jlo();
-	void show_balrowhany(Rect* r);
+// 	// void show_jlo();
+// 	// void show_balrowhany(Rect* r);
 
+//     // int h = 64;
+// 	// int w = 64;
 
-    float cx = gl.xres / 2.0f;
-    float cy = gl.yres / 2.0f;
-    int h = 200;
-	int w = h * 0.5;
+// 	// int columns = 8;
+// 	// int rows = 1;
+// 	// int ix = frame % columns;
+// 	// int iy = frame / columns;
+// 	// frame++;
+// 	// float fx = (float) ix / columns;
+// 	// float fy = (float) iy / rows;
 
-	int columns = 8;
-	int rows = 1;
-	int ix = frame % columns;
-	int iy = frame / columns;
-	frame++;
-	float fx = (float) ix / columns;
-	float fy = (float) iy / rows;
+//     // // Draw the texture as a quad
+//     // glBegin(GL_QUADS);
+//     //     float xo = (float)1 / columns;
+//     //     float xy = (float)1 / rows;
+// 	// 	glTexCoord2f(fx + xo, fy + xy); glVertex2i(tc->pos[0] - w, tc->pos[1] - h);
+// 	// 	glTexCoord2f(fx + xo, fy);      glVertex2i(tc->pos[0] - w, tc->pos[1] + h);
+// 	// 	glTexCoord2f(fx, fy);           glVertex2i(tc->pos[0] + w, tc->pos[1] + h);
+// 	// 	glTexCoord2f(fx, fy + xy);      glVertex2i(tc->pos[0] + w, tc->pos[1] - h);
+//     // glEnd();
 
-    // Draw the texture as a quad
-    glBegin(GL_QUADS);
-        float xo = (float)1 / columns;
-        float xy = (float)1 / rows;
-		glTexCoord2f(fx + xo, fy + xy); glVertex2i(cx - w, cy - h);
-		glTexCoord2f(fx + xo, fy);      glVertex2i(cx - w, cy + h);
-		glTexCoord2f(fx, fy);           glVertex2i(cx + w, cy + h);
-		glTexCoord2f(fx, fy + xy);      glVertex2i(cx + w, cy - h);
-    glEnd();
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_ALPHA_TEST);
-}
+//     // glBindTexture(GL_TEXTURE_2D, 0);
+//     // glDisable(GL_ALPHA_TEST);
+// }
 
 
 

@@ -1,19 +1,26 @@
 #pragma once
 
 #include "../jlo.h"
+#include "components.h"
 #include <vector>
 #include <memory>
 #include <iostream>
 class EntitySystem
 {
     public:
-        virtual ~EntitySystem() = default;
+        virtual ~EntitySystem();
         virtual void update(Scene& scene, float dt);
 };
 
 class PhysicsSystem : public EntitySystem {
     public:
         PhysicsSystem();
+        void update(Scene& scene, float dt) override;
+};
+
+class RenderSystem: public EntitySystem {
+    public:
+        RenderSystem();
         void update(Scene& scene, float dt) override;
 };
 
