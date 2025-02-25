@@ -93,3 +93,8 @@ void EntitySystemManager::update(Scene& scene, float dt) {
         p_system->update(scene, dt); 
     }
 }
+
+//@theinsurgentarchive
+void InventorySystem::update(Scene& scene, float dt)
+{
+}
