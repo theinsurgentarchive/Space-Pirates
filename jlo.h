@@ -10,65 +10,12 @@
 #include <queue>
 #include <vector>
 #include <GL/glx.h>
-class Image {
-	public:
-		int width, height;
-		unsigned char *data;
-		~Image() { delete [] data; }
-		Image(const char *fname) { 
-			if (fname[0] == '\0')
-				return;
-			//printf("fname **%s**\n", fname);
-			int ppmFlag = 0;
-			char name[40];
-			strcpy(name, fname);
-			int slen = strlen(name);
-			char ppmname[80];
-			if (strncmp(name+(slen-4), ".ppm", 4) == 0)
-				ppmFlag = 1;
-			if (ppmFlag) {
-				strcpy(ppmname, name);
-			} else {
-				name[slen-4] = '\0';
-				//printf("name **%s**\n", name);
-				sprintf(ppmname,"%s.ppm", name);
-				//printf("ppmname **%s**\n", ppmname);
-				char ts[100];
-				//system("convert eball.jpg eball.ppm");
-				sprintf(ts, "convert %s %s", fname, ppmname);
-				system(ts);
-			}
-			//sprintf(ts, "%s", name);
-			//printf("read ppm **%s**\n", ppmname); fflush(stdout);
-			FILE *fpi = fopen(ppmname, "r");
-			if (fpi) {
-				char line[200];
-				fgets(line, 200, fpi);
-				fgets(line, 200, fpi);
-				//skip comments and blank lines
-				while (line[0] == '#' || strlen(line) < 2)
-					fgets(line, 200, fpi);
-				sscanf(line, "%i %i", &width, &height);
-				fgets(line, 200, fpi);
-				//get pixel data
-				int n = width * height * 3;			
-				data = new unsigned char[n];			
-				for (int i=0; i<n; i++)
-					data[i] = fgetc(fpi); 
-				fclose(fpi);
-			} else {
-				printf("ERROR opening image: %s\n",ppmname);
-				exit(0);
-			}
-			if (!ppmFlag)
-				unlink(ppmname);
-		}
-};
+#include <unordered_map>
+
 void show_jlo(Rect* r);
 constexpr uint16_t MAX_ENTITY_COMPONENTS {32};
 typedef std::bitset<MAX_ENTITY_COMPONENTS> ComponentMask;
 typedef uint32_t EntityID;
-extern unsigned char *buildAlphaData(Image *img);
 extern uint16_t counter;
 template <typename T>
 uint16_t getComponentId() 
@@ -89,7 +36,6 @@ class Entity
         EntityID getId() const;
         ComponentMask& getMask();
 };
-
 /*
     An array for a singular type of component
     Credit: https://www.david-colson.com/2020/02/09/making-a-simple-ecs.html
@@ -191,22 +137,8 @@ class Scene
         void displayMatrix();
 };
 
-class TextureInfo {
-    public:
-        Image img;
-        std::shared_ptr<GLuint> texture;
-        TextureInfo(const char* f_name);
-};
-
-class TextureLoader
-{
-    private:
-        const char* _fname;
-        void _find_texture_names(std::vector<std::string>& t_file_names);
-    public:
-        TextureLoader(const char* f);
-        void load_textures(std::vector<std::unique_ptr<TextureInfo>>& textures);
-        
-};
+// struct AnimationFrame {
+//     Vec2 pos, dim;
+// }
 
 #include "implementation/scene.tpp"
