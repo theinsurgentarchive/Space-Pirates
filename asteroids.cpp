@@ -6,7 +6,7 @@
 //This program is a game starting point for a 3350 project.
 //
 //
-#include "../jlo.h"
+#include "jlo.h"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>

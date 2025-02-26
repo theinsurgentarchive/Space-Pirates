@@ -1,7 +1,7 @@
 #pragma once
 #include "image.h"
-#include "asteroids/fonts.h"
-#include "asteroids/defs.h"
+#include "fonts.h"
+#include "defs.h"
 #include <cstdint>
 #include <string>
 #include <bitset>
