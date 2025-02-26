@@ -7,9 +7,6 @@
 //
 //
 #include "../jlo.h"
-#include "../ecs/math.h"
-#include "../ecs/system.h"
-#include "../ecs/components.h"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -256,13 +253,6 @@ int main()
 	sc->c_anim = "running";
  	Transform* tc = s.addComponent<Transform>(ptr);
 	Physics* pc = s.addComponent<Physics>(ptr);
-	//sc->textures["skip.png"] = textures["skip.png"];
-	//sc->current = "skip.png";
-	//Transform* tc = s.addComponent<Transform>(ptr);
-	//Physics* pc = s.addComponent<Physics>(ptr);
-	// tc->pos = {200,200};
-	// pc->acceleration = {30,30};
-	// tc->pos[0] = 100;
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
