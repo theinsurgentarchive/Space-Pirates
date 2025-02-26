@@ -1,7 +1,24 @@
-#include "../jlo.h"
-#include <stdexcept>
+#include "jlo.h"
 #include <iostream>
+#include <stdexcept>
+template <typename T>
+std::weak_ptr<T> EntitySystemManager::registerSystem() {
+    // if(EntitySystemManager::hasSystem<T>()) {
+    //     return nullptr;
+    // }
+    auto ptr = std::make_shared<T>();
+    systems.push_back(ptr);
+    return std::weak_ptr<T>(ptr);
+}
 
+template <typename T>
+bool EntitySystemManager::hasSystem() {
+    for (const auto& system : systems) {
+        if (dynamic_cast<T*>(system.get()) != nullptr)
+            return true;
+    }
+    return false;
+}
 template <typename T>
 T* Scene::addComponent(Entity* ptr) {
     uint16_t componentId = getComponentId<T>();
