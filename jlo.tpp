@@ -2,7 +2,8 @@
 #include <iostream>
 #include <stdexcept>
 template <typename T>
-std::weak_ptr<T> EntitySystemManager::registerSystem() {
+std::weak_ptr<T> EntitySystemManager::registerSystem() 
+{
     // if(EntitySystemManager::hasSystem<T>()) {
     //     return nullptr;
     // }
@@ -12,7 +13,8 @@ std::weak_ptr<T> EntitySystemManager::registerSystem() {
 }
 
 template <typename T>
-bool EntitySystemManager::hasSystem() {
+bool EntitySystemManager::hasSystem() 
+{
     for (const auto& system : systems) {
         if (dynamic_cast<T*>(system.get()) != nullptr)
             return true;
@@ -20,7 +22,8 @@ bool EntitySystemManager::hasSystem() {
     return false;
 }
 template <typename T>
-T* Scene::addComponent(Entity* ptr) {
+T* Scene::addComponent(Entity* ptr) 
+{
     uint16_t componentId = getComponentId<T>();
             
     if (Scene::hasComponents<T>(ptr)) {
@@ -44,7 +47,8 @@ T* Scene::addComponent(Entity* ptr) {
 }
 
 template <typename T>
-T* Scene::getComponent(Entity* ptr) {
+T* Scene::getComponent(Entity* ptr) 
+{
     int componentId = getComponentId<T>();
 
     if (!Scene::hasComponents<T>(ptr)) {
@@ -56,13 +60,15 @@ T* Scene::getComponent(Entity* ptr) {
 }
 
 template <typename T>
-bool checkComponents(Entity* ptr, T) {
+bool checkComponents(Entity* ptr, T) 
+{
     uint16_t cid = getComponentId<T>();
     return ptr->getMask()[cid];
 }
 
 template <typename T, typename... Ts>
-bool checkComponents(Entity* ptr, T, Ts ... ts) {
+bool checkComponents(Entity* ptr, T, Ts ... ts) 
+{
     return checkComponents(ptr,T()) && checkComponents(ptr,ts...);
 }
 template <typename... T>
@@ -71,7 +77,8 @@ bool Scene::hasComponents(Entity* ptr) {
 }
 
 template <typename ... T> 
-std::vector<Entity*> Scene::queryEntities() {
+std::vector<Entity*> Scene::queryEntities() 
+{
     std::vector<Entity*> result;
     for (auto& ptr_entity : checked_out) {
         if(Scene::hasComponents<T...>(&ptr_entity)) {
