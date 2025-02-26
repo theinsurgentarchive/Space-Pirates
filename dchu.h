@@ -3,7 +3,7 @@
 #include "jsandoval.h"
 #include "balrowhany.h"
 #include "mchitorog.h"
-#include "asteroids/fonts.h"
+#include "fonts.h"
 
 //Credit Print Function
 void show_dchu(Rect*);
