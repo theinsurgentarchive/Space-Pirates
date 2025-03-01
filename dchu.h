@@ -45,7 +45,7 @@ struct item
 };
 
 //Declaration of Inventory Management
-class inventory
+class Inventory
 {
     private:
         void initStoreVolume(uint8_t, uint8_t);
@@ -54,10 +54,10 @@ class inventory
         vec2i inv_size;
         public:
         //Constructor
-        inventory();
+        Inventory();
 
         //Destructor
-        ~inventory();
+        ~Inventory();
 
         //Setters
         void addItem(item);
