@@ -48,7 +48,7 @@ struct item
 class Inventory
 {
     private:
-        void initStoreVolume(uint8_t, uint8_t);
+        void initStoreVolume(int, int);
         bool full;
         item** storage;
         vec2i inv_size;
