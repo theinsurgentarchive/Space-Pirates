@@ -1,58 +1,51 @@
 #include "dchu.h"
 #include <iostream>
 
-//Credit Print Function
-void show_dchu()
+//Credit Print Functions
+//Console print
+void ShowDChu()
 {
     std::cout << "Developer - David Chu\n";
 }
-void show_dchu(Rect* r)
+
+//Window render
+void ShowDChu(Rect* r)
 {
     ggprint8b(r, 16, 0x00ff0000, "Developer - David Chu");
 }
 
 //Inventory Class Functions
-inventory::inventory()
+Inventory::Inventory()
 {
     initStoreVolume(3, 4);
     full = false;
 }
 
-inventory::inventory(uint8_t x)
+Inventory::~Inventory()
 {
-    initStoreVolume(x, x);
-}
-
-inventory::~inventory()
-{
-    for (uint8_t i = 0; i < sizeX; i++) {
+    for (uint8_t i = 0; i < size.x(); i++) {
         delete [] storage[i];
     }
     delete [] storage;
 }
 
-inventory::inventory(uint8_t x, uint8_t y)
-{
-    initStoreVolume(x, y);
-}
-
-void inventory::initStoreVolume(uint8_t x, uint8_t y)
+void Inventory::initStoreVolume(uint8_t x, uint8_t y)
 {
     //Initialize Variables
-    uint8_t sizeX = x;
-    uint8_t sizeY = y;
+    size.x(x);
+    size.y(y);
 
     //Initialize Inventory Matrix
-    storage = new item*[sizeX];
-    for (uint8_t i = 0; i < sizeX; i++) {
-        storage[i] = new item[sizeY];
+    storage = new item*[size.x()];
+    for (uint8_t i = 0; i < size.x(); i++) {
+        storage[i] = new item[size.y()];
     }
 
     //Pre-Load Item Slots
-    if (sizeX > 0 && sizeY > 0) {
+    if (size.x() > 0 && size.y() > 0) {
         uint8_t counter = 0;
-        for (uint8_t i = 0; i < sizeX; i++) {
-            for (uint8_t j = 0; j < sizeY; j++) {
+        for (uint8_t i = 0; i < size.x(); i++) {
+            for (uint8_t j = 0; j < size.y(); j++) {
                 storage[i][j].item_name = ("Slot " + std::to_string(counter));
                 storage[i][j].slot_num = ++counter;
             }
@@ -62,14 +55,14 @@ void inventory::initStoreVolume(uint8_t x, uint8_t y)
     #ifdef DEVMODE
         std::string test = "testItem";
         bool flag = false;
-        for (uint8_t i = 0; i < sizeX; i++) {
-            for (uint8_t j = 0; j < sizeY; j++) {
+        for (uint8_t i = 0; i < size.x(); i++) {
+            for (uint8_t j = 0; j < size.y(); j++) {
                 storage[i][j].item_name = test;
             }
             
         }
-        for (uint8_t i = 0; i < sizeX; i++) {
-            for (uint8_t j = 0; j < sizeY; j++) {
+        for (uint8_t i = 0; i < size.x(); i++) {
+            for (uint8_t j = 0; j < size.y(); j++) {
                 if(storage[i][j].item_name != test) {
                     flag = true;
                     break;
@@ -80,8 +73,8 @@ void inventory::initStoreVolume(uint8_t x, uint8_t y)
             }
         }
         if (!flag) {
-            for (uint8_t i = 0; i < sizeX; i++) {
-                for (uint8_t j = 0; j < sizeY; j++) {
+            for (uint8_t i = 0; i < size.x(); i++) {
+                for (uint8_t j = 0; j < size.y(); j++) {
                     std::cout << storage[i][j].item_name << " ";
                 }
                 std::cout << std::endl;

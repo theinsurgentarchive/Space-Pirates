@@ -6,7 +6,7 @@
 #include "fonts.h"
 
 //Credit Print Function
-void show_dchu(Rect*);
+void ShowDChu(Rect*);
 
 //Entity Components
 struct oxygen_resource
@@ -51,13 +51,10 @@ class inventory
         void initStoreVolume(uint8_t, uint8_t);
         bool full;
         item** storage;
-        uint8_t sizeY;
-        uint8_t sizeX;
+        vec2i size;
         public:
         //Constructor
         inventory();
-        inventory(uint8_t);
-        inventory(uint8_t, uint8_t);
 
         //Destructor
         ~inventory();
