@@ -5,6 +5,7 @@
 #include "components.h"
 #include <iostream>
 #include <unordered_map>
+extern Global gl; //access to gl.state for menu state render
 extern std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 EntitySystem::~EntitySystem() = default;
 void EntitySystem::update([[maybe_unused]] Scene& scene, [[maybe_unused]] float dt) {
@@ -13,6 +14,10 @@ void EntitySystem::update([[maybe_unused]] Scene& scene, [[maybe_unused]] float 
 PhysicsSystem::PhysicsSystem() = default;
 
 void PhysicsSystem::update(Scene& scene, float dt) {
+    if (gl.state == Global::MENU || gl.state == Global::CONTROLS) {
+        std::cout << "PhysicsSys: skip rendering because gl.state is menu/controls" << endl;
+        return;  
+    }
     std::vector<Entity*> entities = scene.queryEntities<Transform, Physics>();
     for (auto ptr : entities) {
         Transform* tc = scene.getComponent<Transform>(ptr);
@@ -26,7 +31,12 @@ void PhysicsSystem::update(Scene& scene, float dt) {
 
 RenderSystem::RenderSystem() = default;
 void RenderSystem::update(Scene& scene, float dt) {
-    glClear(GL_COLOR_BUFFER_BIT);
+    if (gl.state == Global::MENU || gl.state == Global::CONTROLS){
+        std::cout << "renderSystem: skipped cuz gl.state menu" <<endl;
+        return;
+    }
+    //clearing in main loop asteroids.
+   // glClear(GL_COLOR_BUFFER_BIT);
     std::vector<Entity*> entities = scene.queryEntities<Transform, Sprite>();
 
     for (auto e : entities) {
