@@ -65,7 +65,7 @@ class Inventory
 
         //Getters:
         void getInventory();
-        item returnItemSlot(uint8_t, uint8_t);
+        item returnItemSlot(int, int);
 };
 
 //ECS: Inventory Management System
