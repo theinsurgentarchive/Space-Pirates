@@ -6,10 +6,9 @@
 //This program is a game starting point for a 3350 project.
 //
 //
-#include "../jlo.h"
-#include "../ecs/math.h"
-#include "../ecs/system.h"
-#include "../ecs/components.h"
+#define DEBUG
+#include "jlo.h"
+#include "image.h"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -22,7 +21,6 @@
 #include "log.h"
 #include "fonts.h"
 #define GAME_TITLE "Space Pirates"
-#define DEBUG
 #define _TEXTURE_FOLDER_PATH "./textures"
 using namespace std; 
 
@@ -31,15 +29,14 @@ using namespace std;
 typedef float Flt;
 typedef float Vec[3];
 typedef Flt	Matrix[4][4];
-uint16_t counter = 0;
 //constants
+uint16_t counter = 0;
 const float timeslice = 1.0f;
 const float gravity = -0.2f;
 #define PI 3.141592653589793
 #define ALPHA 1
 const int MAX_BULLETS = 11;
 const Flt MINIMUM_ASTEROID_SIZE = 60.0;
-Scene s {50};
 
 //-----------------------------------------------------------------------------
 //Setup timers
@@ -302,36 +299,19 @@ void load_textures(void);
 //==========================================================================
 // M A I N
 //==========================================================================
-Entity* ptr;
-std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+ecs::Entity* ptr;
+// Entity* second;
+// std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+// std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
 int main()
 {
-	
-	TextureLoader loader { _TEXTURE_FOLDER_PATH };
-	loader.load_textures(textures);
-
-	
-	EntitySystemManager entity_system_manager;
-	std::weak_ptr<PhysicsSystem> ps = entity_system_manager.registerSystem<PhysicsSystem>();
-	std::weak_ptr<RenderSystem> render_system = entity_system_manager.registerSystem<RenderSystem>();
-	
-	ptr = s.createEntity();
-	Sprite* sc = s.addComponent<Sprite>(ptr);
-	AnimationBuilder ab ("skip.png",{64,64},0);
-	sc->animations.insert({"idle",std::make_shared<Animation>(ab.addFrame(0,0).build())});
-	sc->animations.insert({"running",std::make_shared<Animation>(ab.addFrame(0,0).addFrame(1,0).addFrame(2,0).addFrame(3,0).addFrame(4,0).addFrame(5,0).addFrame(6,0).addFrame(7,0).build())});
-	sc->c_anim = "running";
- 	Transform* tc = s.addComponent<Transform>(ptr);
-	Physics* pc = s.addComponent<Physics>(ptr);
-
-	//sc->textures["skip.png"] = textures["skip.png"];
-	//sc->current = "skip.png";
-	//Transform* tc = s.addComponent<Transform>(ptr);
-	//Physics* pc = s.addComponent<Physics>(ptr);
-	// tc->pos = {200,200};
-	// pc->acceleration = {30,30};
-	// tc->pos[0] = 100;
-
+	auto e = ecs::ecs.entity().checkout();
+	while (e != nullptr) {
+		auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
+		// transform->rotation = 5;
+		// std::cout << transform->rotation;
+		e = ecs::ecs.entity().checkout();
+	}
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -365,7 +345,6 @@ int main()
 			entity_system_manager.update(s, (float) 0.05);
 		}
 		x11.swapBuffers();
-		
 	}
 	cleanup_fonts();
 	logClose();
@@ -486,6 +465,13 @@ int check_keys(XEvent *e)
 {
     static int shift = 0;
     static int exit_request = 0;  // Initialize to 0
+	if (e->type != KeyRelease && e->type != KeyPress) {
+		//not a keyboard event
+		return 0;
+	}
+	if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
+		return 0;
+	}
 
     // Not a keyboard event
     if (e->type != KeyRelease && e->type != KeyPress) {
@@ -605,7 +591,6 @@ void physics()
 {
 	
 }
-
 void render() {
 
 	cout << "rendering state: " << gl.state << endl; 
@@ -681,7 +666,6 @@ void render() {
     }
 
 }
-
 
 
 

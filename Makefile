@@ -1,20 +1,18 @@
 CFLAGS = -I ./include
-LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm #-lXrandr
-SRC = asteroids/asteroids.cpp asteroids/log.cpp asteroids/timers.cpp jlo.cpp ecs/system.cpp ecs/components.cpp ecs/textures.cpp ecs/math.cpp ecs/anim.cpp
-OBJ = $(SRC:.cpp=.o)
+LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm
+SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp 
+OBJ = ${SRC:.cpp=.o}
 
-# Build everything
-all: test
+all: asteroids debug
 
-# Compile object files for all .cpp files
 %.o: %.cpp
-	g++ $(CFLAGS) -c $< -Wall -Wextra $(LFLAGS) -o $@
+	g++ ${CFLAGS} -c $< -Wall -Wextra ${LFLAGS} -o $@
 
-# Link everything together
-test: $(OBJ)
-	g++ $^ asteroids/libggfonts.a -o $@ $(LFLAGS)
+asteroids: ${OBJ}
+	g++ $^ libggfonts.a -o $@ ${LFLAGS}
 
-# Clean generated files
+debug: ${OBJ}
+	g++ $^ libggfonts.a -g -D DEBUG -o $@ ${LFLAGS}
 clean:
-	rm -f test
+	rm -f asteroids
 	rm -f *.o

@@ -1,15 +1,10 @@
 #pragma once
 
-#include <GL/glx.h>
-#include <cstring>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <memory>
-#include <vector>
-#include <unordered_map>
-
-
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
+// start - gordon
 class Image {
 	public:
 		int width, height;
@@ -64,22 +59,4 @@ class Image {
 				unlink(ppmname);
 		}
 };
-
-extern unsigned char *buildAlphaData(Image *img);
-
-struct Texture {
-    uint16_t width, height;
-    std::shared_ptr<GLuint> texture;
-    Texture(uint16_t w, uint16_t h);
-};
-
-class TextureLoader
-{
-    private:
-        const char* _folder_name;
-        void _find_texture_names(std::vector<std::string>& t_file_names);
-    public:
-        TextureLoader(const char* f);
-        void load_textures(std::unordered_map<std::string,std::shared_ptr<Texture>>& textures);
-        
-};
+//end - gordon
