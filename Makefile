@@ -3,16 +3,16 @@ LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm
 SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp 
 OBJ = ${SRC:.cpp=.o}
 
-# Build everything
-all: asteroids
+all: asteroids debug
 
-# Compile object files for all .cpp files
 %.o: %.cpp
 	g++ ${CFLAGS} -c $< -Wall -Wextra ${LFLAGS} -o $@
 
 asteroids: ${OBJ}
 	g++ $^ libggfonts.a -o $@ ${LFLAGS}
 
+debug: ${OBJ}
+	g++ $^ libggfonts.a -g -D DEBUG -o $@ ${LFLAGS}
 clean:
 	rm -f asteroids
 	rm -f *.o

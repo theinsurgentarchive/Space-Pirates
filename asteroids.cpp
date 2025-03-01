@@ -6,7 +6,9 @@
 //This program is a game starting point for a 3350 project.
 //
 //
+#define DEBUG
 #include "jlo.h"
+#include "image.h"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -19,22 +21,20 @@
 #include "log.h"
 #include "fonts.h"
 #define GAME_TITLE "Space Pirates"
-#define DEBUG
 #define _TEXTURE_FOLDER_PATH "./textures"
 // #define CREDITS
 //defined types
 typedef float Flt;
 typedef float Vec[3];
 typedef Flt	Matrix[4][4];
-uint16_t counter = 0;
 //constants
+uint16_t counter = 0;
 const float timeslice = 1.0f;
 const float gravity = -0.2f;
 #define PI 3.141592653589793
 #define ALPHA 1
 const int MAX_BULLETS = 11;
 const Flt MINIMUM_ASTEROID_SIZE = 60.0;
-Scene s {50};
 
 //-----------------------------------------------------------------------------
 //Setup timers
@@ -233,26 +233,19 @@ void load_textures(void);
 //==========================================================================
 // M A I N
 //==========================================================================
-Entity* ptr;
-std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+ecs::Entity* ptr;
+// Entity* second;
+// std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+// std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
 int main()
 {
-	
-	TextureLoader loader { _TEXTURE_FOLDER_PATH };
-	loader.load_textures(textures);
-
-	
-	EntitySystemManager entity_system_manager;
-	std::weak_ptr<PhysicsSystem> ps = entity_system_manager.registerSystem<PhysicsSystem>();
-	std::weak_ptr<RenderSystem> render_system = entity_system_manager.registerSystem<RenderSystem>();
-	ptr = s.createEntity();
-	Sprite* sc = s.addComponent<Sprite>(ptr);
-	AnimationBuilder ab ("skip.png",{64,64},0);
-	sc->animations.insert({"idle",std::make_shared<Animation>(ab.addFrame(0,0).build())});
-	sc->animations.insert({"running",std::make_shared<Animation>(ab.addFrame(0,0).addFrame(1,0).addFrame(2,0).addFrame(3,0).addFrame(4,0).addFrame(5,0).addFrame(6,0).addFrame(7,0).build())});
-	sc->c_anim = "running";
- 	Transform* tc = s.addComponent<Transform>(ptr);
-	Physics* pc = s.addComponent<Physics>(ptr);
+	auto e = ecs::ecs.entity().checkout();
+	while (e != nullptr) {
+		auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
+		// transform->rotation = 5;
+		// std::cout << transform->rotation;
+		e = ecs::ecs.entity().checkout();
+	}
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -271,9 +264,8 @@ int main()
 		clock_gettime(CLOCK_REALTIME, &timeCurrent);
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
 		timeCopy(&timeStart, &timeCurrent);
-		// Sprite* sc = s.getComponent<Sprite>(ptr);
 		x11.swapBuffers();
-		entity_system_manager.update(s, (float) 0.05);
+		//entity_system_manager.update(s, (float) 0.05);
 	}
 	cleanup_fonts();
 	logClose();
@@ -387,15 +379,15 @@ int check_keys(XEvent *e)
 		//not a keyboard event
 		return 0;
 	}
-	if (!s.hasComponents<Physics>(ptr)) {
+	if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
 		return 0;
 	}
-	Physics* pc = s.getComponent<Physics>(ptr);
+	auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
 	int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 	if (e->type == KeyRelease) {
 		//gl.keys[key] = 0;
 		if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-			pc->velocity = {0,0};
+			pc->vel = {0,0};
 		}
 		return 0;
 	}
@@ -404,16 +396,16 @@ int check_keys(XEvent *e)
 		static float movement_mag = 300.0;
 		switch(key) {
 			case XK_Right:
-				pc->velocity = {movement_mag,0};
+				pc->vel = {movement_mag,0};
 				break;
 			case XK_Left:
-				pc->velocity = {-movement_mag,0};
+				pc->vel = {-movement_mag,0};
 				break;
 			case XK_Up:
-				pc->velocity = {0,movement_mag};
+				pc->vel = {0,movement_mag};
 				break;
 			case XK_Down:
-				pc->velocity = {0,-movement_mag};
+				pc->vel = {0,-movement_mag};
 				break;
 		}
 		if (key == XK_Shift_L || key == XK_Shift_R) {
@@ -450,44 +442,9 @@ void physics()
 {
 	
 }
-// void render() {
-//     // glClear(GL_COLOR_BUFFER_BIT);
-// 	// Sprite* sc = s.getComponent<Sprite>(ptr);
-// 	// Transform* tc = s.getComponent<Transform>(ptr);
-// 	// std::shared_ptr<TextureInfo> ti = sc->textures["skip.png"];  // Reference to the unique_ptr
-//     // if (ti == nullptr) {
-// 	// 	exit(0);
-// 	// }
-//     // // Bind the texture directly from the unique_ptr
-//     // glBindTexture(GL_TEXTURE_2D, *ti->texture);  // Dereference the unique_ptr to access GLuint
-
-// 	// void show_jlo();
-// 	// void show_balrowhany(Rect* r);
-
-//     // int h = 64;
-// 	// int w = 64;
-
-// 	// int columns = 8;
-// 	// int rows = 1;
-// 	// int ix = frame % columns;
-// 	// int iy = frame / columns;
-// 	// frame++;
-// 	// float fx = (float) ix / columns;
-// 	// float fy = (float) iy / rows;
-
-//     // // Draw the texture as a quad
-//     // glBegin(GL_QUADS);
-//     //     float xo = (float)1 / columns;
-//     //     float xy = (float)1 / rows;
-// 	// 	glTexCoord2f(fx + xo, fy + xy); glVertex2i(tc->pos[0] - w, tc->pos[1] - h);
-// 	// 	glTexCoord2f(fx + xo, fy);      glVertex2i(tc->pos[0] - w, tc->pos[1] + h);
-// 	// 	glTexCoord2f(fx, fy);           glVertex2i(tc->pos[0] + w, tc->pos[1] + h);
-// 	// 	glTexCoord2f(fx, fy + xy);      glVertex2i(tc->pos[0] + w, tc->pos[1] - h);
-//     // glEnd();
-
-//     // glBindTexture(GL_TEXTURE_2D, 0);
-//     // glDisable(GL_ALPHA_TEST);
-// }
+void render() {
+    //hello 
+}
 
 
 
