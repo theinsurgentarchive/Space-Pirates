@@ -36,12 +36,12 @@ namespace ecs
     T* ComponentManager::fetch(Entity *e_ptr)
     {
         if (e_ptr == nullptr) {
-            DPRINT("entity pointer was null");
+            DPRINT("entity pointer was null\n");
             return nullptr;
         }
         uint16_t cid = getId<T>();
         if (!ComponentManager::has<T>(e_ptr)) {
-            DPRINTF("entity (%d) does not own component (%d)",e_ptr->id,cid);
+            DPRINTF("entity (%d) does not own component (%d)\n",e_ptr->id,cid);
             return nullptr;
         }
         void *mem = _pools[cid]->get(e_ptr->id);

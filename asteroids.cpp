@@ -6,7 +6,6 @@
 //This program is a game starting point for a 3350 project.
 //
 //
-#define DEBUG
 #include "jlo.h"
 #include "image.h"
 #include <iostream>
@@ -21,7 +20,7 @@
 #include "log.h"
 #include "fonts.h"
 #define GAME_TITLE "Space Pirates"
-#define _TEXTURE_FOLDER_PATH "./textures"
+#define TEXTURE_FOLDER_PATH "./textures"
 using namespace std; 
 
 // #define CREDITS
@@ -49,20 +48,18 @@ extern double timeSpan;
 extern double timeDiff(struct timespec *start, struct timespec *end);
 extern void timeCopy(struct timespec *dest, struct timespec *source);
 //-----------------------------------------------------------------------------
-
+enum GameState {
+	MENU, // GAME STATE: 0 
+	PLAYING, // 1
+	CONTROLS,  // 2 
+	EXIT 
+};
 class Global {
 public:
 	int xres, yres;
 	char keys[65536];
 	int mouse_cursor_on;
 	GLuint walkTexture;
-
-	enum GameState {
-		MENU, // GAME STATE: 0 
-		PLAYING, // 1
-		CONTROLS,  // 2 
-		EXIT 		// 3
-	}; 
 
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
@@ -79,53 +76,6 @@ public:
 
 Global gl;
 // 
-
-class Image { // BISHOP code.
-    public:
-        int width, height;
-        unsigned char *data;
-        ~Image() { delete [] data; }
-        Image(const char *fname) {
-            if (fname[0] == '\0')
-                return;
-            int ppmFlag = 0;
-            char name[40];
-            strcpy(name, fname);
-            int slen = strlen(name);
-            char ppmname[80];
-            if (strncmp(name+(slen-4), ".ppm", 4) == 0)
-                ppmFlag = 1;
-            if (ppmFlag) {
-                strcpy(ppmname, name);
-            } else {
-                name[slen-4] = '\0';
-                sprintf(ppmname,"%s.ppm", name);
-                char ts[100];
-                sprintf(ts, "convert %s %s", fname, ppmname);
-                system(ts);
-            }
-            FILE *fpi = fopen(ppmname, "r");
-            if (fpi) {
-                char line[200];
-                fgets(line, 200, fpi);
-                fgets(line, 200, fpi);
-                while (line[0] == '#' || strlen(line) < 2)
-                    fgets(line, 200, fpi);
-                sscanf(line, "%i %i", &width, &height);
-                fgets(line, 200, fpi);
-                int n = width * height * 3;
-                data = new unsigned char[n];
-                for (int i=0; i<n; i++)
-                    data[i] = fgetc(fpi);
-                fclose(fpi);
-            } else {
-                printf("ERROR opening image: %s\n",ppmname);
-                exit(0);
-            }
-            if (!ppmFlag)
-                unlink(ppmname);
-        }
-};
 
 GLuint menuBackgroundTexture; 
 Image *menuImage = NULL; 
@@ -307,9 +257,7 @@ int main()
 {
 	auto e = ecs::ecs.entity().checkout();
 	while (e != nullptr) {
-		auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
-		// transform->rotation = 5;
-		// std::cout << transform->rotation;
+		[[maybe_unused]]auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
 		e = ecs::ecs.entity().checkout();
 	}
 	logOpen();
@@ -333,16 +281,15 @@ int main()
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
 		timeCopy(&timeStart, &timeCurrent);
 		//clear screen just once at the beginning
-		glClear(GL_COLOR_BUFFER_BIT); 
+		//glClear(GL_COLOR_BUFFER_BIT); 
 
-		// Sprite* sc = s.getComponent<Sprite>(ptr);
 		// render based on game state 
 
-		if (gl.state == Global::MENU || gl.state == Global::CONTROLS) {
+		if (gl.state == MENU || gl.state == CONTROLS) {
 			//USE RENDER() NOT ECS RENDER SYSTEM IF IN MENU STATE
 			render(); 
-		} else if (gl.state == Global::PLAYING) {
-			entity_system_manager.update(s, (float) 0.05);
+		} else if (gl.state == PLAYING) {
+			//entity_system_manager.update(s, (float) 0.05);
 		}
 		x11.swapBuffers();
 	}
@@ -373,7 +320,7 @@ void init_opengl(void)
 	initialize_fonts();
 
 	glGenTextures(1, &menuBackgroundTexture);
-	menuImage = new Image("./menu-bg.jpg");	
+	menuImage = new Image("./textures/menu-bg.jpg");	
 	//biship code 
 	glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -463,15 +410,15 @@ void check_mouse(XEvent *e)
 
 int check_keys(XEvent *e)
 {
-    static int shift = 0;
-    static int exit_request = 0;  // Initialize to 0
+    [[maybe_unused]]static int shift = 0;
+    [[maybe_unused]]static int exit_request = 0;  // Initialize to 0
 	if (e->type != KeyRelease && e->type != KeyPress) {
 		//not a keyboard event
 		return 0;
 	}
-	if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
-		return 0;
-	}
+	// if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
+	// 	return 0;
+	// }
 
     // Not a keyboard event
     if (e->type != KeyRelease && e->type != KeyPress) {
@@ -484,39 +431,39 @@ int check_keys(XEvent *e)
     if (e->type == KeyPress) {
         switch(key) {
             case XK_Escape:
-                if (gl.state == Global::CONTROLS) {
-                    gl.state = Global::MENU;
+                if (gl.state == CONTROLS) {
+                    gl.state = MENU;
                     cout << "Returning to menu from controls" << endl;
-                } else if (gl.state == Global::PLAYING) {
-                    gl.state = Global::MENU;
+                } else if (gl.state == PLAYING) {
+                    gl.state = MENU;
                     cout << "Pausing game - returning to menu" << endl;
-                } else if (gl.state == Global::MENU) {
+                } else if (gl.state == MENU) {
                     cout << "Exiting game from menu" << endl;
                     exit_request = 1;
                     return exit_request;
                 }
                 break;
             case XK_Up:
-                if (gl.state == Global::MENU) {
-                    gl.selected_option = (gl.selected_option - 1 + 3) % 3; //chat math
+                if (gl.state == MENU) {
+                    gl.selected_option = (gl.selected_option - 1 + 3) % 3;
 					cout << "Selected option: " << gl.selected_option << endl;
                 }
                 break;
             case XK_Down:
-                if (gl.state == Global::MENU) {
+                if (gl.state == MENU) {
                     gl.selected_option = (gl.selected_option + 1) % 3; 
 					cout << "Selected option: " << gl.selected_option << endl;
                 }
                 break;
             case XK_Return:
-                if (gl.state == Global::MENU) {
+                if (gl.state == MENU) {
                     switch(gl.selected_option) {
                         case 0: 
-                            gl.state = Global::PLAYING;
+                            gl.state = PLAYING;
 							cout << "Starting game" << endl;
                             break;
                         case 1:
-                            gl.state = Global::CONTROLS;
+                            gl.state = CONTROLS;
 							cout << "Showing controls" << endl;
                             break;
                         case 2:
@@ -530,30 +477,30 @@ int check_keys(XEvent *e)
     }
 
     // Playing state handling
-    if (gl.state == Global::PLAYING) {
-        if (!s.hasComponents<Physics>(ptr)) {
+    if (gl.state == PLAYING) {
+        if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
             return 0;
         }
-        Physics* pc = s.getComponent<Physics>(ptr);
+        auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
         
         if (e->type == KeyRelease) {
             if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-                pc->velocity = {0,0};
+                pc->vel = {0,0};
             }
         } else if (e->type == KeyPress) {
             static float movement_mag = 300.0;
             switch(key) {
                 case XK_Right:
-                    pc->velocity = {movement_mag,0};
+                    pc->vel = {movement_mag,0};
                     break;
                 case XK_Left:
-                    pc->velocity = {-movement_mag,0};
+                    pc->vel = {-movement_mag,0};
                     break;
                 case XK_Up:
-                    pc->velocity = {0,movement_mag};
+                    pc->vel = {0,movement_mag};
                     break;
                 case XK_Down:
-                    pc->velocity = {0,-movement_mag};
+                    pc->vel = {0,-movement_mag};
                     break;
             }
         }
@@ -562,49 +509,25 @@ int check_keys(XEvent *e)
     return exit_request;
 }
 
-	//(void)shift;
-	// switch (key) {
-	// 	case XK_Escape:
-	// 		return 1;
-	// 	case XK_m:
-	// 		gl.mouse_cursor_on = !gl.mouse_cursor_on;
-	// 		x11.show_mouse_cursor(gl.mouse_cursor_on);
-	// 		break;
-	// 	case XK_Up:
-	// 		std::cout << "up" << '\n';
-	// 		pc->velocity = {0, 300.0};
-	// 		pc->velocity = {0,0.0};
-	// 		break;
-	// 	case XK_s:
-	// 		break;
-	// 	case XK_Down:
-	// 		break;
-	// 	case XK_equal:
-	// 		break;
-	// 	case XK_minus:
-	// 		break;
-	// }
-	//return 0;
-//}
-
 void physics()
 {
 	
 }
 void render() {
 
-	cout << "rendering state: " << gl.state << endl; 
+	DPRINTF("rendering state: %d\n",gl.state);
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	glLoadIdentity(); 
-	glEnable(GL_TEXTURE_2D);  
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// glLoadIdentity(); 
+	// glEnable(GL_TEXTURE_2D);  
+    // glDisable(GL_DEPTH_TEST);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
-    if (gl.state == Global::MENU) {
+    if (gl.state == MENU) {
         //  menu background
+		glPushMatrix();
         glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
         glColor3f(1.0f, 1.0f, 1.0f);
         glBegin(GL_QUADS);
@@ -614,7 +537,7 @@ void render() {
             glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
         glEnd();
         glBindTexture(GL_TEXTURE_2D, 0);
-
+		glPopMatrix();
         // menu title
         Rect title;
         title.left = gl.xres/2;
@@ -639,7 +562,7 @@ void render() {
             ggprint17(&r, 40, color, options[i]);
         }
     }
-    else if (gl.state == Global::CONTROLS) {
+    else if (gl.state == CONTROLS) {
         //  controls screen bg
         glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
         glColor3f(1.0f, 1.0f, 1.0f);
