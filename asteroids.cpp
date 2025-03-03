@@ -7,6 +7,7 @@
 //
 //
 #include "jlo.h"
+#include "image.h"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -19,22 +20,22 @@
 #include "log.h"
 #include "fonts.h"
 #define GAME_TITLE "Space Pirates"
-#define DEBUG
-#define _TEXTURE_FOLDER_PATH "./textures"
+#define TEXTURE_FOLDER_PATH "./textures"
+using namespace std; 
+
 // #define CREDITS
 //defined types
 typedef float Flt;
 typedef float Vec[3];
 typedef Flt	Matrix[4][4];
-uint16_t counter = 0;
 //constants
+uint16_t counter = 0;
 const float timeslice = 1.0f;
 const float gravity = -0.2f;
 #define PI 3.141592653589793
 #define ALPHA 1
 const int MAX_BULLETS = 11;
 const Flt MINIMUM_ASTEROID_SIZE = 60.0;
-Scene s {50};
 
 //-----------------------------------------------------------------------------
 //Setup timers
@@ -47,22 +48,37 @@ extern double timeSpan;
 extern double timeDiff(struct timespec *start, struct timespec *end);
 extern void timeCopy(struct timespec *dest, struct timespec *source);
 //-----------------------------------------------------------------------------
-
+enum GameState {
+	MENU, // GAME STATE: 0 
+	PLAYING, // 1
+	CONTROLS,  // 2 
+	EXIT 
+};
 class Global {
 public:
 	int xres, yres;
 	char keys[65536];
 	int mouse_cursor_on;
 	GLuint walkTexture;
+
+	GameState state; 
+	int selected_option; // 0 = start, 1 = controls, 2 = exit
+
 	Global() {
 		xres = 1280;
 		yres = 960;
 		memset(keys, 0, 65536);
 		// mouse value 1 = true = mouse is a regular mouse.
+		state = MENU; // default 
 		mouse_cursor_on = 1;
 	}
-} gl;
+}; 
 
+Global gl;
+// 
+
+GLuint menuBackgroundTexture; 
+Image *menuImage = NULL; 
 
 class Game {
 public:
@@ -233,26 +249,17 @@ void load_textures(void);
 //==========================================================================
 // M A I N
 //==========================================================================
-Entity* ptr;
-std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+ecs::Entity* ptr;
+// Entity* second;
+// std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+// std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
 int main()
 {
-	
-	TextureLoader loader { _TEXTURE_FOLDER_PATH };
-	loader.load_textures(textures);
-
-	
-	EntitySystemManager entity_system_manager;
-	std::weak_ptr<PhysicsSystem> ps = entity_system_manager.registerSystem<PhysicsSystem>();
-	std::weak_ptr<RenderSystem> render_system = entity_system_manager.registerSystem<RenderSystem>();
-	ptr = s.createEntity();
-	Sprite* sc = s.addComponent<Sprite>(ptr);
-	AnimationBuilder ab ("skip.png",{64,64},0);
-	sc->animations.insert({"idle",std::make_shared<Animation>(ab.addFrame(0,0).build())});
-	sc->animations.insert({"running",std::make_shared<Animation>(ab.addFrame(0,0).addFrame(1,0).addFrame(2,0).addFrame(3,0).addFrame(4,0).addFrame(5,0).addFrame(6,0).addFrame(7,0).build())});
-	sc->c_anim = "running";
- 	Transform* tc = s.addComponent<Transform>(ptr);
-	Physics* pc = s.addComponent<Physics>(ptr);
+	auto e = ecs::ecs.entity().checkout();
+	while (e != nullptr) {
+		[[maybe_unused]]auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
+		e = ecs::ecs.entity().checkout();
+	}
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -261,6 +268,7 @@ int main()
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	int done=0;
+
 	while (!done) {
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
@@ -268,12 +276,22 @@ int main()
 			check_mouse(&e);
 			done = check_keys(&e);
 		}
+
 		clock_gettime(CLOCK_REALTIME, &timeCurrent);
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
 		timeCopy(&timeStart, &timeCurrent);
-		// Sprite* sc = s.getComponent<Sprite>(ptr);
+		//clear screen just once at the beginning
+		//glClear(GL_COLOR_BUFFER_BIT); 
+
+		// render based on game state 
+
+		if (gl.state == MENU || gl.state == CONTROLS) {
+			//USE RENDER() NOT ECS RENDER SYSTEM IF IN MENU STATE
+			render(); 
+		} else if (gl.state == PLAYING) {
+			//entity_system_manager.update(s, (float) 0.05);
+		}
 		x11.swapBuffers();
-		entity_system_manager.update(s, (float) 0.05);
 	}
 	cleanup_fonts();
 	logClose();
@@ -300,6 +318,16 @@ void init_opengl(void)
 	//Do this to allow fonts
 	glEnable(GL_TEXTURE_2D);
 	initialize_fonts();
+
+	glGenTextures(1, &menuBackgroundTexture);
+	menuImage = new Image("./textures/menu-bg.jpg");	
+	//biship code 
+	glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, menuImage->width, menuImage->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, menuImage->data);
+
 
 	//
 
@@ -382,112 +410,185 @@ void check_mouse(XEvent *e)
 
 int check_keys(XEvent *e)
 {
-	static int shift=0;
+    [[maybe_unused]]static int shift = 0;
+    [[maybe_unused]]static int exit_request = 0;  // Initialize to 0
 	if (e->type != KeyRelease && e->type != KeyPress) {
 		//not a keyboard event
 		return 0;
 	}
-	if (!s.hasComponents<Physics>(ptr)) {
-		return 0;
-	}
-	Physics* pc = s.getComponent<Physics>(ptr);
-	int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
-	if (e->type == KeyRelease) {
-		//gl.keys[key] = 0;
-		if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-			pc->velocity = {0,0};
-		}
-		return 0;
-	}
-	if (e->type == KeyPress) {
-		//gl.keys[key]=1;
-		static float movement_mag = 300.0;
-		switch(key) {
-			case XK_Right:
-				pc->velocity = {movement_mag,0};
-				break;
-			case XK_Left:
-				pc->velocity = {-movement_mag,0};
-				break;
-			case XK_Up:
-				pc->velocity = {0,movement_mag};
-				break;
-			case XK_Down:
-				pc->velocity = {0,-movement_mag};
-				break;
-		}
-		if (key == XK_Shift_L || key == XK_Shift_R) {
-
-			return 0;
-		}
-	}
-	(void)shift;
-	// switch (key) {
-	// 	case XK_Escape:
-	// 		return 1;
-	// 	case XK_m:
-	// 		gl.mouse_cursor_on = !gl.mouse_cursor_on;
-	// 		x11.show_mouse_cursor(gl.mouse_cursor_on);
-	// 		break;
-	// 	case XK_Up:
-	// 		std::cout << "up" << '\n';
-	// 		pc->velocity = {0, 300.0};
-	// 		pc->velocity = {0,0.0};
-	// 		break;
-	// 	case XK_s:
-	// 		break;
-	// 	case XK_Down:
-	// 		break;
-	// 	case XK_equal:
-	// 		break;
-	// 	case XK_minus:
-	// 		break;
+	// if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
+	// 	return 0;
 	// }
-	return 0;
+
+    // Not a keyboard event
+    if (e->type != KeyRelease && e->type != KeyPress) {
+        return exit_request;
+    }
+
+    int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
+
+    // handle key events - modified to add menu state handling, cout for debugging
+    if (e->type == KeyPress) {
+        switch(key) {
+            case XK_Escape:
+                if (gl.state == CONTROLS) {
+                    gl.state = MENU;
+                    cout << "Returning to menu from controls" << endl;
+                } else if (gl.state == PLAYING) {
+                    gl.state = MENU;
+                    cout << "Pausing game - returning to menu" << endl;
+                } else if (gl.state == MENU) {
+                    cout << "Exiting game from menu" << endl;
+                    exit_request = 1;
+                    return exit_request;
+                }
+                break;
+            case XK_Up:
+                if (gl.state == MENU) {
+                    gl.selected_option = (gl.selected_option - 1 + 3) % 3;
+					cout << "Selected option: " << gl.selected_option << endl;
+                }
+                break;
+            case XK_Down:
+                if (gl.state == MENU) {
+                    gl.selected_option = (gl.selected_option + 1) % 3; 
+					cout << "Selected option: " << gl.selected_option << endl;
+                }
+                break;
+            case XK_Return:
+                if (gl.state == MENU) {
+                    switch(gl.selected_option) {
+                        case 0: 
+                            gl.state = PLAYING;
+							cout << "Starting game" << endl;
+                            break;
+                        case 1:
+                            gl.state = CONTROLS;
+							cout << "Showing controls" << endl;
+                            break;
+                        case 2:
+							cout << "Exiting game" << endl;
+                            exit_request = 1;
+                            return exit_request;
+                    }
+                }
+                break;
+        }
+    }
+
+    // Playing state handling
+    if (gl.state == PLAYING) {
+        if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
+            return 0;
+        }
+        auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
+        
+        if (e->type == KeyRelease) {
+            if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
+                pc->vel = {0,0};
+            }
+        } else if (e->type == KeyPress) {
+            static float movement_mag = 300.0;
+            switch(key) {
+                case XK_Right:
+                    pc->vel = {movement_mag,0};
+                    break;
+                case XK_Left:
+                    pc->vel = {-movement_mag,0};
+                    break;
+                case XK_Up:
+                    pc->vel = {0,movement_mag};
+                    break;
+                case XK_Down:
+                    pc->vel = {0,-movement_mag};
+                    break;
+            }
+        }
+    }
+
+    return exit_request;
 }
 
 void physics()
 {
 	
 }
-// void render() {
-//     // glClear(GL_COLOR_BUFFER_BIT);
-// 	// Sprite* sc = s.getComponent<Sprite>(ptr);
-// 	// Transform* tc = s.getComponent<Transform>(ptr);
-// 	// std::shared_ptr<TextureInfo> ti = sc->textures["skip.png"];  // Reference to the unique_ptr
-//     // if (ti == nullptr) {
-// 	// 	exit(0);
-// 	// }
-//     // // Bind the texture directly from the unique_ptr
-//     // glBindTexture(GL_TEXTURE_2D, *ti->texture);  // Dereference the unique_ptr to access GLuint
+void render() {
 
-// 	// void show_jlo();
-// 	// void show_balrowhany(Rect* r);
+	DPRINTF("rendering state: %d\n",gl.state);
 
-//     // int h = 64;
-// 	// int w = 64;
+	glClear(GL_COLOR_BUFFER_BIT);
+	// glLoadIdentity(); 
+	// glEnable(GL_TEXTURE_2D);  
+    // glDisable(GL_DEPTH_TEST);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-// 	// int columns = 8;
-// 	// int rows = 1;
-// 	// int ix = frame % columns;
-// 	// int iy = frame / columns;
-// 	// frame++;
-// 	// float fx = (float) ix / columns;
-// 	// float fy = (float) iy / rows;
 
-//     // // Draw the texture as a quad
-//     // glBegin(GL_QUADS);
-//     //     float xo = (float)1 / columns;
-//     //     float xy = (float)1 / rows;
-// 	// 	glTexCoord2f(fx + xo, fy + xy); glVertex2i(tc->pos[0] - w, tc->pos[1] - h);
-// 	// 	glTexCoord2f(fx + xo, fy);      glVertex2i(tc->pos[0] - w, tc->pos[1] + h);
-// 	// 	glTexCoord2f(fx, fy);           glVertex2i(tc->pos[0] + w, tc->pos[1] + h);
-// 	// 	glTexCoord2f(fx, fy + xy);      glVertex2i(tc->pos[0] + w, tc->pos[1] - h);
-//     // glEnd();
+    if (gl.state == MENU) {
+        //  menu background
+		glPushMatrix();
+        glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 1.0f); glVertex2i(0, 0);
+            glTexCoord2f(0.0f, 0.0f); glVertex2i(0, gl.yres);
+            glTexCoord2f(1.0f, 0.0f); glVertex2i(gl.xres, gl.yres);
+            glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
+        glEnd();
+        glBindTexture(GL_TEXTURE_2D, 0);
+		glPopMatrix();
+        // menu title
+        Rect title;
+        title.left = gl.xres/2;
+        title.bot = gl.yres - 200;
+        title.center = 1;
+        
+        ggprint40(&title, 50, 0x867933, "SPACE  PIRATES");
+        title.bot = gl.yres - 198;
+        ggprint40(&title, 50, 0x2C2811, "SPACE  PIRATES");
+        title.bot = gl.yres - 200;
+        ggprint40(&title, 50, 0xDBAD6A, "SPACE  PIRATES");
 
-//     // glBindTexture(GL_TEXTURE_2D, 0);
-//     // glDisable(GL_ALPHA_TEST);
-// }
+        //  menu options
+        Rect r;
+        r.left = gl.xres/2;
+        r.bot = gl.yres - 270;
+        r.center = 1;
+        
+        const char* options[] = {"START", "CONTROLS", "EXIT"};
+        for (int i = 0; i < 3; i++) {
+            int color = (i == gl.selected_option) ? 0x00FF99FF : 0x00FFFFFF;
+            ggprint17(&r, 40, color, options[i]);
+        }
+    }
+    else if (gl.state == CONTROLS) {
+        //  controls screen bg
+        glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 1.0f); glVertex2i(0, 0);
+            glTexCoord2f(0.0f, 0.0f); glVertex2i(0, gl.yres);
+            glTexCoord2f(1.0f, 0.0f); glVertex2i(gl.xres, gl.yres);
+            glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
+        glEnd();
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // controls 
+        Rect r;
+        r.left = gl.xres/2;
+        r.bot = gl.yres - 150;
+        r.center = 1;
+
+        ggprint40(&r, 30, 0x00FF99FF, "CONTROLS");
+        r.bot = gl.yres/2;
+        ggprint17(&r, 30, 0x00ffffff, "WASD - move ship");
+        ggprint17(&r, 30, 0x00ffffff, "SPACE - tbd");
+        ggprint17(&r, 30, 0x00ffffff, "E - interact");
+        ggprint17(&r, 30, 0x00ffffff, "ESC - exit/menu");
+    }
+
+}
 
 
 
