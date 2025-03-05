@@ -22,9 +22,12 @@ Inventory::Inventory()
 
 Inventory::~Inventory()
 {
+    //Delete through all rows in the matrix
     for (int i = 0; i < inv_size.x(); i++) {
         delete [] storage[i];
     }
+
+    //Delete Storage Matrix
     delete [] storage;
 }
 
@@ -51,7 +54,7 @@ void Inventory::initStoreVolume(int x, int y)
         }
     }
     //If DEVMODE, Run Unit Test
-    #ifdef DEVMODE
+    #ifdef DEBUG
         std::string test = "testItem";
         bool flag = false;
         for (int i = 0; i < inv_size.x(); i++) {
@@ -88,3 +91,4 @@ void Inventory::initStoreVolume(int x, int y)
 //ECS: Inventory Management System
 void InventorySystem::update(Scene& scene, float dt)
 {}
+
