@@ -68,9 +68,11 @@ class Inventory
         item returnItemSlot(int, int);
 };
 
-//ECS: Inventory Management System
+//ECS: Inventory Management System (NEEDS TO BE UPDATED WITH THE LATEST ECS)
+/*
 class InventorySystem : public EntitySystem
 {
     public:
         void update(Scene&, float);
 };
+*/

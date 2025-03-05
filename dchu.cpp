@@ -88,7 +88,8 @@ void Inventory::initStoreVolume(int x, int y)
     #endif
 }
 
-//ECS: Inventory Management System
+//ECS: Inventory Management System (NEEDS TO BE UPDATED WITH THE LATEST ECS)
+/*
 void InventorySystem::update(Scene& scene, float dt)
 {}
-
+*/
