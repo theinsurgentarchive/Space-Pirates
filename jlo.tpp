@@ -1,89 +1,62 @@
+#pragma once
 #include "jlo.h"
-#include <iostream>
-#include <stdexcept>
-template <typename T>
-std::weak_ptr<T> EntitySystemManager::registerSystem() 
+
+namespace ecs
 {
-    // if(EntitySystemManager::hasSystem<T>()) {
-    //     return nullptr;
-    // }
-    auto ptr = std::make_shared<T>();
-    systems.push_back(ptr);
-    return std::weak_ptr<T>(ptr);
-}
-
-template <typename T>
-bool EntitySystemManager::hasSystem() 
-{
-    for (const auto& system : systems) {
-        if (dynamic_cast<T*>(system.get()) != nullptr)
-            return true;
-    }
-    return false;
-}
-template <typename T>
-T* Scene::addComponent(Entity* ptr) 
-{
-    uint16_t componentId = getComponentId<T>();
-            
-    if (Scene::hasComponents<T>(ptr)) {
-        throw std::runtime_error(
-            "You cannot add the same component to this entity, "
-            "check if the entity has the component prior to calling this function."
-        );
-    }
-
-    if (componentId >= pools.size()) {
-        pools.resize(componentId + 1);
-    }
-    if (pools[componentId] == nullptr) {
-        pools[componentId] = std::make_unique<ComponentPool>(static_cast<uint32_t>(sizeof(T)));
-    }
-
-    void* p = pools[componentId]->get(ptr->getId());
-    T* pComponent = new(p) T();
-    ptr->getMask().set(componentId);
-    return pComponent;
-}
-
-template <typename T>
-T* Scene::getComponent(Entity* ptr) 
-{
-    int componentId = getComponentId<T>();
-
-    if (!Scene::hasComponents<T>(ptr)) {
-        return nullptr;
-    }
-    
-    void* p = pools[componentId]->get(ptr->getId());
-    return reinterpret_cast<T*>(p);
-}
-
-template <typename T>
-bool checkComponents(Entity* ptr, T) 
-{
-    uint16_t cid = getComponentId<T>();
-    return ptr->getMask()[cid];
-}
-
-template <typename T, typename... Ts>
-bool checkComponents(Entity* ptr, T, Ts ... ts) 
-{
-    return checkComponents(ptr,T()) && checkComponents(ptr,ts...);
-}
-template <typename... T>
-bool Scene::hasComponents(Entity* ptr) {
-    return checkComponents(ptr, T()...);
-}
-
-template <typename ... T> 
-std::vector<Entity*> Scene::queryEntities() 
-{
-    std::vector<Entity*> result;
-    for (auto& ptr_entity : checked_out) {
-        if(Scene::hasComponents<T...>(&ptr_entity)) {
-            result.push_back(&ptr_entity);
+    template <typename T>
+    T* ComponentManager::assign(Entity *e_ptr)
+    {
+        if (e_ptr == nullptr)
+            return nullptr;
+        uint16_t cid = getId<T>();
+        DPRINTF("component (%d) -> entity (address|id): %p | %d\n",cid,e_ptr,e_ptr->id);
+        if (e_ptr->mask.test(cid))
+        {
+            DPRINTF("reassignment for component (%d) to entity id: %d, returning null\n",cid, e_ptr->id);
+            return nullptr;
         }
+        if (cid >= _pools.size())
+        {
+            uint16_t n = _pools.size() + 1;
+            DPRINTF("component pool (%d) to: %d -> %d\n", cid, static_cast<uint16_t>(_pools.size()), n);
+            _pools.resize(n);
+        }
+        if (_pools[cid] == nullptr) {
+            DPRINTF("instantiated component pool (%d)\n",cid);
+            _pools[cid] = std::make_unique<ComponentPool>(sizeof(T));
+        }
+        void *mem = _pools[cid]->get(e_ptr->id);
+        DPRINTF("creating new component (%d) at (address): %p\n", cid, mem);
+        T *ptr_component = new (mem) T();
+        e_ptr->mask.set(cid);
+        return ptr_component;
     }
-    return result;
+
+    template <typename T>
+    T* ComponentManager::fetch(Entity *e_ptr)
+    {
+        if (e_ptr == nullptr) {
+            DPRINT("entity pointer was null\n");
+            return nullptr;
+        }
+        uint16_t cid = getId<T>();
+        if (!ComponentManager::has<T>(e_ptr)) {
+            DPRINTF("entity (%d) does not own component (%d)\n",e_ptr->id,cid);
+            return nullptr;
+        }
+        void *mem = _pools[cid]->get(e_ptr->id);
+        return reinterpret_cast<T *>(mem);
+    }
+
+
+    template <typename T>
+    bool ComponentManager::has(Entity *e_ptr)
+    {
+        if (e_ptr == nullptr) {
+            DPRINT("entity pointer was null");
+            return false;
+        }
+        uint16_t cid = getId<T>();
+        return e_ptr->mask.test(cid);
+    }      
 }
