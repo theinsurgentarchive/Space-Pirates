@@ -72,8 +72,12 @@ class inventory
 };
 
 //ECS: Inventory Management System
-class InventorySystem : public EntitySystem
+namespace ecs
 {
-    public:
-        void update(Scene&, float);
-};
+    class InventorySystem : public System
+    {
+        public:
+            InventorySystem();
+            void update(float dt) override;
+    };
+}

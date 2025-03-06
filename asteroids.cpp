@@ -257,7 +257,7 @@ int main()
 {
 	auto e = ecs::ecs.entity().checkout();
 	while (e != nullptr) {
-		[[maybe_unused]]auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
+		auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
 		e = ecs::ecs.entity().checkout();
 	}
 	logOpen();
@@ -516,13 +516,12 @@ void physics()
 void render() {
 
 	DPRINTF("rendering state: %d\n",gl.state);
-
 	glClear(GL_COLOR_BUFFER_BIT);
 	// glLoadIdentity(); 
 	// glEnable(GL_TEXTURE_2D);  
-    // glDisable(GL_DEPTH_TEST);
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
     if (gl.state == MENU) {
