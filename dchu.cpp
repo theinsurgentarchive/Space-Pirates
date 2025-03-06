@@ -23,7 +23,7 @@ Inventory::Inventory()
 Inventory::~Inventory()
 {
     //Delete through all rows in the matrix
-    for (int i = 0; i < inv_size.x(); i++) {
+    for (int i = 0; i < inv_size[0]; i++) {
         delete [] storage[i];
     }
 
@@ -34,20 +34,18 @@ Inventory::~Inventory()
 void Inventory::initStoreVolume(int x, int y)
 {
     //Initialize Variables
-    inv_size.x(x);
-    inv_size.y(y);
-
+    inv_size = {static_cast<uint16_t>(x),static_cast<uint16_t>(y)};
     //Initialize Inventory Matrix
-    storage = new item*[inv_size.x()];
-    for (int i = 0; i < inv_size.x(); i++) {
-        storage[i] = new item[inv_size.y()];
+    storage = new item*[inv_size[0]];
+    for (int i = 0; i < inv_size[0]; i++) {
+        storage[i] = new item[inv_size[1]];
     }
 
     //Pre-Load Item Slots
-    if (inv_size.x() > 0 && inv_size.y() > 0) {
+    if (inv_size[0] > 0 && inv_size[1] > 0) {
         int counter = 0;
-        for (int i = 0; i < inv_size.x(); i++) {
-            for (int j = 0; j < inv_size.y(); j++) {
+        for (int i = 0; i < inv_size[0]; i++) {
+            for (int j = 0; j < inv_size[1]; j++) {
                 storage[i][j].item_name = ("Slot " + std::to_string(counter));
                 storage[i][j].slot_num = ++counter;
             }
@@ -57,14 +55,14 @@ void Inventory::initStoreVolume(int x, int y)
     #ifdef DEBUG
         std::string test = "testItem";
         bool flag = false;
-        for (int i = 0; i < inv_size.x(); i++) {
-            for (int j = 0; j < inv_size.y(); j++) {
+        for (int i = 0; i < inv_size[0]; i++) {
+            for (int j = 0; j < inv_size[1]; j++) {
                 storage[i][j].item_name = test;
             }
             
         }
-        for (int i = 0; i < inv_size.x(); i++) {
-            for (int j = 0; j < inv_size.y(); j++) {
+        for (int i = 0; i < inv_size[0]; i++) {
+            for (int j = 0; j < inv_size[1]; j++) {
                 if(storage[i][j].item_name != test) {
                     flag = true;
                     break;
@@ -75,8 +73,8 @@ void Inventory::initStoreVolume(int x, int y)
             }
         }
         if (!flag) {
-            for (int i = 0; i < inv_size.x(); i++) {
-                for (int j = 0; j < inv_size.y(); j++) {
+            for (int i = 0; i < inv_size[0]; i++) {
+                for (int j = 0; j < inv_size[1]; j++) {
                     std::cout << storage[i][j].item_name << " ";
                 }
                 std::cout << std::endl;
@@ -87,9 +85,16 @@ void Inventory::initStoreVolume(int x, int y)
         }
     #endif
 }
+//ECS: Inventory Management System
+namespace ecs
+{
+    InventorySystem::InventorySystem()
+    {
 
-//ECS: Inventory Management System (NEEDS TO BE UPDATED WITH THE LATEST ECS)
-/*
-void InventorySystem::update(Scene& scene, float dt)
-{}
-*/
+    }
+
+    void InventorySystem::update([[maybe_unused]]float dt)
+    {
+
+    }
+}
