@@ -1,6 +1,6 @@
 //balrowhany
 
 #pragma once
-#include "asteroids/fonts.h"
+#include "fonts.h"
 
 void show_balrowhany(Rect*);
