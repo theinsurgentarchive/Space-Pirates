@@ -183,9 +183,6 @@ namespace ecs
     {
         return _component_manager;
     }
-
-    System::~System()=default;
-
     void System::update([[maybe_unused]]float dt) {}
 
 }
