@@ -3,7 +3,7 @@
 #include "jsandoval.h"
 #include "balrowhany.h"
 #include "mchitorog.h"
-#include "asteroids/fonts.h"
+#include "fonts.h"
 
 //Credit Print Function
 void show_dchu(Rect*);
@@ -72,8 +72,12 @@ class inventory
 };
 
 //ECS: Inventory Management System
-class InventorySystem : public EntitySystem
+namespace ecs
 {
-    public:
-        void update(Scene&, float);
-};
+    class InventorySystem : public System
+    {
+        public:
+            InventorySystem();
+            void update(float dt) override;
+    };
+}
