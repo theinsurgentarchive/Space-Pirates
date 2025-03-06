@@ -72,8 +72,8 @@ class inventory
 };
 
 //ECS: Inventory Management System
-class InventorySystem : public EntitySystem
-{
-    public:
-        void update(Scene&, float);
-};
+//class InventorySystem : public EntitySystem
+//{
+  //  public:
+    //    void update(Scene&, float);
+//};

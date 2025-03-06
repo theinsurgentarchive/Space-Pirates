@@ -1,6 +1,6 @@
 CFLAGS = -I ./include
 LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm
-SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp dchu.cpp
+SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp dchu.cpp balrowhany.cpp
 OBJ = ${SRC:.cpp=.o}
 
 all: asteroids debug

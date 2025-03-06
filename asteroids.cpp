@@ -7,6 +7,7 @@
 //
 //
 #include "jlo.h"
+#include "balrowhany.h"
 #include "image.h"
 #include <iostream>
 #include <cstdlib>
@@ -48,12 +49,7 @@ extern double timeSpan;
 extern double timeDiff(struct timespec *start, struct timespec *end);
 extern void timeCopy(struct timespec *dest, struct timespec *source);
 //-----------------------------------------------------------------------------
-enum GameState {
-	MENU, // GAME STATE: 0 
-	PLAYING, // 1
-	CONTROLS,  // 2 
-	EXIT 
-};
+
 class Global {
 public:
 	int xres, yres;
@@ -73,10 +69,7 @@ public:
 		mouse_cursor_on = 1;
 	}
 }; 
-
 Global gl;
-// 
-
 GLuint menuBackgroundTexture; 
 Image *menuImage = NULL; 
 
@@ -256,10 +249,19 @@ ecs::Entity* ptr;
 int main()
 {
 	auto e = ecs::ecs.entity().checkout();
-	while (e != nullptr) {
-		[[maybe_unused]]auto transform = ecs::ecs.component().assign<ecs::Transform>(e);
-		e = ecs::ecs.entity().checkout();
-	}
+	[[maybe_unused]]auto transform = (
+		ecs::ecs.component().assign<ecs::Transform>(e)
+	);
+
+	//Assign Physics component to entity
+	[[maybe_unused]]auto physics = (
+		ecs::ecs.component().assign<ecs::Physics>(e)
+	);
+
+	//Assign Sprite component to entity
+	[[maybe_unused]]auto sprite = (
+		ecs::ecs.component().assign<ecs::Sprite>(e)
+	);
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -429,52 +431,11 @@ int check_keys(XEvent *e)
 
     // handle key events - modified to add menu state handling, cout for debugging
     if (e->type == KeyPress) {
-        switch(key) {
-            case XK_Escape:
-                if (gl.state == CONTROLS) {
-                    gl.state = MENU;
-                    cout << "Returning to menu from controls" << endl;
-                } else if (gl.state == PLAYING) {
-                    gl.state = MENU;
-                    cout << "Pausing game - returning to menu" << endl;
-                } else if (gl.state == MENU) {
-                    cout << "Exiting game from menu" << endl;
-                    exit_request = 1;
-                    return exit_request;
-                }
-                break;
-            case XK_Up:
-                if (gl.state == MENU) {
-                    gl.selected_option = (gl.selected_option - 1 + 3) % 3;
-					cout << "Selected option: " << gl.selected_option << endl;
-                }
-                break;
-            case XK_Down:
-                if (gl.state == MENU) {
-                    gl.selected_option = (gl.selected_option + 1) % 3; 
-					cout << "Selected option: " << gl.selected_option << endl;
-                }
-                break;
-            case XK_Return:
-                if (gl.state == MENU) {
-                    switch(gl.selected_option) {
-                        case 0: 
-                            gl.state = PLAYING;
-							cout << "Starting game" << endl;
-                            break;
-                        case 1:
-                            gl.state = CONTROLS;
-							cout << "Showing controls" << endl;
-                            break;
-                        case 2:
-							cout << "Exiting game" << endl;
-                            exit_request = 1;
-                            return exit_request;
-                    }
-                }
-                break;
-        }
+      exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
+	  if (exit_request){
+		return exit_request;
     }
+}
 
     // Playing state handling
     if (gl.state == PLAYING) {
@@ -527,69 +488,9 @@ void render() {
 
     if (gl.state == MENU) {
         //  menu background
-		glPushMatrix();
-        glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 1.0f); glVertex2i(0, 0);
-            glTexCoord2f(0.0f, 0.0f); glVertex2i(0, gl.yres);
-            glTexCoord2f(1.0f, 0.0f); glVertex2i(gl.xres, gl.yres);
-            glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
-        glEnd();
-        glBindTexture(GL_TEXTURE_2D, 0);
-		glPopMatrix();
-        // menu title
-        Rect title;
-        title.left = gl.xres/2;
-        title.bot = gl.yres - 200;
-        title.center = 1;
-        
-        ggprint40(&title, 50, 0x867933, "SPACE  PIRATES");
-        title.bot = gl.yres - 198;
-        ggprint40(&title, 50, 0x2C2811, "SPACE  PIRATES");
-        title.bot = gl.yres - 200;
-        ggprint40(&title, 50, 0xDBAD6A, "SPACE  PIRATES");
-
-        //  menu options
-        Rect r;
-        r.left = gl.xres/2;
-        r.bot = gl.yres - 270;
-        r.center = 1;
-        
-        const char* options[] = {"START", "CONTROLS", "EXIT"};
-        for (int i = 0; i < 3; i++) {
-            int color = (i == gl.selected_option) ? 0x00FF99FF : 0x00FFFFFF;
-            ggprint17(&r, 40, color, options[i]);
+		render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
         }
-    }
     else if (gl.state == CONTROLS) {
-        //  controls screen bg
-        glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 1.0f); glVertex2i(0, 0);
-            glTexCoord2f(0.0f, 0.0f); glVertex2i(0, gl.yres);
-            glTexCoord2f(1.0f, 0.0f); glVertex2i(gl.xres, gl.yres);
-            glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
-        glEnd();
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        // controls 
-        Rect r;
-        r.left = gl.xres/2;
-        r.bot = gl.yres - 150;
-        r.center = 1;
-
-        ggprint40(&r, 30, 0x00FF99FF, "CONTROLS");
-        r.bot = gl.yres/2;
-        ggprint17(&r, 30, 0x00ffffff, "WASD - move ship");
-        ggprint17(&r, 30, 0x00ffffff, "SPACE - tbd");
-        ggprint17(&r, 30, 0x00ffffff, "E - interact");
-        ggprint17(&r, 30, 0x00ffffff, "ESC - exit/menu");
+       render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
     }
-
 }
-
-
-
-

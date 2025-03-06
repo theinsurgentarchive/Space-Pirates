@@ -94,5 +94,5 @@ void inventory::initStoreVolume(uint8_t x, uint8_t y)
 }
 
 //ECS: Inventory Management System
-void InventorySystem::update(Scene& scene, float dt)
-{}
+//void InventorySystem::update(Scene& scene, float dt)
+//{}
