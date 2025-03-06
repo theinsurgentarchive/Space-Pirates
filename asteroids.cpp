@@ -237,6 +237,7 @@ Entity* ptr;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 int main()
 {
+<<<<<<< Updated upstream
 	
 	TextureLoader loader { _TEXTURE_FOLDER_PATH };
 	loader.load_textures(textures);
@@ -253,6 +254,28 @@ int main()
 	sc->c_anim = "running";
  	Transform* tc = s.addComponent<Transform>(ptr);
 	Physics* pc = s.addComponent<Physics>(ptr);
+=======
+	auto e = ecs::ecs.entity().checkout();
+	while (e != nullptr) {
+		//Assign Transform component to entity
+		[[maybe_unused]]auto transform = (
+			ecs::ecs.component().assign<ecs::Transform>(e)
+		);
+
+		//Assign Physics component to entity
+		[[maybe_unused]]auto physics = (
+			ecs::ecs.component().assign<ecs::Physics>(e)
+		);
+
+		//Assign Sprite component to entity
+		[[maybe_unused]]auto sprite = (
+			ecs::ecs.component().assign<ecs::Sprite>(e)
+		);
+		
+		//Save Changes to entity
+		e = ecs::ecs.entity().checkout();
+	}
+>>>>>>> Stashed changes
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
