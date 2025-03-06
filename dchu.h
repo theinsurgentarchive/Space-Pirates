@@ -51,7 +51,7 @@ class Inventory
         void initStoreVolume(int, int);
         bool full;
         item** storage;
-        vec2i inv_size;
+        Vec2<uint16_t> inv_size;
         public:
         //Constructor
         Inventory();
@@ -68,11 +68,13 @@ class Inventory
         item returnItemSlot(int, int);
 };
 
-//ECS: Inventory Management System (NEEDS TO BE UPDATED WITH THE LATEST ECS)
-/*
-class InventorySystem : public EntitySystem
+//ECS: Inventory Management System
+namespace ecs
 {
-    public:
-        void update(Scene&, float);
-};
-*/
+    class InventorySystem : public System
+    {
+        public:
+            InventorySystem();
+            void update(float dt) override;
+    };
+}
