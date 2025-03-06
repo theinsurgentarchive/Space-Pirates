@@ -5,7 +5,6 @@ SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp jsandoval.cpp dchu.cpp balrowhany
 # Compile each source file in 'SRC' to O, when 'OBJ' is used, the files are 
 # spread, so in asteroids the targets appear to be like 
 # asteroids.o log.o timers.o etc.
->>>>>>> fix
 OBJ = ${SRC:.cpp=.o}
 # Similar for the debug objects, preprocessor directive occurs during compile 
 # time so we must compile for each .cpp file with the DEBUG flag for 

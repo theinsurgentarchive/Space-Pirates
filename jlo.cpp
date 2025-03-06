@@ -84,7 +84,7 @@ namespace wfc
     void TilePriorityQueue::_bubble_up(int idx)
     {
         while (idx > 0) {
-            int parent = (idx - 1) / 2;
+            uint16_t parent = (idx - 1) / 2;
             if (_queue[parent].entropy() > _queue[idx].entropy())
                 _swap(parent,idx);
             else
@@ -92,9 +92,9 @@ namespace wfc
         }
     }
 
-    void TilePriorityQueue::_bubble_down(int idx)
+    void TilePriorityQueue::_bubble_down([[maybe_unused]]int idx)
     {
-        size_t size = _queue.size();
+        //size_t size = _queue.size();
     }
 
     Grid::Grid(uint16_t width, uint16_t height)

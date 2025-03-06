@@ -51,7 +51,7 @@ class Inventory
         void initStoreVolume(int, int);
         bool full;
         item** storage;
-        vec2i inv_size;
+        Vec2<uint16_t> inv_size;
         public:
         //Constructor
         Inventory();

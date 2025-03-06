@@ -253,22 +253,19 @@ ecs::Entity* ptr;
 int main()
 {
 	auto e = ecs::ecs.entity().checkout();
-	while (e != nullptr) {
-		//Assign Transform component to entity
-		[[maybe_unused]]auto transform = (
-			ecs::ecs.component().assign<ecs::Transform>(e)
-		);
+	[[maybe_unused]]auto transform = (
+		ecs::ecs.component().assign<ecs::Transform>(e)
+	);
 
-		//Assign Physics component to entity
-		[[maybe_unused]]auto physics = (
-			ecs::ecs.component().assign<ecs::Physics>(e)
-		);
+	//Assign Physics component to entity
+	[[maybe_unused]]auto physics = (
+		ecs::ecs.component().assign<ecs::Physics>(e)
+	);
 
-		//Assign Sprite component to entity
-		[[maybe_unused]]auto sprite = (
-			ecs::ecs.component().assign<ecs::Sprite>(e)
-		);
-  }
+	//Assign Sprite component to entity
+	[[maybe_unused]]auto sprite = (
+		ecs::ecs.component().assign<ecs::Sprite>(e)
+	);
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -525,12 +522,13 @@ void physics()
 void render() {
 
 	DPRINTF("rendering state: %d\n",gl.state);
+
 	glClear(GL_COLOR_BUFFER_BIT);
 	// glLoadIdentity(); 
 	// glEnable(GL_TEXTURE_2D);  
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glDisable(GL_DEPTH_TEST);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
     if (gl.state == MENU) {
@@ -557,6 +555,7 @@ void render() {
         ggprint40(&title, 50, 0x2C2811, "SPACE  PIRATES");
         title.bot = gl.yres - 200;
         ggprint40(&title, 50, 0xDBAD6A, "SPACE  PIRATES");
+
         //  menu options
         Rect r;
         r.left = gl.xres/2;
@@ -594,44 +593,4 @@ void render() {
         ggprint17(&r, 30, 0x00ffffff, "E - interact");
         ggprint17(&r, 30, 0x00ffffff, "ESC - exit/menu");
     }
-
-}
-        //  menu options
-        Rect r;
-        r.left = gl.xres/2;
-        r.bot = gl.yres - 270;
-        r.center = 1;
-        
-        const char* options[] = {"START", "CONTROLS", "EXIT"};
-        for (int i = 0; i < 3; i++) {
-            int color = (i == gl.selected_option) ? 0x00FF99FF : 0x00FFFFFF;
-            ggprint17(&r, 40, color, options[i]);
-        }
-    }
-    else if (gl.state == CONTROLS) {
-        //  controls screen bg
-        glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 1.0f); glVertex2i(0, 0);
-            glTexCoord2f(0.0f, 0.0f); glVertex2i(0, gl.yres);
-            glTexCoord2f(1.0f, 0.0f); glVertex2i(gl.xres, gl.yres);
-            glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
-        glEnd();
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        // controls 
-        Rect r;
-        r.left = gl.xres/2;
-        r.bot = gl.yres - 150;
-        r.center = 1;
-
-        ggprint40(&r, 30, 0x00FF99FF, "CONTROLS");
-        r.bot = gl.yres/2;
-        ggprint17(&r, 30, 0x00ffffff, "WASD - move ship");
-        ggprint17(&r, 30, 0x00ffffff, "SPACE - tbd");
-        ggprint17(&r, 30, 0x00ffffff, "E - interact");
-        ggprint17(&r, 30, 0x00ffffff, "ESC - exit/menu");
-    }
-
 }
