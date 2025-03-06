@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <deque>
+#include <unordered_map>
 #define MAX_COMPONENTS 32
 #define MAX_ENTITIES 500
 
@@ -34,58 +35,38 @@ uint16_t getId()
 typedef uint16_t eid_t;
 typedef std::bitset<MAX_COMPONENTS> cmask_t;
 
-class Vec2f {
-    private:
-        float v[2];
+template <typename T>
+class Vec2
+{
     public:
-        Vec2f();
-        Vec2f(float x, float y);
-        float getX() const;
-        float getY() const;
-        void setX(float x);
-        void setY(float y);
-        Vec2f operator- () const;
-        Vec2f operator+ (Vec2f v) const;
-        Vec2f operator* (float scale) const;
-        float operator[] (int idx) const;
-        float& operator[] (int idx);
-        Vec2f& operator+= (const Vec2f& v);
+        T vec[2];
+        Vec2();
+        Vec2(T x, T y);
+        Vec2<T> operator- () const;
+        Vec2<T> operator+ (const Vec2<T>& v) const;
+        Vec2<T> operator* (float scale) const;
+        T operator[] (int idx) const;
+        T& operator[] (int idx);
+        Vec2<T>& operator+= (const Vec2<T>& v);
 };
 
-class Vec2i {
-    private:
-        int v[2];
-    public:
-        Vec2i();
-        Vec2i(int x, int y);
-        int getX() const;
-        int getY() const;
-        void setX(int x);
-        void setY(int y);
-        Vec2i operator- () const;
-        Vec2i operator+ (Vec2i v) const;
-        Vec2i operator* (float scale) const;
-        int operator[] (int idx) const;
-        int& operator[] (int idx);
-        Vec2i& operator+= (const Vec2i& v);
-};
-
-namespace ecs {
+namespace ecs 
+{
 
     class ECS;
     extern ECS ecs;
 
     struct Physics
     {
-        Vec2f vel;
-        Vec2f acc;
+        Vec2<float> vel;
+        Vec2<float> acc;
         float mass;
     };
 
     struct Transform 
     {
-        Vec2f pos;
-        Vec2f scale;
+        Vec2<float> pos;
+        Vec2<float> scale;
         float rotation;
     };
 
@@ -100,13 +81,15 @@ namespace ecs {
         char* texture {nullptr};
     };
 
-    struct Entity {
+    struct Entity 
+    {
         eid_t id;
         cmask_t mask;
         Entity(eid_t i, cmask_t m);
     };
 
-    class ComponentPool {
+    class ComponentPool 
+    {
         private:
             std::unique_ptr<char[]> _ptr_data;
             uint16_t _size;
