@@ -218,7 +218,6 @@ namespace ecs
     class System
     {
         public:
-            virtual ~System();
             virtual void update(float dt);
     };
 }
