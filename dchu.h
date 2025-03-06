@@ -6,7 +6,7 @@
 #include "fonts.h"
 
 //Credit Print Function
-void show_dchu(Rect*);
+void ShowDChu(Rect*);
 
 //Entity Components
 struct oxygen_resource
@@ -45,22 +45,19 @@ struct item
 };
 
 //Declaration of Inventory Management
-class inventory
+class Inventory
 {
     private:
-        void initStoreVolume(uint8_t, uint8_t);
+        void initStoreVolume(int, int);
         bool full;
         item** storage;
-        uint8_t sizeY;
-        uint8_t sizeX;
+        Vec2<uint16_t> inv_size;
         public:
         //Constructor
-        inventory();
-        inventory(uint8_t);
-        inventory(uint8_t, uint8_t);
+        Inventory();
 
         //Destructor
-        ~inventory();
+        ~Inventory();
 
         //Setters
         void addItem(item);
@@ -68,12 +65,16 @@ class inventory
 
         //Getters:
         void getInventory();
-        item returnItemSlot(uint8_t, uint8_t);
+        item returnItemSlot(int, int);
 };
 
 //ECS: Inventory Management System
-//class InventorySystem : public EntitySystem
-//{
-  //  public:
-    //    void update(Scene&, float);
-//};
+namespace ecs
+{
+    class InventorySystem : public System
+    {
+        public:
+            InventorySystem();
+            void update(float dt) override;
+    };
+}

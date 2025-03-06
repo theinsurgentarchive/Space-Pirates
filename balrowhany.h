@@ -1,5 +1,5 @@
+#pragma once
 #include <GL/glx.h>
-
 
 // Game states
 enum GameState {
