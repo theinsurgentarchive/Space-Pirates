@@ -1,7 +1,7 @@
-//#ifndef MCHITOROG_H
-//#define MCHITOROG_H
-//#include <string>
+#ifndef MCHITOROG_H
+#define MCHITOROG_H
+#include <string>
 
-//void show_mchitorog(Rect *r);
+void show_mchitorog(Rect *r);
 
-//#endif
+#endif
