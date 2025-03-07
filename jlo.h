@@ -15,6 +15,7 @@
 #define PHYSICS ecs::Physics
 #define HEALTH ecs::Health
 
+
 #ifdef DEBUG
 #include <iostream>
 #include <cstdio>
@@ -26,6 +27,7 @@
 #endif
 
 void show_jlo(Rect* r);
+
 extern uint16_t counter;
 
 template <class T>
@@ -123,7 +125,6 @@ namespace wfc
 
 namespace ecs 
 {
-
     class ECS;
     extern ECS ecs;
 
@@ -191,15 +192,14 @@ namespace ecs
     {
         private:
             uint16_t _max_entities;
-            std::vector<Entity> _entities;
             std::deque<eid_t> _free;
         public:
+            std::vector<Entity> entities;
             EntityManager(uint16_t max_entities);
             Entity* get(eid_t idx);
             Entity* checkout();
             void ret(Entity*& e_ptr);
             uint16_t maxEntities() const;
-            std::vector<Entity>& getEntities();
     };
 
     class ECS

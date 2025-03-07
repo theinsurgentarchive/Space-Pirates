@@ -141,14 +141,14 @@ namespace ecs
      : _max_entities{max_entities}
     {
         for (uint16_t i{0}; i < _max_entities; i++) {
-            _entities.push_back({i, cmask_t()});
+            entities.push_back({i, cmask_t()});
             _free.push_back(i);
         }
     }
 
     Entity *EntityManager::get(eid_t idx)
     {
-        return &_entities[idx];
+        return &entities[idx];
     }
 
     Entity *EntityManager::checkout()
