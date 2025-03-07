@@ -23,19 +23,29 @@ ifdef SILENT
 %-debug.o: %.cpp
 	@g++ ${CFLAGS} -DDEBUG -c $< -Wall -Wextra ${LFLAGS} -o $@
 
+asteroids: ${OBJ}
+	
+	@g++ $^ libggfonts.a -o $@ ${LFLAGS}
+	@echo "Generated $@\n"
+
+debug: ${D_OBJ}
+	@g++ $^ libggfonts.a -g -o $@ ${LFLAGS}
+	@echo "Generated $@\n"
+
 else
 %.o: %.cpp
 	g++ ${CFLAGS} -c $< -Wall -Wextra ${LFLAGS} -o $@	
 
 %-debug.o: %.cpp
 	g++ ${CFLAGS} -DDEBUG -c $< -Wall -Wextra ${LFLAGS} -o $@
-endif
 
 asteroids: ${OBJ}
 	g++ $^ libggfonts.a -o $@ ${LFLAGS}
 
 debug: ${D_OBJ}
 	g++ $^ libggfonts.a -g -o $@ ${LFLAGS}
+
+endif
 
 clean:
 	rm -f asteroids
