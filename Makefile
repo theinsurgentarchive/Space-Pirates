@@ -13,11 +13,23 @@ D_OBJ = ${SRC:.cpp=-debug.o}
 # NOTE: IF YOU WANT DEBUG MODE: make debug
 all: asteroids
 
+silent:
+	@$(MAKE) all SILENT=1 --no-print-directory
+
+ifdef SILENT
+%.o: %.cpp
+	@g++ ${CFLAGS} -c $< -Wall -Wextra ${LFLAGS} -o $@	
+
+%-debug.o: %.cpp
+	@g++ ${CFLAGS} -DDEBUG -c $< -Wall -Wextra ${LFLAGS} -o $@
+
+else
 %.o: %.cpp
 	g++ ${CFLAGS} -c $< -Wall -Wextra ${LFLAGS} -o $@	
 
 %-debug.o: %.cpp
 	g++ ${CFLAGS} -DDEBUG -c $< -Wall -Wextra ${LFLAGS} -o $@
+endif
 
 asteroids: ${OBJ}
 	g++ $^ libggfonts.a -o $@ ${LFLAGS}
