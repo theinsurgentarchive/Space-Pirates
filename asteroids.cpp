@@ -266,6 +266,8 @@ int main()
 	[[maybe_unused]]auto sprite = (
 		ecs::ecs.component().assign<ecs::Sprite>(e)
 	);
+
+	ecs::ecs.query<PHYSICS>();
 	logOpen();
 	init_opengl();
 	srand(time(NULL));

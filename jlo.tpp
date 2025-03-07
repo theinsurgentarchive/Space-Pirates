@@ -116,7 +116,7 @@ namespace ecs
     std::vector<Entity*> ECS::query()
     {
         std::vector<Entity*> entities;
-        for (auto& ptr : _entity_manager.getEntities()) {
+        for (auto& ptr : _entity_manager.entities) {
             if (_component_manager.has<T...>(&ptr)) {
                 entities.push_back(&ptr);
             }
