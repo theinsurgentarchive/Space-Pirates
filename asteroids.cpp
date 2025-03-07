@@ -19,6 +19,7 @@
 #include <GL/glx.h>
 #include "log.h"
 #include "fonts.h"
+#include "jsandoval.h"
 #define GAME_TITLE "Space Pirates"
 #define TEXTURE_FOLDER_PATH "./textures"
 using namespace std; 
@@ -252,6 +253,8 @@ ecs::Entity* ptr;
 // std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
 int main()
 {
+    auto character = ecs::character_x(); 
+
 	auto e = ecs::ecs.entity().checkout();
 	[[maybe_unused]]auto transform = (
 		ecs::ecs.component().assign<ecs::Transform>(e)
