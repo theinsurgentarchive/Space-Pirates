@@ -2,117 +2,254 @@
 #include "fonts.h"
 #include <cstdint>
 #include <bitset>
+#include <array>
 #include <memory>
 #include <vector>
 #include <array>
 #include <deque>
 #include <iostream>
+#include <random>
+#include <algorithm>
 
 void show_jlo(Rect* r)
 {
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
 }
+
+std::random_device rd;
+std::mt19937 generator(rd());
+Vec2<int32_t> dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
+
+Direction opposite(const Direction& dir)
+{
+    if (dir == TOP)
+        return BOTTOM;
+    if (dir == LEFT)
+        return RIGHT;
+    if (dir == RIGHT)
+        return LEFT;
+    return TOP;
+}
+
 namespace wfc
 {
-    Cell::Cell(std::unordered_set<std::string> states, Vec2<uint16_t> pos)
-    : states{states},pos{pos} {}
+    Tile::Tile(float weight, std::array<std::vector<std::string>,4>& rules, std::unordered_map<std::string,float>& coefficients) 
+    : weight{weight}, rules{rules}, coefficients{coefficients} {}
 
-    uint16_t Cell::entropy()
+    TileBuilder& TileBuilder::setWeight(float weight) 
+    {
+        _weight = weight;
+        return *this;
+    }
+
+    TileBuilder& TileBuilder::addRule(const Direction& dir, const std::string& tile)
+    {
+        _rules[dir].push_back(tile);
+        return *this;
+    }
+
+    TileBuilder& TileBuilder::addCoefficient(const std::string& tile, float weight)
+    {
+        _coefficients[tile] = weight;
+        return *this;
+    }
+
+    Tile TileBuilder::build()
+    {
+        return {_weight,_rules,_coefficients};
+    }
+
+    Cell::Cell(std::vector<std::string> states, Vec2<int32_t> pos)
+     : states{states},pos{pos} {}
+
+    uint16_t Cell::entropy() const
     {
         return static_cast<uint16_t>(states.size());
     }
-
-    TileMetaBuilder& TileMetaBuilder::setWeight(uint16_t w)
-    {
-        _weight = w;
-        return *this;
+    
+    Grid::Grid(Vec2<uint16_t> size) : _size{size} {
+        _cells.resize(size[1]);
+        for (auto& row : _cells) 
+            row.resize(size[0]);
     }
 
-    TileMetaBuilder& TileMetaBuilder::addRule(Direction d, std::string t_name)
+    Vec2<uint16_t> Grid::size() const
     {
-        _rules[d].push_back(t_name);
-        return *this;
+        return _size;
     }
 
-    TileMeta TileMetaBuilder::build()
+    std::string Grid::get(Vec2<int32_t> pos) const
     {
-        TileMeta meta;
-        meta.weight = _weight;
-        meta.rules = _rules;
-        return meta;
+        return _cells[pos[0]][pos[1]];
+    }
+    void Grid::set(Vec2<int32_t> pos, std::string name)
+    {
+        _cells[pos[0]][pos[1]] = name;
     }
 
-    void TileMetaContainer::insert(const std::string& t_name, const TileMeta& meta)
+    bool Grid::collapsed(const Vec2<int32_t>& pos)
     {
-        _tile_map.insert({t_name,meta});
+        return !_cells[pos[0]][pos[1]].empty();
     }
 
-    std::vector<std::string> TileMetaContainer::keys()
+    void Grid::print()
     {
-        std::vector<std::string> v;
-        v.reserve(_tile_map.size());
-        for (const auto& p: _tile_map)
-            v.emplace_back(p.first);
-        return v;
-    }
-
-    std::vector<TileMeta> TileMetaContainer::values()
-    {
-        std::vector<TileMeta> v;
-        v.reserve(_tile_map.size());
-        for (const auto& p : _tile_map)
-            v.emplace_back(p.second);
-        return v;
-    }
-
-    TileMeta& TileMetaContainer::operator[](const std::string& t_name)
-    {
-        auto it = _tile_map.find(t_name);
-        if (it == _tile_map.end()) {
-            throw std::out_of_range("tile not found");
+        for (auto& rows : _cells) {
+            for (auto& str : rows) {
+                if (str == "A") {
+                    std::cout << "\033[92m" << str << "\033[0m ";
+                } else {
+                    std::cout << "\033[94m" << str << "\033[0m ";
+                }
+            }
+            std::cout << '\n';
         }
-        return it->second;
     }
 
-    void TilePriorityQueue::_swap(int idx_one, int idx_two)
+    TilePriorityQueue::TilePriorityQueue(const Vec2<uint16_t>& grid_size, std::vector<std::string> states)
     {
-        auto temp = _queue[idx_one];
-        _queue[idx_one] = _queue[idx_two];
-        _queue[idx_two] = temp;
+        uint16_t rows = grid_size[0], cols = grid_size[1];
+        for (uint16_t i {0}; i < rows; i++) {
+            for (uint16_t j {0}; j < cols; j++) {
+                _queue.push_back({states,{i,j}});            
+            }
+        }
+        std::shuffle(_queue.begin(),_queue.end(),generator);
+    }
+    void TilePriorityQueue::_swap(uint16_t i1, uint16_t i2)
+    {
+        auto temp = _queue[i1];
+        _queue[i1] = _queue[i2];
+        _queue[i2] = temp;
     }
 
-    void TilePriorityQueue::_bubble_up(int idx)
+    void TilePriorityQueue::_bubbleUp(uint16_t idx)
     {
         while (idx > 0) {
-            uint16_t parent = (idx - 1) / 2;
-            if (_queue[parent].entropy() > _queue[idx].entropy())
+            uint16_t parent {static_cast<uint16_t>((idx - 1) / 2)};
+            if (_queue[parent].entropy() > _queue[idx].entropy()) {
                 _swap(parent,idx);
-            else
+            } else {
                 break;
+            }
+        }
+    }
+    void TilePriorityQueue::print()
+    {
+        for (auto p : _queue) {
+            for (auto state : p.states) {
+                std::cout << state << " ";
+            }
+            std::cout << '\n';
         }
     }
 
-    void TilePriorityQueue::_bubble_down([[maybe_unused]]int idx)
+    void TilePriorityQueue::_bubbleDown(uint16_t idx)
     {
-        //size_t size = _queue.size();
+        auto size = _queue.size();
+        while (idx <= size) {
+            uint16_t left = 2 * idx + 1;
+            uint16_t right = 2 * idx + 2;
+            uint16_t smallest = idx;
+            if (left < size && _queue[left].entropy() < _queue[smallest].entropy()) {
+                smallest = left;
+            }
+            if (right < size && _queue[right].entropy() < _queue[smallest].entropy()) {
+                smallest = right;
+            }
+            if (smallest == idx) {
+                break;
+            }
+            _swap(smallest,idx);
+            idx = smallest;
+        }
     }
 
-    Grid::Grid(uint16_t width, uint16_t height)
-    : _width{width},_height{height} 
+    void TilePriorityQueue::insert(const Cell& cell)
     {
-        _grid.resize(height);
-        for (auto& row : _grid)
-            row.resize(width);
+        _queue.push_back(cell);
+        _bubbleUp(_queue.size() - 1);
     }
 
-    void Grid::set(std::string t_name, Vec2<uint16_t> pos)
+    bool TilePriorityQueue::empty()
     {
-        _grid[pos[0]][pos[1]] = t_name;
+        return _queue.empty();
     }
 
-    std::string Grid::get(Vec2<uint16_t> pos)
+    Cell TilePriorityQueue::pop()
     {
-        return _grid[pos[0]][pos[1]];
+        Cell cell = _queue.front();
+        _queue[0] = _queue.back();
+        _queue.pop_back();
+        _bubbleDown(0);
+        return cell;
+    }
+
+    WaveFunction::WaveFunction(Grid& grid, std::unordered_map<std::string,Tile>& tiles) : _grid{grid}, _tiles{tiles}, _queue{grid.size(),{}} {
+        std::vector<std::string> states;
+        for (auto& pair : _tiles)
+            states.push_back(pair.first);
+        _queue = {grid.size(),states};
+    }
+
+    Vec2<int32_t> _shift(const Direction& dir, const Vec2<uint16_t>& vec) {
+        return Vec2<int32_t> {vec[0] + dirs[dir][0],vec[1] + dirs[dir][1]};
+    } 
+
+    void WaveFunction::run()
+    {
+        while (!_queue.empty()) {
+            auto cell = _queue.pop();
+            collapse(cell);
+        }
+    }
+
+    float WaveFunction::_calculateTileWeight(const Vec2<int32_t>& pos, const Tile& tile)
+    {
+        auto base = tile.weight;
+        auto weight = base;
+        for (int i = 0; i < 4; i++) {
+            auto shift = pos + dirs[i];
+            if (shift[0] >= 0 && 
+                shift[0] < _grid.size()[0] && 
+                shift[1] >= 0 && 
+                shift[1] < _grid.size()[1] && 
+                _grid.collapsed(shift)) {
+                auto t_name = _grid.get(shift);
+                if (tile.coefficients.find(t_name) != tile.coefficients.end()) {
+                    auto coefficient = tile.coefficients.at(t_name);
+                    weight = base*coefficient + weight;
+                }
+            }
+        }
+        return weight;
+    } 
+    
+    void WaveFunction::collapse(const Cell& cell)
+    {
+        float cumulative_weight {0};
+        std::vector<std::pair<std::string,float>> state_weights;
+        for (auto& state : cell.states) {
+            auto it = _tiles.find(state);
+            if (it != _tiles.end()) {
+                auto weight = _calculateTileWeight(cell.pos, it->second);
+                cumulative_weight += weight;
+                state_weights.push_back({state,cumulative_weight});
+            }
+        }
+
+        std::uniform_real_distribution<float> dist {0.0f,cumulative_weight};
+
+        float r = dist(generator);
+
+        std::string selected;
+        for (auto& pair : state_weights) {
+            if (r <= pair.second) {
+                selected = pair.first;
+                break;
+            }
+        }
+        _grid.set(cell.pos,selected);
     }
 }
 

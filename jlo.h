@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <deque>
+#include <array>
 #include <unordered_map>
 #include <unordered_set>
 #define MAX_COMPONENTS 32
@@ -40,6 +41,14 @@ uint16_t getId()
 typedef uint16_t eid_t;
 typedef std::bitset<MAX_COMPONENTS> cmask_t;
 
+enum Direction
+{
+    TOP,
+    BOTTOM,
+    LEFT,
+    RIGHT
+};
+
 template <typename T>
 class Vec2
 {
@@ -55,71 +64,78 @@ class Vec2
         Vec2<T>& operator+=(const Vec2<T>& v);
 };
 
-enum Direction
-{
-    TOP,
-    BOTTOM,
-    LEFT,
-    RIGHT
-};
-
 namespace wfc
 {
-    struct TileMeta
+    struct Tile 
     {
-        uint16_t weight;
-        std::unordered_map<Direction,std::vector<std::string>> rules;
+        float weight;
+        std::array<std::vector<std::string>, 4> rules;
+        std::unordered_map<std::string,float> coefficients;
+        Tile(float weight, std::array<std::vector<std::string>,4>& rules, std::unordered_map<std::string,float>& coefficients);
     };
 
-    struct Cell
-    {
-        std::unordered_set<std::string> states;
-        Vec2<uint16_t> pos;
-        Cell(std::unordered_set<std::string> states, Vec2<uint16_t> pos);
-        uint16_t entropy();
-    };
-
-    class TileMetaBuilder
+    class TileBuilder
     {
         private:
-            uint16_t _weight;
-            std::unordered_map<Direction,std::vector<std::string>> _rules;
+            float _weight;
+            std::array<std::vector<std::string>,4> _rules;
+            std::unordered_map<std::string,float> _coefficients;
         public:
-            TileMetaBuilder& setWeight(uint16_t w);
-            TileMetaBuilder& addRule(Direction d, std::string t_name);
-            TileMeta build();
+            TileBuilder& setWeight(float weight);
+            TileBuilder& addRule(const Direction& dir, const std::string& tile);
+            TileBuilder& addCoefficient(const std::string& tile, float weight);
+            Tile build();
     };
 
-    class TileMetaContainer
+    struct Cell 
+    {
+        std::vector<std::string> states;
+        Vec2<int32_t> pos;
+        Cell(std::vector<std::string> states, Vec2<int32_t> pos);
+        uint16_t entropy() const;
+    };
+
+    class Grid 
     {
         private:
-            std::unordered_map<std::string,TileMeta> _tile_map;
+            std::vector<std::vector<std::string>> _cells;
+            Vec2<uint16_t> _size;
         public:
-            void insert(const std::string& t_name, const TileMeta& meta);
-            std::vector<std::string> keys();
-            std::vector<TileMeta> values();
-            TileMeta& operator[](const std::string& t_name);
+            Grid(Vec2<uint16_t> size);
+            Vec2<uint16_t> size() const;
+            std::string get(Vec2<int32_t> pos) const;
+            void set(Vec2<int32_t> pos, std::string name);
+            bool collapsed(const Vec2<int32_t>& pos);
+            void print();
     };
 
     class TilePriorityQueue
     {
         private:
             std::vector<Cell> _queue;
-            void _swap(int idx_one, int idx_two);
-            void _bubble_up(int idx);
-            void _bubble_down(int idx);
+            void _swap(uint16_t i1, uint16_t i2);
+            void _bubbleUp(uint16_t idx);
+            void _bubbleDown(uint16_t idx);
+        public:
+            TilePriorityQueue(const Vec2<uint16_t>& grid_size, std::vector<std::string> states);
+            void insert(const Cell& cell);
+            bool empty();
+            Cell pop();
+            void print();
     };
 
-    class Grid
+    class WaveFunction 
     {
         private:
-            std::vector<std::vector<std::string>> _grid;
-            uint16_t _width, _height;
+            Grid& _grid;
+            std::unordered_map<std::string,Tile>& _tiles;
+            TilePriorityQueue _queue;
+            Vec2<int32_t> _shift(const Direction& direction, const Vec2<uint16_t>& vec);
+            float _calculateTileWeight(const Vec2<int32_t>& pos, const Tile& tile);
         public:
-            Grid(uint16_t width, uint16_t height);
-            void set(std::string t_name, Vec2<uint16_t> pos);
-            std::string get(Vec2<uint16_t> pos);
-            bool collapsed(Vec2<uint16_t> pos);
+            WaveFunction(Grid& grid, std::unordered_map<std::string,Tile>& tiles);
+            void run();
+            void collapse(const Cell& cell);
     };
 }
 
@@ -219,6 +235,11 @@ namespace ecs
     {
         public:
             virtual void update(float dt);
+    };
+
+    class PhysicsSystem : public System
+    {
+
     };
 }
 #include "jlo.tpp"
