@@ -1,5 +1,5 @@
 CFLAGS = -I ./include
-LFLAGS = -lX11 -lGL -lm
+LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm
 # Target source files
 SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp jsandoval.cpp dchu.cpp balrowhany.cpp mchitorog.cpp
 # Compile each source file in 'SRC' to O, when 'OBJ' is used, the files are 
