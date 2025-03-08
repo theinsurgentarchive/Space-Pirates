@@ -28,3 +28,4 @@ debug: ${D_OBJ}
 clean:
 	rm -f asteroids
 	rm -f *.o
+	rm -f debug
