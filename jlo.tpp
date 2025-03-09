@@ -51,22 +51,22 @@ namespace ecs
         if (e_ptr == nullptr)
             return nullptr;
         uint16_t cid = getId<T>();
-        DPRINTF("component (%d) -> entity (address|id): %p | %d\n",cid,e_ptr,e_ptr->id);
+        DINFOF("component (%d) -> entity (%p | %d)\n",cid,e_ptr,e_ptr->id);
         if (e_ptr->mask.test(cid)) {
-            DPRINTF("reassignment for component (%d) to entity id: %d, returning null\n",cid, e_ptr->id);
+            DINFOF("reassignment for component (%d) to entity (%d), returning null\n",cid, e_ptr->id);
             return nullptr;
         }
         if (cid >= _pools.size()) {
             uint16_t n = _pools.size() + 1;
-            DPRINTF("component pool (%d) to: %d -> %d\n", cid, static_cast<uint16_t>(_pools.size()), n);
+            DINFOF("component pool (%d) to: %d -> %d\n", cid, static_cast<uint16_t>(_pools.size()), n);
             _pools.resize(n);
         }
         if (_pools[cid] == nullptr) {
-            DPRINTF("instantiated component pool (%d)\n",cid);
+            DINFOF("instantiated component pool (%d)\n",cid);
             _pools[cid] = std::make_unique<ComponentPool>(sizeof(T));
         }
         void *mem = _pools[cid]->get(e_ptr->id);
-        DPRINTF("creating new component (%d) at (address): %p\n", cid, mem);
+        DINFOF("creating new component (%d) at (%p)\n", cid, mem);
         T *ptr_component = new (mem) T();
         e_ptr->mask.set(cid);
         return ptr_component;
@@ -76,12 +76,12 @@ namespace ecs
     T* ComponentManager::fetch(Entity *e_ptr)
     {
         if (e_ptr == nullptr) {
-            DPRINT("entity pointer was null\n");
+            DWARN("entity pointer was null\n");
             return nullptr;
         }
         uint16_t cid = getId<T>();
         if (!ComponentManager::has<T>(e_ptr)) {
-            DPRINTF("entity (%d) does not own component (%d)\n",e_ptr->id,cid);
+            DINFOF("entity (%d) does not own component (%d)\n",e_ptr->id,cid);
             return nullptr;
         }
         void *mem = _pools[cid]->get(e_ptr->id);
@@ -90,10 +90,10 @@ namespace ecs
 
 
     template <typename T>
-    bool has_helper(Entity* e_ptr, T)
+    bool hasHelper(Entity* e_ptr, T)
     {
         if (e_ptr == nullptr) {
-            DPRINT("entity pointer was null");
+            DWARN("entity pointer was null");
             return false;
         }
         uint16_t cid = getId<T>();
@@ -101,15 +101,15 @@ namespace ecs
     }
 
     template <typename T, typename... Ts>
-    bool has_helper(Entity* e_ptr, T, Ts ... ts)
+    bool hasHelper(Entity* e_ptr, T, Ts ... ts)
     {
-        return has_helper(e_ptr,T()) && has_helper(e_ptr,ts...);
+        return hasHelper(e_ptr,T()) && hasHelper(e_ptr,ts...);
     }
 
     template <typename... T>
     bool ComponentManager::has(Entity *e_ptr)
     {
-        return has_helper(e_ptr,T()...);
+        return hasHelper(e_ptr,T()...);
     }      
 
     template <typename... T>
@@ -123,4 +123,11 @@ namespace ecs
         }
         return entities;
     }     
+
+    template <typename T>
+    void SystemManager::registerSystem()
+    {
+        auto ptr = std::make_shared<T>();
+        _systems.push_back(ptr);
+    }
 }

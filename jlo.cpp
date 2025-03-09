@@ -1,25 +1,29 @@
-#include "jlo.h"
-#include "fonts.h"
 #include <cstdint>
 #include <bitset>
 #include <array>
 #include <memory>
 #include <vector>
-#include <array>
 #include <deque>
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <fstream>
+#include <GL/glx.h>
+#include "jlo.h"
+#include "fonts.h"
+#include "image.h"
 
 void show_jlo(Rect* r)
 {
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
 }
 
+std::vector<std::string> img_extensions {"png","jpeg","jpg"};
 std::random_device rd;
 std::mt19937 generator(rd());
 Vec2<int32_t> dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
 
+extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 Direction opposite(const Direction& dir)
 {
     if (dir == TOP)
@@ -29,6 +33,43 @@ Direction opposite(const Direction& dir)
     if (dir == RIGHT)
         return LEFT;
     return TOP;
+}
+
+Texture::Texture(const Vec2<uint16_t>& dim) 
+: dim{dim} 
+{
+    tex = std::make_shared<GLuint>();
+}
+
+void TextureLoader::load(const std::string& file_name)
+{
+    std::ifstream file (file_name);
+    if (file.is_open()) {
+        DWARNF("file does not exist: %s",file_name.c_str());
+        return;
+    }
+
+    std::string ext;
+    for (auto& extension : img_extensions) {
+        auto length = file_name.length() - extension.length();
+        if (extension == file_name.substr(length)) {
+            ext = extension;
+            break;
+        }
+    }
+    if (ext.empty())
+        return;
+    Image img {file_name.c_str()};
+    auto t = std::make_shared<Texture>(Vec2<uint16_t>{img.width,img.height});
+    glGenTextures(1,t->tex.get());
+    glBindTexture(GL_TEXTURE_2D,*t->tex);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    auto data = buildAlphaData(&img);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
+    DINFOF("loaded texture: %s",file_name.c_str());
+    auto fname = file_name.substr(0,file_name.length() - ext.length());
+    _textures.insert({fname,t});
 }
 
 namespace wfc
@@ -116,6 +157,7 @@ namespace wfc
         }
         std::shuffle(_queue.begin(),_queue.end(),generator);
     }
+
     void TilePriorityQueue::_swap(uint16_t i1, uint16_t i2)
     {
         auto temp = _queue[i1];
@@ -185,7 +227,8 @@ namespace wfc
         return cell;
     }
 
-    WaveFunction::WaveFunction(Grid& grid, std::unordered_map<std::string,Tile>& tiles) : _grid{grid}, _tiles{tiles}, _queue{grid.size(),{}} {
+    WaveFunction::WaveFunction(Grid& grid, std::unordered_map<std::string,Tile>& tiles)
+     : _grid{grid}, _tiles{tiles}, _queue{grid.size(),{}} {
         std::vector<std::string> states;
         for (auto& pair : _tiles)
             states.push_back(pair.first);
@@ -256,6 +299,8 @@ namespace wfc
 namespace ecs
 {   
     ECS ecs;
+
+    SystemManager sm;
     
     Entity::Entity(eid_t i, cmask_t m) : id(i), mask(m) {}
 
@@ -320,6 +365,29 @@ namespace ecs
     {
         return _component_manager;
     }
+
     void System::update([[maybe_unused]]float dt) {}
 
+    void PhysicsSystem::update(float dt)
+    {
+        auto entities = ecs::ecs.query<TRANSFORM,PHYSICS>();
+
+        for (auto& entity : entities) {
+            DINFOF("applying physics to entity (%d)\n",entity->id);
+            auto tc = ecs.component().fetch<TRANSFORM>(entity);
+            auto pc = ecs.component().fetch<PHYSICS>(entity);
+            if (pc->enabled) {
+                pc->vel += pc->acc * dt;
+                tc->pos += pc->vel * dt;
+                DINFOF("final position (%f, %f) for entity (%d)\n",tc->pos[0],tc->pos[1],entity->id);
+            }
+        }
+    }
+
+    void SystemManager::update(float dt)
+    {
+        for (auto& system : _systems) {
+            system->update(dt);
+        }
+    }
 }

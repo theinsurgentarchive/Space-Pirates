@@ -49,6 +49,7 @@ extern double physicsCountdown;
 extern double timeSpan;
 extern double timeDiff(struct timespec *start, struct timespec *end);
 extern void timeCopy(struct timespec *dest, struct timespec *source);
+std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 //-----------------------------------------------------------------------------
 
 class Global {
@@ -266,7 +267,7 @@ int main()
 		ecs::ecs.component().assign<ecs::Sprite>(e)
 	);
 
-	ecs::ecs.query<PHYSICS>();
+	ecs::sm.registerSystem<ecs::PhysicsSystem>();
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -299,12 +300,14 @@ int main()
 			//entity_system_manager.update(s, (float) 0.05);
 		}
 		x11.swapBuffers();
+		ecs::sm.update(1/20);
 	}
 	cleanup_fonts();
 	logClose();
 	return 0;
 }
-
+GLuint tex;
+Image img[1] = {"./textures/skip.png"};
 void init_opengl(void)
 {
 	//OpenGL initialization
@@ -335,38 +338,34 @@ void init_opengl(void)
     glTexImage2D(GL_TEXTURE_2D, 0, 3, menuImage->width, menuImage->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, menuImage->data);
 
+	glGenTextures(1,&tex);
 
+	glBindTexture(GL_TEXTURE_2D, tex);
+
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+
+	auto data = buildAlphaData(&img[0]);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img[0].width,img[0].height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
 	//
-
 }
-unsigned char *buildAlphaData(Image *img)
+std::unique_ptr<unsigned char[]> buildAlphaData(Image *img)
 {
-	//add 4th component to RGB stream...
-	int i;
-	unsigned char *newdata, *ptr;
-	unsigned char *data = (unsigned char *)img->data;
-	//2 bytes * 2 bytes * 4;
-	newdata = (unsigned char *)malloc(img->width * img->height * sizeof(int));
-	ptr = newdata;
-	unsigned char a,b,c;
-	//use the first pixel in the image as the transparent color.
-	unsigned char t0 = *(data+0);
-	unsigned char t1 = *(data+1);
-	unsigned char t2 = *(data+2);
-	for (i=0; i<img->width * img->height * 3; i+=3) {
-		a = *(data+0); //255
-		b = *(data+1); //0
-		c = *(data+2); //0
-		*(ptr+0) = a; //255
-		*(ptr+1) = b; //0
-		*(ptr+2) = c; //0
-		*(ptr+3) = 1; //1
-		if (a==t0 && b==t1 && c==t2)
-			*(ptr+3) = 0;
-		//-----------------------------------------------
-		ptr += sizeof(int);
-		data += 3;
-	}
+	/*
+	* refactored version of gordon's initail alpha data code 
+	*/
+	auto img_size = img->width * img->height;
+	auto newdata = std::make_unique<unsigned char[]>(img_size * sizeof(int));
+    auto *ptr = newdata.get();
+    auto *data = reinterpret_cast<unsigned char *>(img->data);
+    auto t0 = data[0], t1 = data[1], t2 = data[2];
+    for (int i {0}; i < img_size; ++i) {
+        std::copy(data, data + 3, ptr);
+        ptr[3] = (data[0] == t0 && data[1] == t1 && data[2] == t2) ? 0 : 255;
+
+        data += 3;
+        ptr += sizeof(int);
+    }
 	return newdata;
 }
 void normalize2d(Vec v)
@@ -481,16 +480,9 @@ void physics()
 }
 void render() {
 
-	DPRINTF("rendering state: %d\n",gl.state);
+	DINFOF("rendering state: %d\n",gl.state);
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	// glLoadIdentity(); 
-	// glEnable(GL_TEXTURE_2D);  
-    // glDisable(GL_DEPTH_TEST);
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
     if (gl.state == MENU) {
         //  menu background
 		render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);

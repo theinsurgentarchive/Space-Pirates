@@ -8,6 +8,8 @@
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
+#include <GL/glx.h>
+
 #define MAX_COMPONENTS 32
 #define MAX_ENTITIES 500
 
@@ -16,15 +18,27 @@
 #define PHYSICS ecs::Physics
 #define HEALTH ecs::Health
 
-
+#define _RESET "\033[0m"
+#define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
+#define _INFO(str) _RGB(102, 204, 255) "INFO: " _RESET _RGB(255,255,255) str _RESET
+#define _WARN(str) _RGB(255,204,0) "WARNING: " _RESET _RGB(255,255,255) str _RESET
+#define _ERROR(str) _RGB(255,76,76) "ERROR: " _RESET _RGB(255,255,255) str _RESET
 #ifdef DEBUG
 #include <iostream>
 #include <cstdio>
-#define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
-#define DPRINT(str) std::cout << str << std::flush
+#define DINFOF(fmt, ...) printf(_INFO(fmt), __VA_ARGS__)
+#define DWARNF(fmt, ...) printf(_WARN(fmt), __VA_ARGS__)
+#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__)
+#define DINFO(str) std::cout << _INFO(str) << std::flush
+#define DWARN(str) std::cout << _WARN(str) << std::flush
+#define DERROR(str) std::cout << _ERROR(str) << std::flush
 #else
-#define DPRINTF(fmt, ...)
-#define DPRINT(str)
+#define DINFOF(fmt, ...)
+#define DWARNF(fmt, ...)
+#define DERRORF(fmt, ...)
+#define DINFO(str)
+#define DWARN(str)
+#define DERORR(str)
 #endif
 
 void show_jlo(Rect* r);
@@ -62,6 +76,22 @@ class Vec2
         T operator[](int idx) const;
         T& operator[](int idx);
         Vec2<T>& operator+=(const Vec2<T>& v);
+};
+
+struct Texture
+{
+    Vec2<uint16_t> dim;
+    std::shared_ptr<GLuint> tex;
+    Texture(const Vec2<uint16_t>& dim);
+};
+
+class TextureLoader
+{
+    private:
+        std::unordered_map<std::string, std::shared_ptr<Texture>> _textures;
+        std::vector<std::string> _findImageFiles(const std::string& folder_name);
+    public:
+        void load(const std::string& file_name);
 };
 
 namespace wfc
@@ -144,11 +174,18 @@ namespace ecs
     class ECS;
     extern ECS ecs;
 
+    class SystemManager;
+    extern SystemManager sm;
+
+    class TextureLoader;
+    extern TextureLoader tl;
+
     struct Physics
     {
         Vec2<float> vel;
         Vec2<float> acc;
         float mass;
+        bool enabled {true};
     };
 
     struct Transform 
@@ -233,13 +270,27 @@ namespace ecs
 
     class System
     {
+        //TODO: improve this by adding sampling frequency
+        private:
+            float _sample_frequency;
         public:
             virtual void update(float dt);
     };
 
     class PhysicsSystem : public System
     {
+        public:
+            void update(float dt) override;
+    };
 
+    class SystemManager
+    {
+        private:
+            std::vector<std::shared_ptr<System>> _systems;
+        public:
+            template <typename T>
+            void registerSystem();
+            void update(float dt);
     };
 }
 #include "jlo.tpp"
