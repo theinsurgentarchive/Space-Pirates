@@ -20,7 +20,7 @@
 #include "log.h"
 #include "fonts.h"
 #define GAME_TITLE "Space Pirates"
-#define TEXTURE_FOLDER_PATH "./textures"
+#define _TEXTURES "./textures"
 using namespace std; 
 
 // #define CREDITS
@@ -268,7 +268,8 @@ int main()
 		ecs::ecs.component().assign<ecs::Sprite>(e)
 	);
 
-	ecs::sm.registerSystem<ecs::PhysicsSystem>();
+	tl.loadFolder(_TEXTURES);
+	//ecs::sm.registerSystem<ecs::PhysicsSystem>();
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
