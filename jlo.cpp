@@ -8,7 +8,11 @@
 #include <random>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
+
 #include <GL/glx.h>
+#include <dirent.h>
+
 #include "jlo.h"
 #include "fonts.h"
 #include "image.h"
@@ -21,19 +25,11 @@ void show_jlo(Rect* r)
 std::vector<std::string> img_extensions {"png","jpeg","jpg"};
 std::random_device rd;
 std::mt19937 generator(rd());
+TextureLoader tl;
 Vec2<int32_t> dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
+Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
 
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
-Direction opposite(const Direction& dir)
-{
-    if (dir == TOP)
-        return BOTTOM;
-    if (dir == LEFT)
-        return RIGHT;
-    if (dir == RIGHT)
-        return LEFT;
-    return TOP;
-}
 
 Texture::Texture(const Vec2<uint16_t>& dim) 
 : dim{dim} 
@@ -44,8 +40,8 @@ Texture::Texture(const Vec2<uint16_t>& dim)
 void TextureLoader::load(const std::string& file_name)
 {
     std::ifstream file (file_name);
-    if (file.is_open()) {
-        DWARNF("file does not exist: %s",file_name.c_str());
+    if (!file.is_open()) {
+        DWARNF("file does not exist: %s\n",file_name.c_str());
         return;
     }
 
@@ -56,7 +52,7 @@ void TextureLoader::load(const std::string& file_name)
             ext = extension;
             break;
         }
-    }
+    } 
     if (ext.empty())
         return;
     Image img {file_name.c_str()};
@@ -65,16 +61,42 @@ void TextureLoader::load(const std::string& file_name)
     glBindTexture(GL_TEXTURE_2D,*t->tex);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    auto data = buildAlphaData(&img);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
-    DINFOF("loaded texture: %s",file_name.c_str());
-    auto fname = file_name.substr(0,file_name.length() - ext.length());
-    _textures.insert({fname,t});
+    auto d = buildAlphaData(&img);
+
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,
+        img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,d.get());
+    DINFOF("loaded texture: %s\n",file_name.c_str());
+    auto f = file_name.substr(0,file_name.length() - ext.length());
+    _textures.insert({f,t});
+}
+
+void TextureLoader::loadFolder(const std::string& folder_name)
+{
+    std::vector<std::string> files;
+
+    DIR* dir = opendir(folder_name.c_str());
+    if (dir == nullptr) {
+        DWARNF("failed to open directory: %s",folder_name.c_str());
+        return;
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string file_name = entry->d_name;
+        if (file_name == "." || file_name == "..") {
+            continue;
+        }
+        std::ostringstream file_path;
+        file_path << folder_name << "/" << file_name;
+        load(file_path.str());
+    }
+    closedir(dir);
 }
 
 namespace wfc
 {
-    Tile::Tile(float weight, std::array<std::vector<std::string>,4>& rules, std::unordered_map<std::string,float>& coefficients) 
+    Tile::Tile(float weight, std::array<std::vector<std::string>,4>& rules,
+        std::unordered_map<std::string,float>& coefficients) 
     : weight{weight}, rules{rules}, coefficients{coefficients} {}
 
     TileBuilder& TileBuilder::setWeight(float weight) 
@@ -83,13 +105,15 @@ namespace wfc
         return *this;
     }
 
-    TileBuilder& TileBuilder::addRule(const Direction& dir, const std::string& tile)
+    TileBuilder& TileBuilder::addRule(const Direction& dir, 
+        const std::string& tile)
     {
         _rules[dir].push_back(tile);
         return *this;
     }
 
-    TileBuilder& TileBuilder::addCoefficient(const std::string& tile, float weight)
+    TileBuilder& TileBuilder::addCoefficient(const std::string& tile, 
+        float weight)
     {
         _coefficients[tile] = weight;
         return *this;
@@ -123,6 +147,7 @@ namespace wfc
     {
         return _cells[pos[0]][pos[1]];
     }
+    
     void Grid::set(Vec2<int32_t> pos, std::string name)
     {
         _cells[pos[0]][pos[1]] = name;

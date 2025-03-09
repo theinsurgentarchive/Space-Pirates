@@ -43,6 +43,8 @@
 
 void show_jlo(Rect* r);
 
+class TextureLoader;
+extern TextureLoader tl;
 extern uint16_t counter;
 
 template <class T>
@@ -89,9 +91,9 @@ class TextureLoader
 {
     private:
         std::unordered_map<std::string, std::shared_ptr<Texture>> _textures;
-        std::vector<std::string> _findImageFiles(const std::string& folder_name);
     public:
         void load(const std::string& file_name);
+        void loadFolder(const std::string& folder_name);
 };
 
 namespace wfc
@@ -176,9 +178,6 @@ namespace ecs
 
     class SystemManager;
     extern SystemManager sm;
-
-    class TextureLoader;
-    extern TextureLoader tl;
 
     struct Physics
     {
