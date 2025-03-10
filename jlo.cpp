@@ -29,20 +29,22 @@ TextureLoader tl;
 Vec2<int32_t> dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
 Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
 
+extern std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+extern std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 
-Texture::Texture(const Vec2<uint16_t>& dim) 
-: dim{dim} 
+Texture::Texture(const Vec2<uint16_t>& dim, bool alpha) 
+: dim{dim}, alpha{alpha}
 {
     tex = std::make_shared<GLuint>();
 }
 
-void TextureLoader::load(const std::string& file_name)
+std::shared_ptr<Texture> TextureLoader::load(const std::string& file_name, bool alpha)
 {
     std::ifstream file (file_name);
     if (!file.is_open()) {
         DWARNF("file does not exist: %s\n",file_name.c_str());
-        return;
+        return nullptr;
     }
 
     std::string ext;
@@ -53,50 +55,130 @@ void TextureLoader::load(const std::string& file_name)
             break;
         }
     } 
-    if (ext.empty())
-        return;
+    if (ext.empty()) {
+        DWARNF("file does not have a valid extension: %s",file_name.c_str());
+        return nullptr;
+    }
     Image img {file_name.c_str()};
-    auto t = std::make_shared<Texture>(Vec2<uint16_t>{img.width,img.height});
-    glGenTextures(1,t->tex.get());
-    glBindTexture(GL_TEXTURE_2D,*t->tex);
+    auto tex = std::make_shared<Texture>(Vec2<uint16_t>{img.width,img.height},alpha);
+    glGenTextures(1,tex->tex.get());
+    glBindTexture(GL_TEXTURE_2D,*tex->tex);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    auto d = buildAlphaData(&img);
-
+    auto data = buildAlphaData(&img);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,
-        img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,d.get());
+        img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
     DINFOF("loaded texture: %s\n",file_name.c_str());
-    auto f = file_name.substr(0,file_name.length() - ext.length());
-    _textures.insert({f,t});
+    return tex;
 }
 
-void TextureLoader::loadFolder(const std::string& folder_name)
+// void TextureLoader::loadFolder(const std::string& folder_name, bool alpha)
+// {
+//     std::vector<std::string> files;
+
+//     DIR* dir = opendir(folder_name.c_str());
+//     if (dir == nullptr) {
+//         DWARNF("failed to open directory: %s",folder_name.c_str());
+//         return;
+//     }
+
+//     struct dirent* entry;
+//     while ((entry = readdir(dir)) != nullptr) {
+//         std::string file_name = entry->d_name;
+//         if (file_name == "." || file_name == "..") {
+//             continue;
+//         }
+//         std::ostringstream file_path;
+//         file_path << folder_name << "/" << file_name;
+//         load(file_path.str(), alpha);
+//     }
+//     closedir(dir);
+// }
+
+Animation::Animation(const std::string& texture_key, 
+    const Vec2<uint16_t>& sprite_dim, 
+    const Vec2<uint16_t>& frame_dim, 
+    const std::array<Vec2<uint16_t>,2>& frame_range) 
+    : 
+    _texture_key {texture_key},
+    _sprite_dim {sprite_dim},
+    _frame_dim {frame_dim},
+    _frame_range {frame_range} {}
+
+Animation& Animation::operator+(int value)
 {
-    std::vector<std::string> files;
+    _frame += value;
+    return *this;
+}
 
-    DIR* dir = opendir(folder_name.c_str());
-    if (dir == nullptr) {
-        DWARNF("failed to open directory: %s",folder_name.c_str());
-        return;
-    }
+Animation& Animation::operator-(int value)
+{
+    _frame+= value;
+    return *this;
+}
 
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string file_name = entry->d_name;
-        if (file_name == "." || file_name == "..") {
-            continue;
-        }
-        std::ostringstream file_path;
-        file_path << folder_name << "/" << file_name;
-        load(file_path.str());
-    }
-    closedir(dir);
+Animation& Animation::operator++()
+{
+    _frame++;
+    return *this;
+}
+
+Animation& Animation::operator=(uint16_t frame)
+{
+    _frame = frame;
+    return *this;
+}
+
+uint16_t Animation::getFrame() const
+{
+    return _frame;
+}
+
+uint16_t Animation::getMaxFrames() const
+{
+   return 0;
+}
+
+std::string Animation::getTextureKey() const
+{
+    return _texture_key;
+}
+
+AnimationBuilder& AnimationBuilder::setTextureKey(const std::string& texture_key)
+{
+    _texture_key = texture_key;
+    return *this;
+}
+
+AnimationBuilder& AnimationBuilder::setSpriteDimension(const Vec2<uint16_t>& sprite_dim)
+{
+    _sprite_dim = sprite_dim;
+    return *this;
+}
+
+AnimationBuilder& AnimationBuilder::setFrameDimension(const Vec2<uint16_t>& frame_dim)
+{
+    _frame_dim = frame_dim;
+    return *this;
+}
+AnimationBuilder& AnimationBuilder::setFrameRange(const std::array<Vec2<uint16_t>,2>& frame_range)
+{
+    _frame_range = frame_range;
+    return *this;
+}
+
+
+std::shared_ptr<Animation> AnimationBuilder::build()
+{
+    return std::make_shared<Animation>(_texture_key,_sprite_dim,_frame_dim,_frame_range);
 }
 
 namespace wfc
 {
-    Tile::Tile(float weight, std::array<std::vector<std::string>,4>& rules,
-        std::unordered_map<std::string,float>& coefficients) 
+    Tile::Tile(float weight, 
+        std::array<std::vector<std::string>,4>& rules,
+        std::unordered_map<std::string,
+        float>& coefficients) 
     : weight{weight}, rules{rules}, coefficients{coefficients} {}
 
     TileBuilder& TileBuilder::setWeight(float weight) 
@@ -324,8 +406,6 @@ namespace wfc
 namespace ecs
 {   
     ECS ecs;
-
-    SystemManager sm;
     
     Entity::Entity(eid_t i, cmask_t m) : id(i), mask(m) {}
 
@@ -409,10 +489,33 @@ namespace ecs
         }
     }
 
-    void SystemManager::update(float dt)
+    void RenderSystem::update(float dt)
     {
-        for (auto& system : _systems) {
-            system->update(dt);
+        auto entities = ecs::ecs.query<SPRITE,TRANSFORM>();
+
+        for (auto& entity : entities) {
+            auto ec = ecs.component().fetch<SPRITE>(entity);
+            auto tc = ecs.component().fetch<TRANSFORM>(entity);
+
+            if (ec->animation_key.empty()) {
+                DWARNF("animation key was empty for entity (%d)\n", entity->id);
+                continue;
+            }
+            
+            auto a = animations[ec->animation_key];
+            if (a == nullptr) {
+                DWARNF("animation from animation key: %s was null\n", ec->animation_key.c_str());
+                continue;
+            }
+
+            auto texture_key = a->getTextureKey();
+            if (texture_key.empty()) {
+                DWARN("texture key was empty");
+                continue;
+            }
+
+            std::shared_ptr<Texture> tex = textures[texture_key];
+            
         }
     }
 }

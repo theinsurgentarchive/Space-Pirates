@@ -58,7 +58,7 @@ namespace ecs
         }
         if (cid >= _pools.size()) {
             uint16_t n = _pools.size() + 1;
-            DINFOF("component pool (%d) to: %d -> %d\n", cid, static_cast<uint16_t>(_pools.size()), n);
+            DINFOF("expanded component pools to: %d -> %d\n", static_cast<uint16_t>(_pools.size()), n);
             _pools.resize(n);
         }
         if (_pools[cid] == nullptr) {
@@ -93,7 +93,7 @@ namespace ecs
     bool hasHelper(Entity* e_ptr, T)
     {
         if (e_ptr == nullptr) {
-            DWARN("entity pointer was null");
+            DWARN("entity pointer was null\n");
             return false;
         }
         uint16_t cid = getId<T>();
@@ -118,16 +118,10 @@ namespace ecs
         std::vector<Entity*> entities;
         for (auto& ptr : _entity_manager.entities) {
             if (_component_manager.has<T...>(&ptr)) {
+                DINFOF("entity (%d) matched query\n",ptr.id);
                 entities.push_back(&ptr);
             }
         }
         return entities;
     }     
-
-    template <typename T>
-    void SystemManager::registerSystem()
-    {
-        auto ptr = std::make_shared<T>();
-        _systems.push_back(ptr);
-    }
 }

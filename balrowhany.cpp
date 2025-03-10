@@ -106,6 +106,7 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, int se
 
 
 void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
+    glPushMatrix();
     //  controls screen bg
     glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -116,6 +117,7 @@ void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
         glTexCoord2f(1.0f, 1.0f); glVertex2i(xres, 0);
     glEnd();
     glBindTexture(GL_TEXTURE_2D, 0);
+    glPopMatrix();
 
     // controls 
     Rect r;

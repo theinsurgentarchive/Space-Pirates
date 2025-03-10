@@ -38,7 +38,6 @@ const float gravity = -0.2f;
 #define ALPHA 1
 const int MAX_BULLETS = 11;
 const Flt MINIMUM_ASTEROID_SIZE = 60.0;
-
 //-----------------------------------------------------------------------------
 //Setup timers
 const double physicsRate = 1.0 / 60.0;
@@ -245,9 +244,10 @@ void load_textures(void);
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
+ecs::RenderSystem rs;
 // Entity* second;
-// std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
-// std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
+std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
+std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 int main()
 {
     auto character = ecs::character_x(); 
@@ -266,9 +266,14 @@ int main()
 	[[maybe_unused]]auto sprite = (
 		ecs::ecs.component().assign<ecs::Sprite>(e)
 	);
+	sprite->animation_key = "run";
 
-	tl.loadFolder(_TEXTURES);
-	//ecs::sm.registerSystem<ecs::PhysicsSystem>();
+	textures.insert({"skip.png",tl.load("./textures/skip.png",false)});
+	AnimationBuilder ab {};
+	animations.insert({"run",ab.setTextureKey("skip.png")
+		.setSpriteDimension({64,64})
+		.setFrameDimension({1,8})
+		.setFrameRange({Vec2<uint16_t>{0,0},Vec2<uint16_t>{1,8}}).build()});
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -293,15 +298,8 @@ int main()
 		//glClear(GL_COLOR_BUFFER_BIT); 
 
 		// render based on game state 
-
-		if (gl.state == MENU || gl.state == CONTROLS) {
-			//USE RENDER() NOT ECS RENDER SYSTEM IF IN MENU STATE
-			render(); 
-		} else if (gl.state == PLAYING) {
-			//entity_system_manager.update(s, (float) 0.05);
-		}
+		render(); 
 		x11.swapBuffers();
-		ecs::sm.update(1/20);
 	}
 	cleanup_fonts();
 	logClose();
@@ -444,32 +442,32 @@ int check_keys(XEvent *e)
 
     // Playing state handling
     if (gl.state == PLAYING) {
-        if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
-            return 0;
-        }
-        auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
+        // if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
+        //     return 0;
+        // }
+        // auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
         
-        if (e->type == KeyRelease) {
-            if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-                pc->vel = {0,0};
-            }
-        } else if (e->type == KeyPress) {
-            static float movement_mag = 300.0;
-            switch(key) {
-                case XK_Right:
-                    pc->vel = {movement_mag,0};
-                    break;
-                case XK_Left:
-                    pc->vel = {-movement_mag,0};
-                    break;
-                case XK_Up:
-                    pc->vel = {0,movement_mag};
-                    break;
-                case XK_Down:
-                    pc->vel = {0,-movement_mag};
-                    break;
-            }
-        }
+        // if (e->type == KeyRelease) {
+        //     if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
+        //         pc->vel = {0,0};
+        //     }
+        // } else if (e->type == KeyPress) {
+        //     static float movement_mag = 300.0;
+        //     switch(key) {
+        //         case XK_Right:
+        //             pc->vel = {movement_mag,0};
+        //             break;
+        //         case XK_Left:
+        //             pc->vel = {-movement_mag,0};
+        //             break;
+        //         case XK_Up:
+        //             pc->vel = {0,movement_mag};
+        //             break;
+        //         case XK_Down:
+        //             pc->vel = {0,-movement_mag};
+        //             break;
+        //     }
+        // }
     }
 
     return exit_request;
@@ -477,18 +475,26 @@ int check_keys(XEvent *e)
 
 void physics()
 {
-	
+
 }
+
 void render() {
 
 	DINFOF("rendering state: %d\n",gl.state);
 
 	glClear(GL_COLOR_BUFFER_BIT);
-    if (gl.state == MENU) {
-        //  menu background
-		render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
-        }
-    else if (gl.state == CONTROLS) {
-       render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
-    }
+	switch(gl.state) {
+		case MENU:
+			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
+			break;
+		case CONTROLS:
+			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			break;
+		case PLAYING:
+			rs.update(1/20);
+			std::cout << "";
+			break;
+		default:
+			break;
+	}
 }

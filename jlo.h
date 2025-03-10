@@ -43,10 +43,43 @@
 
 void show_jlo(Rect* r);
 
+struct Texture;
 class TextureLoader;
-extern TextureLoader tl;
-extern uint16_t counter;
+class Animation;
+class AnimationBuilder;
 
+template <typename T>
+class Vec2;
+
+namespace wfc
+{
+    struct Tile;
+    class TileBuilder;
+    struct Cell;
+    class Grid;
+    class TilePriorityQueue;
+    class WaveFunction;
+}
+
+namespace ecs 
+{
+    struct Planet;
+    struct Physics;
+    struct Transform;
+    struct Health;
+    struct Sprite;
+    struct Entity;
+    class ComponentPool;
+    class ComponentManager;
+    class EntityManager;
+    class ECS;
+    class System;
+    class PhysicsSystem;
+    class RenderSystem;
+}
+
+extern uint16_t counter;
+extern TextureLoader tl;
 template <class T>
 uint16_t getId()
 {
@@ -80,24 +113,66 @@ class Vec2
         Vec2<T>& operator+=(const Vec2<T>& v);
 };
 
+
 struct Texture
 {
     Vec2<uint16_t> dim;
+    bool alpha {false};
     std::shared_ptr<GLuint> tex;
-    Texture(const Vec2<uint16_t>& dim);
+    Texture(const Vec2<uint16_t>& dim, bool alpha);
 };
 
 class TextureLoader
 {
-    private:
-        std::unordered_map<std::string, std::shared_ptr<Texture>> _textures;
     public:
-        void load(const std::string& file_name);
-        void loadFolder(const std::string& folder_name);
+        std::shared_ptr<Texture> load(const std::string& file_name, bool alpha);
+        //void loadFolder(const std::string& folder_name, bool alpha);
+};
+
+class Animation
+{
+    private:
+        std::string _texture_key;
+        Vec2<uint16_t> _sprite_dim;
+        Vec2<uint16_t> _frame_dim;
+        std::array<Vec2<uint16_t>,2> _frame_range;
+        uint16_t _frame {0};
+    public:
+        Animation(const std::string& texture_key, 
+            const Vec2<uint16_t>& sprite_dim, 
+            const Vec2<uint16_t>& frame_dim, 
+            const std::array<Vec2<uint16_t>,2>& frame_range);
+        Animation& operator+(int value);
+        Animation& operator-(int value);
+        Animation& operator++();
+        Animation& operator=(uint16_t frame);
+        uint16_t getFrame() const;
+        uint16_t getMaxFrames() const;
+        std::string getTextureKey() const;
+};
+
+class AnimationBuilder
+{
+    private:
+        std::string _texture_key;
+        Vec2<uint16_t> _sprite_dim;
+        Vec2<uint16_t> _frame_dim;
+        std::array<Vec2<uint16_t>,2> _frame_range;
+    public:
+        AnimationBuilder& setTextureKey(const std::string& texture_key);
+        AnimationBuilder& setSpriteDimension(const Vec2<uint16_t>& sprite_dim);
+        AnimationBuilder& setFrameDimension(const Vec2<uint16_t>& frame_dim);
+        AnimationBuilder& setFrameRange(const std::array<Vec2<uint16_t>,2>& frame_range);
+        std::shared_ptr<Animation> build();
 };
 
 namespace wfc
 {
+    struct Planet
+    {
+
+    };
+
     struct Tile 
     {
         float weight;
@@ -176,9 +251,6 @@ namespace ecs
     class ECS;
     extern ECS ecs;
 
-    class SystemManager;
-    extern SystemManager sm;
-
     struct Physics
     {
         Vec2<float> vel;
@@ -202,7 +274,8 @@ namespace ecs
 
     struct Sprite
     {
-        char* texture {nullptr};
+        std::string animation_key;
+
     };
 
     struct Entity 
@@ -282,14 +355,10 @@ namespace ecs
             void update(float dt) override;
     };
 
-    class SystemManager
+    class RenderSystem : public System
     {
-        private:
-            std::vector<std::shared_ptr<System>> _systems;
         public:
-            template <typename T>
-            void registerSystem();
-            void update(float dt);
+            void update(float dt) override;
     };
 }
 #include "jlo.tpp"
