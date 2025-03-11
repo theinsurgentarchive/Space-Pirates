@@ -2,66 +2,61 @@
 #include <iostream>
 #include <X11/keysym.h>
 #include "balrowhany.h"
+#include "mchitorog.h"
 //#include <GL/glx.h>
 
 using namespace std;
 
 
-
-int handle_menu_keys(int key, GameState &state, int &selected_option ) {
-    int exit_request = 0;
-
-    switch(key) {
-        case XK_Escape:
-            if (state == CONTROLS) {
-                state = MENU;
-                cout << "Returning to menu from controls" << endl;
-            } else if (state == PLAYING) {
-                state = MENU;
-                cout << "Pausing game - returning to menu" << endl;
-            } else if (state == MENU) {
-                cout << "Exiting game from menu" << endl;
-                exit_request = 1;
-                return exit_request;
-            }
-            break;
-        case XK_Up:
-            if (state == MENU) {
+int handle_menu_keys(int key, GameState &state, int &selected_option)
+{
+    if (state == MENU) {
+        switch(key) {
+            case XK_Up:
+                // Menu navigation sound
+                playGameSound(MENU_CLICK);
+                // Assuming 3 options
                 selected_option = (selected_option - 1 + 3) % 3;
-                cout << "Selected option: " << selected_option << endl;
-            }
-            break;
-        case XK_Down:
-            if (state == MENU) {
-                selected_option = (selected_option + 1) % 3; 
-                cout << "Selected option: " << selected_option << endl;
-            }
-            break;
-        case XK_Return:
-            if (state == MENU) {
-                switch(selected_option) {
-                    case 0: 
-                        state = PLAYING;
-                        cout << "Starting game case return key " << endl;
-                        break;
-                    case 1:
-                        state = CONTROLS;
-                        cout << "Showing controls case return key" << endl;
-                        break;
-                    case 2:
-                        cout << "Exiting game case return key " << endl;
-                        exit_request = 1;
-                        break;
+                break;
+            case XK_Down:
+                // Menu navigation sound
+                playGameSound(MENU_CLICK);
+                selected_option = (selected_option + 1) % 3;
+                break;
+            case XK_Return:
+                // Menu selection sound
+                playGameSound(MENU_CLICK);
+                
+                if (selected_option == 0) {
+                    // Start game option
+                    state = PLAYING;
+                    // Update audio to match the new game state
+                    updateAudioState(state);
+                } else if (selected_option == 1) {
+                    // Controls option
+                    state = CONTROLS;
+                    // Update audio to match the new game state
+                    updateAudioState(state);
+                } else if (selected_option == 2) {
+                    // Exit option
+                    return 1; // Exit request
                 }
-            
-            }
-            
+                break;
+            case XK_Escape:
+                return 1; // Exit request
         }
-        return exit_request;
+    } else if (state == CONTROLS) {
+        if (key == XK_Escape || key == XK_Return) {
+            // Play sound when returning to menu
+            playGameSound(MENU_CLICK);
+            state = MENU;
+            // Update audio to match the new game state
+            updateAudioState(state);
+        }
+    }
     
-
-
-};
+    return 0;
+}
 
 
 

@@ -250,25 +250,25 @@ std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 int main()
 {
-    auto character = ecs::character_x(); 
+    [[maybe_unused]]auto character = ecs::character_x(); 
 
-	auto e = ecs::ecs.entity().checkout();
-	[[maybe_unused]]auto transform = (
-		ecs::ecs.component().assign<ecs::Transform>(e)
-	);
+    // Initialize audio system
+    initAudioSystem();
+    
+    // Set initial music according to game state (starting in MENU state)
+    updateAudioState(gl.state);
 
-	//Assign Physics component to entity
-	[[maybe_unused]]auto physics = (
-		ecs::ecs.component().assign<ecs::Physics>(e)
-	);
-
+    auto e = ecs::ecs.entity().checkout();
+    [[maybe_unused]]auto transform = (
+        ecs::ecs.component().assign<ecs::Transform>(e)
+    );
 	//Assign Sprite component to entity
 	[[maybe_unused]]auto sprite = (
 		ecs::ecs.component().assign<ecs::Sprite>(e)
 	);
 	sprite->animation_key = "run";
 
-	textures.insert({"skip.png",tl.load("./textures/skip.png",false)});
+	textures.insert({"skip.png",tl.load("./resources/textures/skip.png",false)});
 	AnimationBuilder ab {};
 	animations.insert({"run",ab.setTextureKey("skip.png")
 		.setSpriteDimension({64,64})
@@ -281,29 +281,29 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	int done=0;
-
-	while (!done) {
-		while (x11.getXPending()) {
-			XEvent e = x11.getXNextEvent();
-			x11.check_resize(&e);
-			check_mouse(&e);
-			done = check_keys(&e);
+	int done = 0;
+    while (!done) {
+        while (x11.getXPending()) {
+            XEvent e = x11.getXNextEvent();
+            x11.check_resize(&e);
+            check_mouse(&e);
+            done = check_keys(&e);
 		}
+        clock_gettime(CLOCK_REALTIME, &timeCurrent);
+        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        timeCopy(&timeStart, &timeCurrent);
+        //clear screen just once at the beginning
+        //glClear(GL_COLOR_BUFFER_BIT); 
 
-		clock_gettime(CLOCK_REALTIME, &timeCurrent);
-		timeSpan = timeDiff(&timeStart, &timeCurrent);
-		timeCopy(&timeStart, &timeCurrent);
-		//clear screen just once at the beginning
-		//glClear(GL_COLOR_BUFFER_BIT); 
-
-		// render based on game state 
-		render(); 
-		x11.swapBuffers();
-	}
-	cleanup_fonts();
-	logClose();
-	return 0;
+        // Update audio system each frame
+        getAudioManager()->update();
+        render(); 
+        x11.swapBuffers();
+    }
+    shutdownAudioSystem();
+    cleanup_fonts();
+    logClose();
+    return 0;
 }
 GLuint tex;
 Image img[1] = {"./textures/skip.png"};
@@ -432,7 +432,8 @@ int check_keys(XEvent *e)
 
     int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 
-    // handle key events - modified to add menu state handling, cout for debugging
+    // handle key events - modified to add menu state handling, 
+    // cout for debugging
     if (e->type == KeyPress) {
       exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
 	  if (exit_request){
@@ -446,7 +447,6 @@ int check_keys(XEvent *e)
         //     return 0;
         // }
         // auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
-        
         // if (e->type == KeyRelease) {
         //     if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
         //         pc->vel = {0,0};

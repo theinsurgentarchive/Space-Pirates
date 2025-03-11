@@ -356,6 +356,12 @@ namespace ecs
             void update(float dt) override;
     };
 
+    class PlanetPhysicsSystem : public System
+    {
+        public:
+            void update(float dt) override;
+    };
+
     class RenderSystem : public System
     {
         public:

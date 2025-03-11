@@ -498,8 +498,8 @@ namespace ecs
             }
         }
     }
-
-    void RenderSystem::update(float dt)
+    
+    void RenderSystem::update([[maybe_unused]]float dt)
     {
         auto entities = ecs::ecs.query<SPRITE,TRANSFORM>();
 
@@ -530,12 +530,12 @@ namespace ecs
             Vec2<uint16_t> sprite_dim = a->getSpriteDim();
             Vec2<uint16_t> frame_dim = a->getFrameDim();
             uint16_t frame {a->getFrame()};
-            int sw {sprite_dim[0]};
-            int sh {sprite_dim[1]};
-            int rows {frame_dim[0]};
-            int columns {frame_dim[1]};
-            uint16_t ix {frame / columns};
-            uint16_t iy {frame % columns};
+            uint16_t sw {sprite_dim[0]};
+            uint16_t sh {sprite_dim[1]};
+            uint16_t rows {frame_dim[0]};
+            uint16_t columns {frame_dim[1]};
+            uint16_t ix {static_cast<uint16_t>(frame / columns)};
+            uint16_t iy {static_cast<uint16_t>(frame % columns)};
             float fx {(float) ix / columns};
             float fy {(float) iy / rows};
             float xo {(float) 1 / columns};
