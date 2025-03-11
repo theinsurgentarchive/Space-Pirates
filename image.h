@@ -7,7 +7,7 @@
 // start - gordon
 class Image {
 	public:
-		int width, height;
+		uint16_t width, height;
 		unsigned char *data;
 		~Image() { delete [] data; }
 		Image(const char *fname) { 
@@ -43,7 +43,7 @@ class Image {
 				//skip comments and blank lines
 				while (line[0] == '#' || strlen(line) < 2)
 					fgets(line, 200, fpi);
-				sscanf(line, "%i %i", &width, &height);
+				sscanf(line, "%hi %hi", &width, &height);
 				fgets(line, 200, fpi);
 				//get pixel data
 				int n = width * height * 3;			

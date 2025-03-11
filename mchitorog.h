@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include "balrowhany.h"
+#include "jlo.h"
 
 // Sound effect types
 enum SoundType {
@@ -83,13 +84,10 @@ public:
     }
     
     // Sound effect controls (no-op but log the actions)
-    void playSound(SoundType sound) {
+    void playSound([[maybe_unused]]SoundType sound) {
         if (!audioInitialized || !soundEnabled) return;
         
-        // Just log the sound that would be played
-        #ifdef DEBUG
-        std::cout << "Playing sound: " << static_cast<int>(sound) << std::endl;
-        #endif
+        DINFOF("playing sound: %hi",static_cast<int>(sound));
     }
     
     void stopAllSounds() {

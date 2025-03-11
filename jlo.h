@@ -8,6 +8,8 @@
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
+#include <GL/glx.h>
+
 #define MAX_COMPONENTS 32
 #define MAX_ENTITIES 500
 
@@ -16,21 +18,68 @@
 #define PHYSICS ecs::Physics
 #define HEALTH ecs::Health
 
-
+#define _RESET "\033[0m"
+#define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
+#define _INFO(str) _RGB(102, 204, 255) "INFO: " _RESET _RGB(255,255,255) str _RESET
+#define _WARN(str) _RGB(255,204,0) "WARNING: " _RESET _RGB(255,255,255) str _RESET
+#define _ERROR(str) _RGB(255,76,76) "ERROR: " _RESET _RGB(255,255,255) str _RESET
 #ifdef DEBUG
 #include <iostream>
 #include <cstdio>
-#define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
-#define DPRINT(str) std::cout << str << std::flush
+#define DINFOF(fmt, ...) printf(_INFO(fmt), __VA_ARGS__)
+#define DWARNF(fmt, ...) printf(_WARN(fmt), __VA_ARGS__)
+#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__)
+#define DINFO(str) std::cout << _INFO(str) << std::flush
+#define DWARN(str) std::cout << _WARN(str) << std::flush
+#define DERROR(str) std::cout << _ERROR(str) << std::flush
 #else
-#define DPRINTF(fmt, ...)
-#define DPRINT(str)
+#define DINFOF(fmt, ...)
+#define DWARNF(fmt, ...)
+#define DERRORF(fmt, ...)
+#define DINFO(str)
+#define DWARN(str)
+#define DERORR(str)
 #endif
 
 void show_jlo(Rect* r);
 
-extern uint16_t counter;
+struct Texture;
+class TextureLoader;
+class Animation;
+class AnimationBuilder;
 
+template <typename T>
+class Vec2;
+
+namespace wfc
+{
+    struct Tile;
+    class TileBuilder;
+    struct Cell;
+    class Grid;
+    class TilePriorityQueue;
+    class WaveFunction;
+}
+
+namespace ecs 
+{
+    struct Planet;
+    struct Physics;
+    struct Transform;
+    struct Health;
+    struct Sprite;
+    struct Entity;
+    class ComponentPool;
+    class ComponentManager;
+    class EntityManager;
+    class ECS;
+    class System;
+    class PhysicsSystem;
+    class RenderSystem;
+}
+
+extern uint16_t counter;
+extern TextureLoader tl;
 template <class T>
 uint16_t getId()
 {
@@ -64,8 +113,67 @@ class Vec2
         Vec2<T>& operator+=(const Vec2<T>& v);
 };
 
+
+struct Texture
+{
+    Vec2<uint16_t> dim;
+    bool alpha {false};
+    std::shared_ptr<GLuint> tex;
+    Texture(const Vec2<uint16_t>& dim, bool alpha);
+};
+
+class TextureLoader
+{
+    public:
+        std::shared_ptr<Texture> load(const std::string& file_name, bool alpha);
+};
+
+class Animation
+{
+    private:
+        std::string _texture_key;
+        Vec2<uint16_t> _sprite_dim;
+        Vec2<uint16_t> _frame_dim;
+        std::array<Vec2<uint16_t>,2> _frame_range;
+        uint16_t _frame {0};
+    public:
+        Animation(const std::string& texture_key, 
+            const Vec2<uint16_t>& sprite_dim, 
+            const Vec2<uint16_t>& frame_dim, 
+            const std::array<Vec2<uint16_t>,2>& frame_range);
+        Animation& operator+(int value);
+        Animation& operator-(int value);
+        Animation& operator++();
+        Animation& operator=(uint16_t frame);
+        uint16_t getFrame() const;
+        uint16_t getMaxFrames() const;
+        std::string getTextureKey() const;
+        Vec2<uint16_t> getSpriteDim() const;
+        Vec2<uint16_t> getFrameDim() const;
+};
+
+class AnimationBuilder
+{
+    private:
+        std::string _texture_key;
+        Vec2<uint16_t> _sprite_dim;
+        Vec2<uint16_t> _frame_dim;
+        std::array<Vec2<uint16_t>,2> _frame_range;
+    public:
+        AnimationBuilder& setTextureKey(const std::string& texture_key);
+        AnimationBuilder& setSpriteDimension(const Vec2<uint16_t>& sprite_dim);
+        AnimationBuilder& setFrameDimension(const Vec2<uint16_t>& frame_dim);
+        AnimationBuilder& setFrameRange(const std::array<Vec2<uint16_t>,2>& frame_range);
+        std::shared_ptr<Animation> build();
+};
+
 namespace wfc
 {
+    struct Planet
+    {
+
+    };
+
     struct Tile 
     {
         float weight;
@@ -149,6 +257,7 @@ namespace ecs
         Vec2<float> vel;
         Vec2<float> acc;
         float mass;
+        bool enabled {true};
     };
 
     struct Transform 
@@ -166,7 +275,8 @@ namespace ecs
 
     struct Sprite
     {
-        char* texture {nullptr};
+        std::string animation_key;
+        bool invertY {false};
     };
 
     struct Entity 
@@ -233,13 +343,29 @@ namespace ecs
 
     class System
     {
+        //TODO: improve this by adding sampling frequency
+        private:
+            float _sample_frequency;
         public:
             virtual void update(float dt);
     };
 
     class PhysicsSystem : public System
     {
+        public:
+            void update(float dt) override;
+    };
 
+    class PlanetPhysicsSystem : public System
+    {
+        public:
+            void update(float dt) override;
+    };
+
+    class RenderSystem : public System
+    {
+        public:
+            void update(float dt) override;
     };
 }
 #include "jlo.tpp"

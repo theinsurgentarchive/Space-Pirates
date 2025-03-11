@@ -18,64 +18,15 @@
 #include <GL/glx.h>
 #include <GL/glu.h>
 #include "fonts.h"
-//#include "log.h"
-
+#include "image.h"
 typedef float Flt;
 typedef Flt Vec[3];
 #define rnd() (float)rand() / (float)RAND_MAX
 #define PI 3.14159265358979323846264338327950
-
-class Image {
-public:
-	int width, height;
-	unsigned char *data;
-	~Image() { delete [] data; }
-	Image(const char *fname) {
-		if (fname[0] == '\0')
-			return;
-		int ppmFlag = 0;
-		char name[40];
-		strcpy(name, fname);
-		int slen = strlen(name);
-		char ppmname[80];
-		if (strncmp(name+(slen-4), ".ppm", 4) == 0)
-			ppmFlag = 1;
-		if (ppmFlag) {
-			strcpy(ppmname, name);
-		} else {
-			name[slen-4] = '\0';
-			sprintf(ppmname,"%s.ppm", name);
-			char ts[100];
-			sprintf(ts, "convert %s %s", fname, ppmname);
-			system(ts);
-		}
-		FILE *fpi = fopen(ppmname, "r");
-		if (fpi) {
-			char line[200];
-			fgets(line, 200, fpi);
-			fgets(line, 200, fpi);
-			while (line[0] == '#')
-				fgets(line, 200, fpi);
-			sscanf(line, "%i %i", &width, &height);
-			fgets(line, 200, fpi);
-			//get pixel data
-			int n = width * height * 3;			
-			data = new unsigned char[n];			
-			for (int i=0; i<n; i++)
-				data[i] = fgetc(fpi);
-			fclose(fpi);
-		} else {
-			printf("ERROR opening image: %s\n",ppmname);
-			exit(0);
-		}
-		if (!ppmFlag)
-			unlink(ppmname);
-	}
-};
 Image img[1] = {
 
 //"./13ball.gif",
-"./planet2.gif"
+"./resources/textures/planet2.gif"
 };
 
 class Global {
@@ -137,117 +88,11 @@ public:
 	}
 } g;
 
-//X11 functions
-class X11_wrapper {
-private:
-	Display *dpy;
-	Window win;
-	GLXContext glc;
-public:
-	X11_wrapper(void) {
-		GLint att[] = {GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None};
-		//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
-		XSetWindowAttributes swa;
-		setup_screen_res(640, 480);
-		dpy = XOpenDisplay(NULL);
-		if (dpy == NULL) {
-			printf("\n\tcannot connect to X server\n\n");
-			exit(EXIT_FAILURE);
-		}
-		Window root = DefaultRootWindow(dpy);
-		XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
-		if (vi == NULL) {
-			printf("\n\tno appropriate visual found\n\n");
-			exit(EXIT_FAILURE);
-		} 
-		Colormap cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
-		swa.colormap = cmap;
-		swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask |
-			StructureNotifyMask | SubstructureNotifyMask;
-		win = XCreateWindow(dpy, root, 0, 0, g.xres, g.yres, 0,
-			vi->depth, InputOutput, vi->visual,
-			CWColormap | CWEventMask, &swa);
-		set_title();
-		glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
-		glXMakeCurrent(dpy, win, glc);
-	}
-	~X11_wrapper(void) {
-		XDestroyWindow(dpy, win);
-		XCloseDisplay(dpy);
-	}
-	void set_title(void) {
-		//Set the window title bar.
-		XMapWindow(dpy, win);
-		XStoreName(dpy, win, "planet");
-	}
-	void setup_screen_res(const int w, const int h) {
-		g.xres = w;
-		g.yres = h;
-	}
-	void reshape_window(int width, int height) {
-		//window has been resized.
-		setup_screen_res(width, height);
-		//
-		glViewport(0, 0, (GLint)width, (GLint)height);
-		glMatrixMode(GL_PROJECTION); glLoadIdentity();
-		glMatrixMode(GL_MODELVIEW); glLoadIdentity();
-		glOrtho(0, g.xres, 0, g.yres, -1, 1);
-		set_title();
-	}
-	void check_resize(XEvent *e) {
-		//The ConfigureNotify is sent by the
-		//server if the window is resized.
-		if (e->type != ConfigureNotify)
-			return;
-		XConfigureEvent xce = e->xconfigure;
-		if (xce.width != g.xres || xce.height != g.yres) {
-			//Window size did change.
-			reshape_window(xce.width, xce.height);
-		}
-	}
-	bool getXPending() {
-		return XPending(dpy);
-	}
-	XEvent getXNextEvent() {
-		XEvent e;
-		XNextEvent(dpy, &e);
-		return e;
-	}
-	void swapBuffers() {
-		glXSwapBuffers(dpy, win);
-	}
-} x11;
-
-void init_opengl(void);
 void init_textures(void);
 void check_mouse(XEvent *e);
 int check_keys(XEvent *e);
 void physics(void);
 void render(void);
-
-int main(void)
-{
-	init_opengl();
-	//Do this to allow fonts
-	glEnable(GL_TEXTURE_2D);
-	initialize_fonts();
-	init_textures();
-	int done = 0;
-	while (!done) {
-		while (x11.getXPending()) {
-			XEvent e = x11.getXNextEvent();
-			x11.check_resize(&e);
-			check_mouse(&e);
-			done = check_keys(&e);
-		}
-		physics();
-		render();
-		x11.swapBuffers();
-	}
-	cleanup_fonts();
-	return 0;
-}
-
 
 void init_textures(void)
 {
@@ -337,335 +182,29 @@ void vecSub(Vec v0, Vec v1, Vec dest)
 	dest[2] = v0[2] - v1[2];
 }
 
-
-void init_opengl(void)
-{
-	//OpenGL initialization
-	switch (g.lesson_num) {
-		case 0:
-		case 1:
-			glViewport(0, 0, g.xres, g.yres);
-			glDepthFunc(GL_LESS);
-			glDisable(GL_DEPTH_TEST);
-			//Initialize matrices
-			glMatrixMode(GL_PROJECTION); glLoadIdentity();
-			//This sets 2D mode (no perspective)
-			glOrtho(0, g.xres, 0, g.yres, -1, 1);
-			glMatrixMode(GL_MODELVIEW); glLoadIdentity();
-			//Clear the screen
-			glClearColor(1.0, 1.0, 1.0, 1.0);
-			//glClear(GL_COLOR_BUFFER_BIT);
-			break;
-		//case 5:
-		//case 6:
-		//case 7:
-		//case 8:
-		default:
-			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-			glClearDepth(1.0);
-			glDepthFunc(GL_LESS);
-			glEnable(GL_DEPTH_TEST);
-			glShadeModel(GL_SMOOTH);
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-			gluPerspective(45.0f,(GLfloat)g.xres/(GLfloat)g.yres,0.1f,100.0f);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-gluLookAt(0,5,10,  0,0,0,  0,1,0);
-			//Enable this so material colors are the same as vert colors.
-			glEnable(GL_COLOR_MATERIAL);
-			glEnable( GL_LIGHTING );
-			glLightfv(GL_LIGHT0, GL_AMBIENT, g.lightAmbient);
-			glLightfv(GL_LIGHT0, GL_DIFFUSE, g.lightDiffuse);
-			glLightfv(GL_LIGHT0, GL_SPECULAR, g.lightSpecular);
-			glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-			glEnable(GL_LIGHT0);
-			break;
-	}
-}
-
-void check_mouse(XEvent *e)
-{
-	//Did the mouse move?
-	//Was a mouse button clicked?
-	static int savex = 0;
-	static int savey = 0;
-	//
-	if (e->type == ButtonRelease) {
-		return;
-	}
-	if (e->type == ButtonPress) {
-		if (e->xbutton.button==1) {
-			//Left button is down
-		}
-		if (e->xbutton.button==3) {
-			//Right button is down
-		}
-	}
-	if (savex != e->xbutton.x || savey != e->xbutton.y) {
-		//Mouse moved
-		savex = e->xbutton.x;
-		savey = e->xbutton.y;
-	}
-}
-//JC - Note case xk_1 - 6 and 8 removed
-int check_keys(XEvent *e)
-{
-	//Was there input from the keyboard?
-	if (e->type != KeyPress && e->type != KeyPress)
-		return 0;
-	int key = XLookupKeysym(&e->xkey, 0);
-	switch(key) {
-		case XK_7:
-			g.lesson_num = 7;
-			init_opengl();
-			break;
-		case XK_Escape:
-			return 1;
-	}
-	return 0;
-}
+//INIT OPENGL
 
 
-void DrawGLScene3()
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
-	glTranslatef(-1.5f,0.0f,-6.0f);
-	glBegin(GL_TRIANGLES);
-		glColor3f(1.0f,0.0f,0.0f);
-		glVertex3f( 0.0f, 1.0f, 0.0f);
-		glColor3f(0.0f,1.0f,0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glColor3f(0.0f,0.0f,1.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-	glEnd();
-	glTranslatef(3.0f,0.0f,0.0f);
-	glColor3f(0.5f,0.5f,1.0f);
-	glBegin(GL_QUADS);
-		glVertex3f(-1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-	glEnd();
-}
-
-void DrawGLScene4()
-{
-	//2 flat shapes rotating.
-	//Each shape has a front and back surface.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
-	glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-	glTranslatef(-1.5f,0.0f,-6.0f);
-	glRotatef(g.rtri,0.0f,1.0f,0.0f);
-	glColor3f(0.6f,0.7f,0.8f);
-	glBegin(GL_TRIANGLES);
-		//front
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-		//back side
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glVertex3f( 0.0f, 1.0f, 0.01f);
-		glVertex3f( 1.0f,-1.0f, 0.01f);
-		glVertex3f(-1.0f,-1.0f, 0.01f);
-	glEnd();
-	glLoadIdentity();
-	glTranslatef(1.5f,0.0f,-6.0f);
-	glRotatef(g.rquad,1.0f,0.0f,0.0f);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBegin(GL_QUADS);
-		//front
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-		//back side
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glVertex3f(-1.0f, 1.0f, 0.01f);
-		glVertex3f( 1.0f, 1.0f, 0.01f);
-		glVertex3f( 1.0f,-1.0f, 0.01f);
-		glVertex3f(-1.0f,-1.0f, 0.01f);
-	glEnd();
-	g.rtri  += 4.0f;
-	g.rquad -= 3.0f;
-}
-
-void DrawGLScene5()
-{
-	//Two 3D objects rotating.
-	//Each shape is a convex polyheron.
-	Vec v1,v2,v3,v4,v5,norm;
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	glLoadIdentity();
-	glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-	glTranslatef(-1.5f,0.0f,-6.0f);
-	glRotatef(g.rtri,0.0f,1.0f,0.0f);
-	glColor3f(0.8f,0.0f,0.0f);
-	glBegin(GL_TRIANGLES);
-		//Notice the process here...
-		//1. build verts
-		//2. make 2 vectors
-		//3. find cross product. that's the normal
-		//4. normalize it to a length of 1
-		vecMake( 0.0f, 1.0f, 0.0f, v1);
-		vecMake(-1.0f,-1.0f, 1.0f, v2);
-		vecMake( 1.0f,-1.0f, 1.0f, v3);
-		vecSub(v2,v1,v4);
-		vecSub(v3,v1,v5);
-		vecCrossProduct(v4,v5,norm);
-		vecNormalize(norm);
-		glNormal3fv(norm);
-		glVertex3fv(v1);
-		glVertex3fv(v2);
-		glVertex3fv(v3);
-		vecMake( 0.0f, 1.0f, 0.0f,v1);
-		vecMake( 1.0f,-1.0f, 1.0f,v2);
-		vecMake( 1.0f,-1.0f,-1.0f,v3);
-		vecSub(v2,v1,v4);
-		vecSub(v3,v1,v5);
-		vecCrossProduct(v4,v5,norm);
-		vecNormalize(norm);
-		glNormal3fv(norm);
-		glVertex3fv(v1);
-		glVertex3fv(v2);
-		glVertex3fv(v3);
-		vecMake( 0.0f, 1.0f, 0.0f,v1);
-		vecMake( 1.0f,-1.0f,-1.0f,v2);
-		vecMake(-1.0f,-1.0f,-1.0f,v3);
-		vecSub(v2,v1,v4);
-		vecSub(v3,v1,v5);
-		vecCrossProduct(v4,v5,norm);
-		vecNormalize(norm);
-		glNormal3fv(norm);
-		glVertex3fv(v1);
-		glVertex3fv(v2);
-		glVertex3fv(v3);
-		vecMake( 0.0f, 1.0f, 0.0f,v1);
-		vecMake(-1.0f,-1.0f,-1.0f,v2);
-		vecMake(-1.0f,-1.0f, 1.0f,v3);
-		vecSub(v2,v1,v4);
-		vecSub(v3,v1,v5);
-		vecCrossProduct(v4,v5,norm);
-		vecNormalize(norm);
-		glNormal3fv(norm);
-		glVertex3fv(v1);
-		glVertex3fv(v2);
-		glVertex3fv(v3);
-	glEnd();
-	glLoadIdentity();
-	glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-	glTranslatef(1.5f,0.0f,-7.0f);
-	glRotatef(g.rquad,1.0f,1.0f,1.0f);
-	glColor3f(0.0f,0.5f,1.0f);
-	glBegin(GL_QUADS);
-		//top
-		//notice the normal being set
-		glNormal3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f,-1.0f);
-		glVertex3f(-1.0f, 1.0f,-1.0f);
-		glVertex3f(-1.0f, 1.0f, 1.0f);
-		glVertex3f( 1.0f, 1.0f, 1.0f);
-		// bottom of cube
-		glNormal3f( 0.0f,-1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f,-1.0f);
-		glVertex3f( 1.0f,-1.0f,-1.0f);
-		// front of cube
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glVertex3f( 1.0f, 1.0f, 1.0f);
-		glVertex3f(-1.0f, 1.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 1.0f);
-		// back of cube.
-		glNormal3f( 0.0f, 0.0f,-1.0f);
-		glVertex3f( 1.0f,-1.0f,-1.0f);
-		glVertex3f(-1.0f,-1.0f,-1.0f);
-		glVertex3f(-1.0f, 1.0f,-1.0f);
-		glVertex3f( 1.0f, 1.0f,-1.0f);
-		// left of cube
-		glNormal3f(-1.0f, 0.0f, 0.0f);
-		glVertex3f(-1.0f, 1.0f, 1.0f);
-		glVertex3f(-1.0f, 1.0f,-1.0f);
-		glVertex3f(-1.0f,-1.0f,-1.0f);
-		glVertex3f(-1.0f,-1.0f, 1.0f);
-		// right of cube
-		glNormal3f( 1.0f, 0.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f,-1.0f);
-		glVertex3f( 1.0f, 1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f,-1.0f);
-	glEnd();
-	g.rtri += 2.0f;
-	g.rquad -= 1.0f;
-}
-
-void LightedCube()
-{
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	glLoadIdentity();
-	glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-	glTranslatef(0.0f,0.0f,-7.0f);
-	glRotatef(g.cubeAng[0],1.0f,0.0f,0.0f);
-	glRotatef(g.cubeAng[1],0.0f,1.0f,0.0f);
-	glRotatef(g.cubeAng[2],0.0f,0.0f,1.0f);
-
-	glColor3f(1.0f,1.0f,0.0f);
-	glBegin(GL_QUADS);
-		//top
-		//notice the normal being set
-		glNormal3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f,-1.0f);
-		glVertex3f(-1.0f, 1.0f,-1.0f);
-		glVertex3f(-1.0f, 1.0f, 1.0f);
-		glVertex3f( 1.0f, 1.0f, 1.0f);
-		// bottom of cube
-		glNormal3f( 0.0f,-1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f,-1.0f);
-		glVertex3f( 1.0f,-1.0f,-1.0f);
-		// front of cube
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glVertex3f( 1.0f, 1.0f, 1.0f);
-		glVertex3f(-1.0f, 1.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 1.0f);
-		// back of cube.
-		glNormal3f( 0.0f, 0.0f,-1.0f);
-		glVertex3f( 1.0f,-1.0f,-1.0f);
-		glVertex3f(-1.0f,-1.0f,-1.0f);
-		glVertex3f(-1.0f, 1.0f,-1.0f);
-		glVertex3f( 1.0f, 1.0f,-1.0f);
-		// left of cube
-		glNormal3f(-1.0f, 0.0f, 0.0f);
-		glVertex3f(-1.0f, 1.0f, 1.0f);
-		glVertex3f(-1.0f, 1.0f,-1.0f);
-		glVertex3f(-1.0f,-1.0f,-1.0f);
-		glVertex3f(-1.0f,-1.0f, 1.0f);
-		// right of cube
-		glNormal3f( 1.0f, 0.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f,-1.0f);
-		glVertex3f( 1.0f, 1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f,-1.0f);
-	glEnd();
-	g.rquad -= 2.0f;
-	int i;
-	if (rnd() < 0.01) {
-		for (i=0; i<3; i++) {
-			g.cubeRot[i] = rnd() * 4.0 - 2.0;
-		}
-	}
-	for (i=0; i<3; i++) {
-		g.cubeAng[i] += g.cubeRot[i];
-	}
-}
-
+// 			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+// 			glClearDepth(1.0);
+// 			glDepthFunc(GL_LESS);
+// 			glEnable(GL_DEPTH_TEST);
+// 			glShadeModel(GL_SMOOTH);
+// 			glMatrixMode(GL_PROJECTION);
+// 			glLoadIdentity();
+// 			gluPerspective(45.0f,(GLfloat)g.xres/(GLfloat)g.yres,0.1f,100.0f);
+// 			glMatrixMode(GL_MODELVIEW);
+// 			glLoadIdentity();
+// gluLookAt(0,5,10,  0,0,0,  0,1,0);
+// 			//Enable this so material colors are the same as vert colors.
+// 			glEnable(GL_COLOR_MATERIAL);
+// 			glEnable( GL_LIGHTING );
+// 			glLightfv(GL_LIGHT0, GL_AMBIENT, g.lightAmbient);
+// 			glLightfv(GL_LIGHT0, GL_DIFFUSE, g.lightDiffuse);
+// 			glLightfv(GL_LIGHT0, GL_SPECULAR, g.lightSpecular);
+// 			glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
+// 			glEnable(GL_LIGHT0);
+// 			break;
 void DrawPoolball()
 {
 	static int firsttime=1;
@@ -805,36 +344,13 @@ void DrawPoolball()
 	glPopMatrix();
 }
 
-void finalExamQuestion()
-{
-	static float frot=0.0f;
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	glLoadIdentity();
-	glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-	//build a small quad at 1, 2, -7
-	float x=1.0f, y=2.0f, z=-7.0f;
-	//-----------------------------------------------------------------
-	glTranslatef(x, y, z);             //<--- put object back in place
-	glRotatef(frot, 0.0f, 0.0f, 1.0f); //<--- rotate
-	glTranslatef(-x,-y,-z);            //<--- put object at origin
-	//-----------------------------------------------------------------
-	glColor3f(1.0f,1.0f,0.0f);
-	glBegin(GL_QUADS);
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glVertex3f(x-0.5, y-0.5, z);
-		glVertex3f(x-0.5, y+0.5, z);
-		glVertex3f(x+0.5, y+0.5, z);
-		glVertex3f(x+0.5, y-0.5, z);
-	glEnd();
-	frot += 4.0f;
-}
-
 void physics(void)
 {
 	#define GRAVITY -0.4f
 	if (g.lesson_num == 7) {
 		//pool ball...
 
+		//planet transform, physics
 		g.ballVel[1] -= 0.005;
 		float oldpos[2];
 		oldpos[0] = g.ballPos[0];
@@ -882,43 +398,15 @@ void render(void)
 	//
 	//Just draw a simple square
 
-	if (g.lesson_num > 1) {
-		glMatrixMode(GL_PROJECTION);
+	glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		gluPerspective(45.0f,(GLfloat)g.xres/(GLfloat)g.yres,0.1f,100.0f);
 		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
 		gluLookAt(0,5,10,  0,0,0,  0,1,0);
 		//Enable this so material colors are the same as vert colors.
 		glEnable(GL_COLOR_MATERIAL);
 		glEnable(GL_LIGHTING);
-	}
-	//
-	switch (g.lesson_num) {
-		case 0:
-		case 1: {
-				float wid = 40.0f;
-				glColor3ub(30,60,90);
-				glPushMatrix();
-				glTranslatef(g.pos[0], g.pos[1], g.pos[2]);
-				glBegin(GL_QUADS);
-					glVertex2i(-wid,-wid);
-					glVertex2i(-wid, wid);
-					glVertex2i( wid, wid);
-					glVertex2i( wid,-wid);
-				glEnd();
-				glPopMatrix();
-			}
-			break;
-		case 7:
-			DrawPoolball();
-			break;
-		case 8:
-			finalExamQuestion();
-			break;
-	}
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
+	DrawPoolball();
 	//This sets 2D mode (no perspective)
 	glOrtho(0, g.xres, 0, g.yres, -1, 1);
 	glMatrixMode(GL_MODELVIEW);

@@ -22,7 +22,7 @@
 #include "fonts.h"
 #include "jsandoval.h"
 #define GAME_TITLE "Space Pirates"
-#define TEXTURE_FOLDER_PATH "./textures"
+#define _TEXTURES "./textures"
 using namespace std; 
 
 // #define CREDITS
@@ -38,7 +38,6 @@ const float gravity = -0.2f;
 #define ALPHA 1
 const int MAX_BULLETS = 11;
 const Flt MINIMUM_ASTEROID_SIZE = 60.0;
-
 //-----------------------------------------------------------------------------
 //Setup timers
 const double physicsRate = 1.0 / 60.0;
@@ -49,6 +48,7 @@ extern double physicsCountdown;
 extern double timeSpan;
 extern double timeDiff(struct timespec *start, struct timespec *end);
 extern void timeCopy(struct timespec *dest, struct timespec *source);
+std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 //-----------------------------------------------------------------------------
 
 class Global {
@@ -244,13 +244,13 @@ void load_textures(void);
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
+ecs::RenderSystem rs;
 // Entity* second;
-// std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
-// std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
-
+std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
+std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 int main()
 {
-    auto character = ecs::character_x(); 
+    [[maybe_unused]]auto character = ecs::character_x(); 
 
     // Initialize audio system
     initAudioSystem();
@@ -262,35 +262,33 @@ int main()
     [[maybe_unused]]auto transform = (
         ecs::ecs.component().assign<ecs::Transform>(e)
     );
+	//Assign Sprite component to entity
+	[[maybe_unused]]auto sprite = (
+		ecs::ecs.component().assign<ecs::Sprite>(e)
+	);
+	sprite->animation_key = "run";
 
-    //Assign Physics component to entity
-    [[maybe_unused]]auto physics = (
-        ecs::ecs.component().assign<ecs::Physics>(e)
-    );
-
-    //Assign Sprite component to entity
-    [[maybe_unused]]auto sprite = (
-        ecs::ecs.component().assign<ecs::Sprite>(e)
-    );
-
-    ecs::ecs.query<PHYSICS>();
-    logOpen();
-    init_opengl();
-    srand(time(NULL));
-    clock_gettime(CLOCK_REALTIME, &timePause);
-    clock_gettime(CLOCK_REALTIME, &timeStart);
-    x11.set_mouse_position(200, 200);
-    x11.show_mouse_cursor(gl.mouse_cursor_on);
-    int done=0;
-
+	textures.insert({"skip.png",tl.load("./resources/textures/skip.png",false)});
+	AnimationBuilder ab {};
+	animations.insert({"run",ab.setTextureKey("skip.png")
+		.setSpriteDimension({64,64})
+		.setFrameDimension({1,8})
+		.setFrameRange({Vec2<uint16_t>{0,0},Vec2<uint16_t>{1,8}}).build()});
+	logOpen();
+	init_opengl();
+	srand(time(NULL));
+	clock_gettime(CLOCK_REALTIME, &timePause);
+	clock_gettime(CLOCK_REALTIME, &timeStart);
+	x11.set_mouse_position(200, 200);
+	x11.show_mouse_cursor(gl.mouse_cursor_on);
+	int done = 0;
     while (!done) {
         while (x11.getXPending()) {
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
             done = check_keys(&e);
-        }
-
+		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
@@ -299,25 +297,16 @@ int main()
 
         // Update audio system each frame
         getAudioManager()->update();
-
-        // render based on game state 
-        if (gl.state == MENU || gl.state == CONTROLS) {
-            //USE RENDER() NOT ECS RENDER SYSTEM IF IN MENU STATE
-            render(); 
-        } else if (gl.state == PLAYING) {
-            //entity_system_manager.update(s, (float) 0.05);
-        }
+        render(); 
         x11.swapBuffers();
     }
-    
-    // Clean up audio system before exiting
     shutdownAudioSystem();
-    
     cleanup_fonts();
     logClose();
     return 0;
 }
-
+GLuint tex;
+Image img[1] = {"./textures/skip.png"};
 void init_opengl(void)
 {
 	//OpenGL initialization
@@ -348,38 +337,34 @@ void init_opengl(void)
     glTexImage2D(GL_TEXTURE_2D, 0, 3, menuImage->width, menuImage->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, menuImage->data);
 
+	glGenTextures(1,&tex);
 
+	glBindTexture(GL_TEXTURE_2D, tex);
+
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+
+	auto data = buildAlphaData(&img[0]);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img[0].width,img[0].height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
 	//
-
 }
-unsigned char *buildAlphaData(Image *img)
+std::unique_ptr<unsigned char[]> buildAlphaData(Image *img)
 {
-	//add 4th component to RGB stream...
-	int i;
-	unsigned char *newdata, *ptr;
-	unsigned char *data = (unsigned char *)img->data;
-	//2 bytes * 2 bytes * 4;
-	newdata = (unsigned char *)malloc(img->width * img->height * sizeof(int));
-	ptr = newdata;
-	unsigned char a,b,c;
-	//use the first pixel in the image as the transparent color.
-	unsigned char t0 = *(data+0);
-	unsigned char t1 = *(data+1);
-	unsigned char t2 = *(data+2);
-	for (i=0; i<img->width * img->height * 3; i+=3) {
-		a = *(data+0); //255
-		b = *(data+1); //0
-		c = *(data+2); //0
-		*(ptr+0) = a; //255
-		*(ptr+1) = b; //0
-		*(ptr+2) = c; //0
-		*(ptr+3) = 1; //1
-		if (a==t0 && b==t1 && c==t2)
-			*(ptr+3) = 0;
-		//-----------------------------------------------
-		ptr += sizeof(int);
-		data += 3;
-	}
+	/*
+	* refactored version of gordon's initail alpha data code 
+	*/
+	auto img_size = img->width * img->height;
+	auto newdata = std::make_unique<unsigned char[]>(img_size * sizeof(int));
+    auto *ptr = newdata.get();
+    auto *data = reinterpret_cast<unsigned char *>(img->data);
+    auto t0 = data[0], t1 = data[1], t2 = data[2];
+    for (int i {0}; i < img_size; ++i) {
+        std::copy(data, data + 3, ptr);
+        ptr[3] = (data[0] == t0 && data[1] == t1 && data[2] == t2) ? 0 : 255;
+
+        data += 3;
+        ptr += sizeof(int);
+    }
 	return newdata;
 }
 void normalize2d(Vec v)
@@ -458,44 +443,31 @@ int check_keys(XEvent *e)
 
     // Playing state handling
     if (gl.state == PLAYING) {
-        if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
-            return 0;
-        }
-        auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
-        
-        if (e->type == KeyRelease) {
-            if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-                pc->vel = {0,0};
-            }
-        } else if (e->type == KeyPress) {
-            static float movement_mag = 300.0;
-            switch(key) {
-                case XK_Right:
-                    pc->vel = {movement_mag,0};
-                    break;
-                case XK_Left:
-                    pc->vel = {-movement_mag,0};
-                    break;
-                case XK_Up:
-                    pc->vel = {0,movement_mag};
-                    break;
-                case XK_Down:
-                    pc->vel = {0,-movement_mag};
-                    break;
-                case XK_space:
-                    // Play shooting sound when space is pressed
-                    playGameSound(PLAYER_SHOOT);
-                    break;
-                case XK_m:
-                    // Toggle music on/off
-                    getAudioManager()->toggleMusic();
-                    break;
-                case XK_s:
-                    // Toggle sound effects on/off
-                    getAudioManager()->toggleSound();
-                    break;
-            }
-        }
+        // if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
+        //     return 0;
+        // }
+        // auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
+        // if (e->type == KeyRelease) {
+        //     if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
+        //         pc->vel = {0,0};
+        //     }
+        // } else if (e->type == KeyPress) {
+        //     static float movement_mag = 300.0;
+        //     switch(key) {
+        //         case XK_Right:
+        //             pc->vel = {movement_mag,0};
+        //             break;
+        //         case XK_Left:
+        //             pc->vel = {-movement_mag,0};
+        //             break;
+        //         case XK_Up:
+        //             pc->vel = {0,movement_mag};
+        //             break;
+        //         case XK_Down:
+        //             pc->vel = {0,-movement_mag};
+        //             break;
+        //     }
+        // }
     }
 
     return exit_request;
@@ -503,25 +475,26 @@ int check_keys(XEvent *e)
 
 void physics()
 {
-	
+
 }
+
 void render() {
 
-	DPRINTF("rendering state: %d\n",gl.state);
+	DINFOF("rendering state: %d\n",gl.state);
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	// glLoadIdentity(); 
-	// glEnable(GL_TEXTURE_2D);  
-    // glDisable(GL_DEPTH_TEST);
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-    if (gl.state == MENU) {
-        //  menu background
-		render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
-        }
-    else if (gl.state == CONTROLS) {
-       render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
-    }
+	switch(gl.state) {
+		case MENU:
+			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
+			break;
+		case CONTROLS:
+			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			break;
+		case PLAYING:
+			rs.update(1/20);
+			std::cout << "";
+			break;
+		default:
+			break;
+	}
 }
