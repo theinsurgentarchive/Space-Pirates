@@ -247,62 +247,75 @@ ecs::Entity* ptr;
 // Entity* second;
 // std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 // std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
+
 int main()
 {
     auto character = ecs::character_x(); 
 
-	auto e = ecs::ecs.entity().checkout();
-	[[maybe_unused]]auto transform = (
-		ecs::ecs.component().assign<ecs::Transform>(e)
-	);
+    // Initialize audio system
+    initAudioSystem();
+    
+    // Set initial music according to game state (starting in MENU state)
+    updateAudioState(gl.state);
 
-	//Assign Physics component to entity
-	[[maybe_unused]]auto physics = (
-		ecs::ecs.component().assign<ecs::Physics>(e)
-	);
+    auto e = ecs::ecs.entity().checkout();
+    [[maybe_unused]]auto transform = (
+        ecs::ecs.component().assign<ecs::Transform>(e)
+    );
 
-	//Assign Sprite component to entity
-	[[maybe_unused]]auto sprite = (
-		ecs::ecs.component().assign<ecs::Sprite>(e)
-	);
+    //Assign Physics component to entity
+    [[maybe_unused]]auto physics = (
+        ecs::ecs.component().assign<ecs::Physics>(e)
+    );
 
-	ecs::ecs.query<PHYSICS>();
-	logOpen();
-	init_opengl();
-	srand(time(NULL));
-	clock_gettime(CLOCK_REALTIME, &timePause);
-	clock_gettime(CLOCK_REALTIME, &timeStart);
-	x11.set_mouse_position(200, 200);
-	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	int done=0;
+    //Assign Sprite component to entity
+    [[maybe_unused]]auto sprite = (
+        ecs::ecs.component().assign<ecs::Sprite>(e)
+    );
 
-	while (!done) {
-		while (x11.getXPending()) {
-			XEvent e = x11.getXNextEvent();
-			x11.check_resize(&e);
-			check_mouse(&e);
-			done = check_keys(&e);
-		}
+    ecs::ecs.query<PHYSICS>();
+    logOpen();
+    init_opengl();
+    srand(time(NULL));
+    clock_gettime(CLOCK_REALTIME, &timePause);
+    clock_gettime(CLOCK_REALTIME, &timeStart);
+    x11.set_mouse_position(200, 200);
+    x11.show_mouse_cursor(gl.mouse_cursor_on);
+    int done=0;
 
-		clock_gettime(CLOCK_REALTIME, &timeCurrent);
-		timeSpan = timeDiff(&timeStart, &timeCurrent);
-		timeCopy(&timeStart, &timeCurrent);
-		//clear screen just once at the beginning
-		//glClear(GL_COLOR_BUFFER_BIT); 
+    while (!done) {
+        while (x11.getXPending()) {
+            XEvent e = x11.getXNextEvent();
+            x11.check_resize(&e);
+            check_mouse(&e);
+            done = check_keys(&e);
+        }
 
-		// render based on game state 
+        clock_gettime(CLOCK_REALTIME, &timeCurrent);
+        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        timeCopy(&timeStart, &timeCurrent);
+        //clear screen just once at the beginning
+        //glClear(GL_COLOR_BUFFER_BIT); 
 
-		if (gl.state == MENU || gl.state == CONTROLS) {
-			//USE RENDER() NOT ECS RENDER SYSTEM IF IN MENU STATE
-			render(); 
-		} else if (gl.state == PLAYING) {
-			//entity_system_manager.update(s, (float) 0.05);
-		}
-		x11.swapBuffers();
-	}
-	cleanup_fonts();
-	logClose();
-	return 0;
+        // Update audio system each frame
+        getAudioManager()->update();
+
+        // render based on game state 
+        if (gl.state == MENU || gl.state == CONTROLS) {
+            //USE RENDER() NOT ECS RENDER SYSTEM IF IN MENU STATE
+            render(); 
+        } else if (gl.state == PLAYING) {
+            //entity_system_manager.update(s, (float) 0.05);
+        }
+        x11.swapBuffers();
+    }
+    
+    // Clean up audio system before exiting
+    shutdownAudioSystem();
+    
+    cleanup_fonts();
+    logClose();
+    return 0;
 }
 
 void init_opengl(void)
@@ -434,7 +447,8 @@ int check_keys(XEvent *e)
 
     int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 
-    // handle key events - modified to add menu state handling, cout for debugging
+    // handle key events - modified to add menu state handling, 
+    // cout for debugging
     if (e->type == KeyPress) {
       exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
 	  if (exit_request){
@@ -467,6 +481,18 @@ int check_keys(XEvent *e)
                     break;
                 case XK_Down:
                     pc->vel = {0,-movement_mag};
+                    break;
+                case XK_space:
+                    // Play shooting sound when space is pressed
+                    playGameSound(PLAYER_SHOOT);
+                    break;
+                case XK_m:
+                    // Toggle music on/off
+                    getAudioManager()->toggleMusic();
+                    break;
+                case XK_s:
+                    // Toggle sound effects on/off
+                    getAudioManager()->toggleSound();
                     break;
             }
         }
