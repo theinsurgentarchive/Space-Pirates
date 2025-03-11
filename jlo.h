@@ -126,7 +126,6 @@ class TextureLoader
 {
     public:
         std::shared_ptr<Texture> load(const std::string& file_name, bool alpha);
-        //void loadFolder(const std::string& folder_name, bool alpha);
 };
 
 class Animation
@@ -149,6 +148,8 @@ class Animation
         uint16_t getFrame() const;
         uint16_t getMaxFrames() const;
         std::string getTextureKey() const;
+        Vec2<uint16_t> getSpriteDim() const;
+        Vec2<uint16_t> getFrameDim() const;
 };
 
 class AnimationBuilder
@@ -275,7 +276,7 @@ namespace ecs
     struct Sprite
     {
         std::string animation_key;
-
+        bool invertY {false};
     };
 
     struct Entity 

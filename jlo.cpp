@@ -113,7 +113,7 @@ Animation& Animation::operator+(int value)
 
 Animation& Animation::operator-(int value)
 {
-    _frame+= value;
+    _frame -= value;
     return *this;
 }
 
@@ -142,6 +142,16 @@ uint16_t Animation::getMaxFrames() const
 std::string Animation::getTextureKey() const
 {
     return _texture_key;
+}
+
+Vec2<uint16_t> Animation::getSpriteDim() const
+{
+    return _sprite_dim;
+}
+
+Vec2<uint16_t> Animation::getFrameDim() const
+{
+    return _frame_dim;
 }
 
 AnimationBuilder& AnimationBuilder::setTextureKey(const std::string& texture_key)
@@ -495,8 +505,6 @@ namespace ecs
 
         for (auto& entity : entities) {
             auto ec = ecs.component().fetch<SPRITE>(entity);
-            auto tc = ecs.component().fetch<TRANSFORM>(entity);
-
             if (ec->animation_key.empty()) {
                 DWARNF("animation key was empty for entity (%d)\n", entity->id);
                 continue;
@@ -515,7 +523,35 @@ namespace ecs
             }
 
             std::shared_ptr<Texture> tex = textures[texture_key];
-            
+            if (tex == nullptr) {
+                DWARNF("texture from texture key: %s was null\n",texture_key.c_str());
+                continue;
+            }
+            Vec2<uint16_t> sprite_dim = a->getSpriteDim();
+            Vec2<uint16_t> frame_dim = a->getFrameDim();
+            uint16_t frame {a->getFrame()};
+            int sw {sprite_dim[0]};
+            int sh {sprite_dim[1]};
+            int rows {frame_dim[0]};
+            int columns {frame_dim[1]};
+            uint16_t ix {frame / columns};
+            uint16_t iy {frame % columns};
+            float fx {(float) ix / columns};
+            float fy {(float) iy / rows};
+            float xo {(float) 1 / columns};
+            float xy {(float) 1 / rows};
+            DINFOF("rendering texture (%s) at (%i,%i)\n",texture_key.c_str(),ix,iy);
+            glPushMatrix();
+            glBindTexture(GL_TEXTURE_2D,*tex->tex);
+            glBegin(GL_QUADS);
+                auto tc = ecs.component().fetch<TRANSFORM>(entity);
+                glTexCoord2f(fx, fy + xy);      glVertex2i(tc->pos[0] - sw, tc->pos[1] - sh);
+                glTexCoord2f(fx, fy);           glVertex2i(tc->pos[0] - sw, tc->pos[1] + sh);
+                glTexCoord2f(fx + xo, fy);      glVertex2i(tc->pos[0] + sw, tc->pos[1] + sh);
+                glTexCoord2f(fx + xo, fy + xy); glVertex2i(tc->pos[0] + sw, tc->pos[1] - sh);
+            glEnd();
+            glBindTexture(GL_TEXTURE_2D,0);
+            glPopMatrix();
         }
     }
 }
