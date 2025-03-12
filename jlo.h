@@ -20,9 +20,12 @@
 
 #define _RESET "\033[0m"
 #define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
-#define _INFO(str) _RGB(102, 204, 255) "INFO: " _RESET _RGB(255,255,255) str _RESET
-#define _WARN(str) _RGB(255,204,0) "WARNING: " _RESET _RGB(255,255,255) str _RESET
-#define _ERROR(str) _RGB(255,76,76) "ERROR: " _RESET _RGB(255,255,255) str _RESET
+#define _INFO(str) \
+    _RGB(102, 204, 255) "INFO: " \ _RESET _RGB(255,255,255) str _RESET
+#define _WARN(str) \
+    _RGB(255,204,0) "WARNING: " _RESET _RGB(255,255,255) str _RESET
+#define _ERROR(str) \
+    _RGB(255,76,76) "ERROR: " _RESET _RGB(255,255,255) str _RESET
 #ifdef DEBUG
 #include <iostream>
 #include <cstdio>
@@ -61,7 +64,7 @@ namespace wfc
     class WaveFunction;
 }
 
-namespace ecs 
+namespace ecs
 {
     struct Planet;
     struct Physics;
@@ -125,7 +128,7 @@ struct Texture
 class TextureLoader
 {
     public:
-        std::shared_ptr<Texture> load(const std::string& file_name, bool alpha);
+        std::shared_ptr<Texture> load(const std::string&, bool);
 };
 
 class Animation
@@ -137,9 +140,9 @@ class Animation
         std::array<Vec2<uint16_t>,2> _frame_range;
         uint16_t _frame {0};
     public:
-        Animation(const std::string& texture_key, 
-            const Vec2<uint16_t>& sprite_dim, 
-            const Vec2<uint16_t>& frame_dim, 
+        Animation(const std::string& texture_key,
+            const Vec2<uint16_t>& sprite_dim,
+            const Vec2<uint16_t>& frame_dim,
             const std::array<Vec2<uint16_t>,2>& frame_range);
         Animation& operator+(int value);
         Animation& operator-(int value);
@@ -160,26 +163,29 @@ class AnimationBuilder
         Vec2<uint16_t> _frame_dim;
         std::array<Vec2<uint16_t>,2> _frame_range;
     public:
-        AnimationBuilder& setTextureKey(const std::string& texture_key);
-        AnimationBuilder& setSpriteDimension(const Vec2<uint16_t>& sprite_dim);
-        AnimationBuilder& setFrameDimension(const Vec2<uint16_t>& frame_dim);
-        AnimationBuilder& setFrameRange(const std::array<Vec2<uint16_t>,2>& frame_range);
+        AnimationBuilder& setTextureKey(
+                const std::string& texture_key);
+        AnimationBuilder& setSpriteDimension(
+                const Vec2<uint16_t>& sprite_dim);
+        AnimationBuilder& setFrameDimension(
+                const Vec2<uint16_t>& frame_dim);
+        AnimationBuilder& setFrameRange(
+                const std::array<Vec2<uint16_t>,2>& frame_range);
         std::shared_ptr<Animation> build();
 };
 
 namespace wfc
 {
-    struct Planet
-    {
-
-    };
-
-    struct Tile 
+    struct Tile
     {
         float weight;
         std::array<std::vector<std::string>, 4> rules;
         std::unordered_map<std::string,float> coefficients;
-        Tile(float weight, std::array<std::vector<std::string>,4>& rules, std::unordered_map<std::string,float>& coefficients);
+        Tile(
+                float weight, 
+                std::array<std::vector<std::string>,4>& rules, 
+                std::unordered_map<std::string,
+                float>& coefficients);
     };
 
     class TileBuilder
@@ -190,12 +196,16 @@ namespace wfc
             std::unordered_map<std::string,float> _coefficients;
         public:
             TileBuilder& setWeight(float weight);
-            TileBuilder& addRule(const Direction& dir, const std::string& tile);
-            TileBuilder& addCoefficient(const std::string& tile, float weight);
+            TileBuilder& addRule(
+                    const Direction& dir, 
+                    const std::string& tile);
+            TileBuilder& addCoefficient(
+                    const std::string& tile, 
+                    float weight);
             Tile build();
     };
 
-    struct Cell 
+    struct Cell
     {
         std::vector<std::string> states;
         Vec2<int32_t> pos;
@@ -203,7 +213,7 @@ namespace wfc
         uint16_t entropy() const;
     };
 
-    class Grid 
+    class Grid
     {
         private:
             std::vector<std::vector<std::string>> _cells;
@@ -225,32 +235,45 @@ namespace wfc
             void _bubbleUp(uint16_t idx);
             void _bubbleDown(uint16_t idx);
         public:
-            TilePriorityQueue(const Vec2<uint16_t>& grid_size, std::vector<std::string> states);
+            TilePriorityQueue(
+                    const Vec2<uint16_t>& grid_size, 
+                    std::vector<std::string> states);
             void insert(const Cell& cell);
             bool empty();
             Cell pop();
             void print();
     };
 
-    class WaveFunction 
+    class WaveFunction
     {
         private:
             Grid& _grid;
             std::unordered_map<std::string,Tile>& _tiles;
             TilePriorityQueue _queue;
-            Vec2<int32_t> _shift(const Direction& direction, const Vec2<uint16_t>& vec);
-            float _calculateTileWeight(const Vec2<int32_t>& pos, const Tile& tile);
+            Vec2<int32_t> _shift(
+                    const Direction& direction, 
+                    const Vec2<uint16_t>& vec);
+            float _calculateTileWeight(
+                    const Vec2<int32_t>& pos, 
+                    const Tile& tile);
         public:
-            WaveFunction(Grid& grid, std::unordered_map<std::string,Tile>& tiles);
+            WaveFunction(
+                    Grid& grid, 
+                    std::unordered_map<std::string,Tile>& tiles);
             void run();
             void collapse(const Cell& cell);
     };
 }
 
-namespace ecs 
+namespace ecs
 {
     class ECS;
     extern ECS ecs;
+
+    struct Planet
+    {
+
+    };
 
     struct Physics
     {
@@ -260,14 +283,14 @@ namespace ecs
         bool enabled {true};
     };
 
-    struct Transform 
+    struct Transform
     {
         Vec2<float> pos;
         Vec2<float> scale;
         float rotation;
     };
 
-    struct Health 
+    struct Health
     {
         float health;
         float max;
@@ -279,14 +302,14 @@ namespace ecs
         bool invertY {false};
     };
 
-    struct Entity 
+    struct Entity
     {
         eid_t id;
         cmask_t mask;
         Entity(eid_t i, cmask_t m);
     };
 
-    class ComponentPool 
+    class ComponentPool
     {
         private:
             std::unique_ptr<char[]> _ptr_data;
@@ -295,35 +318,88 @@ namespace ecs
             ComponentPool(uint16_t s);
             uint16_t size() const;
             void* get(uint16_t idx);
-    }; 
+    };
 
     class ComponentManager
     {
         private:
             std::vector<std::unique_ptr<ComponentPool>> _pools;
         public:
+
             /*
+                Assigns component <T> to the entity,
+                if the entity has already been assigned <T>, then
+                this function will return nullptr.
+
+                @returns a pointer to <T>
             */
             template <typename T>
             T* assign(Entity* e_ptr);
 
+            /*
+                Retrieves a component <T> assigned to the entity;
+                if the entity has not been assigned with <T>
+                or the entity is nullptr,
+                this function will return nullptr.
+
+                @returns a pointer to <T>
+            */
             template <typename T>
             T* fetch(Entity* e_ptr);
 
+            /*
+                Checks whether the entity has 
+                been assigned all components <T...>,
+
+                @returns a bool of whether the entity has all components
+            */
             template <typename... T>
             bool has(Entity* e_ptr);
     };
 
     class EntityManager
     {
+        /*
+            Implementation notes:
+                1. All entities are initialized and statically defined 
+                at startup,
+                meaning that if 'MAX_ENTITIES = 500', 
+                MAX_ENTITIES == entities.size()
+                after the constructor is called.
+        */
         private:
             uint16_t _max_entities;
             std::deque<eid_t> _free;
         public:
             std::vector<Entity> entities;
             EntityManager(uint16_t max_entities);
-            Entity* get(eid_t idx);
+
+            /*
+                Checks out an entity from the system.
+
+                This prevents the system from clearing the mask
+                or data on the heap prior to calling ret().
+            */
             Entity* checkout();
+
+            /*
+                Returns the entity back to the system, 
+                allowing the id/bitset
+                to be reused.
+
+                e.g.
+                Entity ID = 1,
+                Mask = 0...010, (holds the components for entity...
+                ) assume the size of mask is equal to 'MAX_COMPONENTS'
+
+                The entity with ID 1 is currently assigned 
+                the second component.
+
+                After calling ret,
+
+                Entity ID = 1;
+                Mask = 0...000
+            */
             void ret(Entity*& e_ptr);
             uint16_t maxEntities() const;
     };
