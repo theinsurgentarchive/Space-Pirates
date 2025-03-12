@@ -52,7 +52,7 @@ std::shared_ptr<Texture> TextureLoader::load(
 {
     std::ifstream file (file_name);
     if (!file.is_open()) {
-        DWARNF("file does not exist: %s\n",file_name.c_str());
+        DERRORF("file does not exist: %s\n",file_name.c_str());
         return nullptr;
     }
 
@@ -538,8 +538,6 @@ namespace ecs
             if (pc->enabled) {
                 pc->vel += pc->acc * dt;
                 tc->pos += pc->vel * dt;
-                DINFOF("final position (%f, %f) for entity (%d)\n",
-                        tc->pos[0],tc->pos[1],entity->id);
             }
         }
     }

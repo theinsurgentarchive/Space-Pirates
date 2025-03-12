@@ -23,7 +23,7 @@ Vec2<T> Vec2<T>::operator+(const Vec2<T>& v) const
 template <typename T>
 Vec2<T> Vec2<T>::operator*(float scale) const
 {
-    return Vec2<T>(vec[0] * scale, vec[1] * scale);
+    return {vec[0] * scale, vec[1] * scale};
 }
 
 template <typename T>
@@ -41,8 +41,11 @@ T& Vec2<T>::operator[](int idx)
 template <typename T>
 Vec2<T>& Vec2<T>::operator+=(const Vec2<T>& v)
 {
-    return vec[0] += v.vec[0], vec[1] += v.vec[1], *this;
+    vec[0] += v.vec[0];
+    vec[1] += v.vec[1];
+    return *this;
 }
+
 namespace ecs
 {
     template <typename T>
@@ -70,6 +73,28 @@ namespace ecs
         T *ptr_component = new (mem) T();
         e_ptr->mask.set(cid);
         return ptr_component;
+    }
+
+    template <typename T>
+    void bulkAssignHelper(Entity* e_ptr, T)
+    {
+        if (e_ptr == nullptr) {
+            DWARN("entity pointer was null\n");
+            return;
+        }
+        ecs::ecs.component().assign<T>(e_ptr);
+    }
+    template <typename T, typename... Ts>
+    void bulkAssignHelper(Entity* e_ptr, T, Ts... ts)
+    {
+        bulkAssignHelper(e_ptr,T());
+        bulkAssignHelper(e_ptr,ts...);
+    }
+
+    template <typename... T>
+    void ComponentManager::bulkAssign(Entity* e_ptr)
+    {
+        bulkAssignHelper(e_ptr,T()...);
     }
 
     template <typename T>
