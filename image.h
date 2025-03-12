@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include "jlo.h"
 // start - gordon
 class Image {
 	public:
@@ -13,7 +14,6 @@ class Image {
 		Image(const char *fname) { 
 			if (fname[0] == '\0')
 				return;
-			//printf("fname **%s**\n", fname);
 			int ppmFlag = 0;
 			char name[40];
 			strcpy(name, fname);
@@ -52,7 +52,7 @@ class Image {
 					data[i] = fgetc(fpi); 
 				fclose(fpi);
 			} else {
-				printf("ERROR opening image: %s\n",ppmname);
+				DERRORF("ERROR opening image: %s\n",ppmname);
 				exit(0);
 			}
 			if (!ppmFlag)

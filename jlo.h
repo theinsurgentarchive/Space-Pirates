@@ -20,8 +20,8 @@
 
 #define _RESET "\033[0m"
 #define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
-#define _INFO(str) \
-    _RGB(102, 204, 255) "INFO: " \ _RESET _RGB(255,255,255) str _RESET
+#define _INFO(fmt) \
+    _RGB(102, 204, 255) "INFO: " _RESET _RGB(255, 255, 255) fmt _RESET
 #define _WARN(str) \
     _RGB(255,204,0) "WARNING: " _RESET _RGB(255,255,255) str _RESET
 #define _ERROR(str) \
@@ -29,9 +29,9 @@
 #ifdef DEBUG
 #include <iostream>
 #include <cstdio>
-#define DINFOF(fmt, ...) printf(_INFO(fmt), __VA_ARGS__)
-#define DWARNF(fmt, ...) printf(_WARN(fmt), __VA_ARGS__)
-#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__)
+#define DINFOF(fmt, ...) printf(_INFO(fmt), __VA_ARGS__),fflush(stdout)
+#define DWARNF(fmt, ...) printf(_WARN(fmt), __VA_ARGS__),fflush(stdout)
+#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__),fflush(stdout)
 #define DINFO(str) std::cout << _INFO(str) << std::flush
 #define DWARN(str) std::cout << _WARN(str) << std::flush
 #define DERROR(str) std::cout << _ERROR(str) << std::flush
@@ -335,6 +335,9 @@ namespace ecs
             */
             template <typename T>
             T* assign(Entity* e_ptr);
+            
+            template <typename... T>
+            void bulkAssign(Entity* e_ptr);
 
             /*
                 Retrieves a component <T> assigned to the entity;

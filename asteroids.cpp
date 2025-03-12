@@ -245,6 +245,7 @@ void load_textures(void);
 //==========================================================================
 ecs::Entity* ptr;
 ecs::RenderSystem rs;
+ecs::PhysicsSystem ps;
 // Entity* second;
 std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
@@ -258,16 +259,10 @@ int main()
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
 
-    auto e = ecs::ecs.entity().checkout();
-    [[maybe_unused]]auto transform = (
-        ecs::ecs.component().assign<ecs::Transform>(e)
-    );
-	//Assign Sprite component to entity
-	[[maybe_unused]]auto sprite = (
-		ecs::ecs.component().assign<ecs::Sprite>(e)
-	);
+    ptr = ecs::ecs.entity().checkout();
+    ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM>(ptr);
+	auto sprite = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sprite->animation_key = "run";
-
 	textures.insert({"skip.png",tl.load("./resources/textures/skip.png",false)});
 	AnimationBuilder ab {};
 	animations.insert({"run",ab.setTextureKey("skip.png")
@@ -297,6 +292,7 @@ int main()
 
         // Update audio system each frame
         getAudioManager()->update();
+        ps.update((float) 1/20);
         render(); 
         x11.swapBuffers();
     }
@@ -306,7 +302,6 @@ int main()
     return 0;
 }
 GLuint tex;
-Image img[1] = {"./textures/skip.png"};
 void init_opengl(void)
 {
 	//OpenGL initialization
@@ -329,24 +324,13 @@ void init_opengl(void)
 	initialize_fonts();
 
 	glGenTextures(1, &menuBackgroundTexture);
-	menuImage = new Image("./textures/menu-bg.jpg");	
+	menuImage = new Image("./resources/textures/menu-bg.jpg");	
 	//biship code 
 	glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, 3, menuImage->width, menuImage->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, menuImage->data);
-
-	glGenTextures(1,&tex);
-
-	glBindTexture(GL_TEXTURE_2D, tex);
-
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-
-	auto data = buildAlphaData(&img[0]);
-	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img[0].width,img[0].height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
-	//
 }
 std::unique_ptr<unsigned char[]> buildAlphaData(Image *img)
 {
@@ -436,38 +420,39 @@ int check_keys(XEvent *e)
     // cout for debugging
     if (e->type == KeyPress) {
       exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
-	  if (exit_request){
-		return exit_request;
-    }
-}
+	  	if (exit_request) {
+			return exit_request;
+    	}
+	}
 
     // Playing state handling
     if (gl.state == PLAYING) {
-        // if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
-        //     return 0;
-        // }
-        // auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
-        // if (e->type == KeyRelease) {
-        //     if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-        //         pc->vel = {0,0};
-        //     }
-        // } else if (e->type == KeyPress) {
-        //     static float movement_mag = 300.0;
-        //     switch(key) {
-        //         case XK_Right:
-        //             pc->vel = {movement_mag,0};
-        //             break;
-        //         case XK_Left:
-        //             pc->vel = {-movement_mag,0};
-        //             break;
-        //         case XK_Up:
-        //             pc->vel = {0,movement_mag};
-        //             break;
-        //         case XK_Down:
-        //             pc->vel = {0,-movement_mag};
-        //             break;
-        //     }
-        // }
+        if (!ecs::ecs.component().has<PHYSICS>(ptr)) {
+            return 0;
+        }
+        auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
+        if (e->type == KeyRelease) {
+            if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
+                pc->vel = {0,0};
+            }
+        } else if (e->type == KeyPress) {
+
+            static float movement_mag = 300.0;
+            switch(key) {
+                case XK_Right:
+                    pc->vel = {movement_mag,0};
+                    break;
+                case XK_Left:
+                    pc->vel = {-movement_mag,0};
+                    break;
+                case XK_Up:
+                    pc->vel = {0,movement_mag};
+                    break;
+                case XK_Down:
+                    pc->vel = {0,-movement_mag};
+                    break;
+            }
+        }
     }
 
     return exit_request;
@@ -475,7 +460,7 @@ int check_keys(XEvent *e)
 
 void physics()
 {
-
+	ps.update(1/20);
 }
 
 void render() {
@@ -491,7 +476,7 @@ void render() {
 			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
 			break;
 		case PLAYING:
-			rs.update(1/20);
+			rs.update((float) 1/20);
 			std::cout << "";
 			break;
 		default:
