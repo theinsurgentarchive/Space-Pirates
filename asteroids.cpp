@@ -265,9 +265,9 @@ int main()
 	}
 	auto sprite = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sprite->animation_key = "run";
-	textures.insert({"skip.png",tl.load("./resources/textures/skip.png",false)});
+	textures.insert({"skip",tl.load("./resources/textures/skip.png",false)});
 	AnimationBuilder ab {};
-	animations.insert({"run",ab.setTextureKey("skip.png")
+	animations.insert({"run",ab.setTextureKey("skip")
 		.setSpriteDimension({64,64})
 		.setFrameDimension({1,8})
 		.setFrameRange({Vec2<uint16_t>{0,0},Vec2<uint16_t>{1,8}}).build()});
@@ -332,27 +332,24 @@ void init_opengl(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, 3, menuImage->width, menuImage->height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, menuImage->data);
+                 GL_RGB, GL_UNSIGNED_BYTE, menuImage->data.get());
 }
 
-std::unique_ptr<unsigned char[]> buildAlphaData(Image *img)
+std::unique_ptr<unsigned char[]> buildAlphaData(Image* img)
 {
-	/*
-	* refactored version of gordon's initail alpha data code 
-	*/
-	auto img_size = img->width * img->height;
-	auto newdata = std::make_unique<unsigned char[]>(img_size * sizeof(int));
-    auto *ptr = newdata.get();
-    auto *data = reinterpret_cast<unsigned char *>(img->data);
+	//refactored version of gordon's code
+    auto img_size = img->width * img->height;
+    auto newdata = std::make_unique<unsigned char[]>(img_size * 4);
+    auto* data = img->data.get();
+    auto* ptr = newdata.get();
     auto t0 = data[0], t1 = data[1], t2 = data[2];
-    for (int i {0}; i < img_size; ++i) {
+    for (int i = 0; i < img_size; ++i) {
         std::copy(data, data + 3, ptr);
         ptr[3] = (data[0] == t0 && data[1] == t1 && data[2] == t2) ? 0 : 255;
-
         data += 3;
-        ptr += sizeof(int);
+        ptr += 4;
     }
-	return newdata;
+    return newdata;
 }
 
 void normalize2d(Vec v)
@@ -474,10 +471,10 @@ void render() {
 	r.left = 100;
 	r.bot = gl.yres - 20;
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-			float cameraX = static_cast<float>(tc->pos[0]);
-			float cameraY = static_cast<float>(tc->pos[1]);
-			DINFOF("Camera Center: (%f, %f)", cameraX - gl.xres / 2, cameraY - gl.yres / 2);
-			glClear(GL_COLOR_BUFFER_BIT);
+		float cameraX = static_cast<float>(tc->pos[0]);
+		float cameraY = static_cast<float>(tc->pos[1]);
+		DINFOF("Camera Center: (%f, %f)", cameraX - gl.xres / 2, cameraY - gl.yres / 2);
+		glClear(GL_COLOR_BUFFER_BIT);
 	switch(gl.state) {
 		case MENU:
 			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
@@ -488,10 +485,8 @@ void render() {
 		case PLAYING:
 			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
 			glPushMatrix();
-			glTranslatef(-(cameraX - gl.xres / 2), -(cameraY - gl.yres / 2), 0);  // Apply camera translation
-			// Render a simple test square to verify camera
-			//glColor3f(1.0, 0.0, 0.0);  // Red color
-			rs.update((float)1/20);
+			glTranslatef(gl.xres / 2 - tc->pos[0], gl.yres / 2 - tc->pos[1], 0);  // Apply camera translation
+			rs.update((float)1/10);
 			glPopMatrix();
 			break;
 		case EXIT:
