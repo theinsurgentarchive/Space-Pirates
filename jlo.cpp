@@ -22,10 +22,9 @@ void show_jlo(Rect* r)
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
 }
 
-std::vector<std::string> img_extensions {"png","jpeg","jpg"};
+std::vector<std::string> img_extensions {"png","jpeg","jpg","gif"};
 std::random_device rd;
 std::mt19937 generator(rd());
-TextureLoader tl;
 Vec2<int32_t> dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
 Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
 
@@ -80,6 +79,7 @@ std::shared_ptr<Texture> TextureLoader::load(
     auto data = buildAlphaData(&img);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,
         img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
+
     DINFOF("loaded texture: %s\n",file_name.c_str());
     return tex;
 }
@@ -208,31 +208,37 @@ std::shared_ptr<Animation> AnimationBuilder::build()
 
 namespace wfc
 {
-    Tile::Tile(float weight, 
-        std::array<std::vector<std::string>,4>& rules,
-        std::unordered_map<std::string,
-        float>& coefficients) : 
+    Tile::Tile(
+        float weight, 
+        std::array<std::unordered_set<std::string>,4>& rules, 
+        std::unordered_map<std::string,float>& coefficients) 
+        : 
         weight{weight}, 
         rules{rules}, 
         coefficients{coefficients} 
-    {
+    {        
     }
 
-    TileBuilder& TileBuilder::setWeight(float weight) 
+    TileBuilder& TileBuilder::weight(float weight) 
     {
         _weight = weight;
         return *this;
     }
 
-    TileBuilder& TileBuilder::addRule(const Direction& dir, 
-        const std::string& tile)
+    TileBuilder& TileBuilder::rule(int dir, const std::string& tile)
     {
-        _rules[dir].push_back(tile);
+        _rules[dir].insert(tile);
         return *this;
     }
 
-    TileBuilder& TileBuilder::addCoefficient(const std::string& tile, 
-        float weight)
+    TileBuilder& TileBuilder::omni(const std::string& tile)
+    {
+        for (int i = 0; i < 4; i++)
+            _rules[i].insert(tile);
+        return *this;
+    }
+
+    TileBuilder& TileBuilder::coefficient(const std::string& tile, float weight)
     {
         _coefficients[tile] = weight;
         return *this;
@@ -244,22 +250,38 @@ namespace wfc
     }
 
     Cell::Cell(
-            std::vector<std::string> states, 
-            Vec2<int32_t> pos) : 
-            states{states},
-            pos{pos} 
-    {
+        const Vec2<int32_t>& pos, 
+        const std::unordered_set<std::string>& states) 
+        : 
+        pos{pos},
+        states{states} 
+    { 
     }
 
     uint16_t Cell::entropy() const
     {
         return static_cast<uint16_t>(states.size());
     }
+
+    bool Cell::collapsed() const
+    {
+        return !state.empty();
+    }
     
-    Grid::Grid(Vec2<uint16_t> size) : _size{size} {
+    Grid::Grid(
+        Vec2<uint16_t> size, 
+        const std::unordered_set<std::string>& states)
+        : 
+        _size{size} 
+    {
         _cells.resize(size[1]);
-        for (auto& row : _cells) 
-            row.resize(size[0]);
+        for (int i {0}; i < size[1]; i++) {
+            auto& row = _cells[i];
+            row.reserve(size[0]);
+            for (int j {0}; j < size[0]; j++) {
+                row.emplace_back(Vec2<int32_t>(j,i),states);
+            }
+        }
     }
 
     Vec2<uint16_t> Grid::size() const
@@ -267,43 +289,56 @@ namespace wfc
         return _size;
     }
 
-    std::string Grid::get(Vec2<int32_t> pos) const
+    Cell* Grid::get(Vec2<int32_t> pos)
     {
-        return _cells[pos[0]][pos[1]];
-    }
-    
-    void Grid::set(Vec2<int32_t> pos, std::string name)
-    {
-        _cells[pos[0]][pos[1]] = name;
+        if (pos[0] >= 0 && 
+            pos[0] < _size[0] && 
+            pos[1] >= 0 && 
+            pos[1] < _size[1]) {
+            return &_cells[pos[0]][pos[1]];
+        }
+        return nullptr;
     }
 
-    bool Grid::collapsed(const Vec2<int32_t>& pos)
+    std::vector<std::vector<Cell>>& Grid::getCells()
     {
-        return !_cells[pos[0]][pos[1]].empty();
+        return _cells;
     }
 
     void Grid::print()
     {
         for (auto& rows : _cells) {
             for (auto& str : rows) {
-                if (str == "A") {
-                    std::cout << "\033[92m" << str << "\033[0m ";
+                if (str.state == "A") {
+                    std::cout << "\033[92m" << str.state << "\033[0m ";
+                } else if (str.state == "_") {
+                    std::cout << "\033[94m" << str.state << "\033[0m ";
                 } else {
-                    std::cout << "\033[94m" << str << "\033[0m ";
+                    std::cout << "\033[93m" << str.state << "\033[0m ";
                 }
+                //std::cout << str.entropy() << ' ';
             }
             std::cout << '\n';
         }
     }
 
-    TilePriorityQueue::TilePriorityQueue(
-            const Vec2<uint16_t>& grid_size, 
-            std::vector<std::string> states)
+    bool Grid::collapsed()
     {
-        uint16_t rows = grid_size[0], cols = grid_size[1];
-        for (uint16_t i {0}; i < rows; i++) {
-            for (uint16_t j {0}; j < cols; j++) {
-                _queue.push_back({states,{i,j}});            
+        for (auto& row : _cells) {
+            for (auto& cell : row) {
+                if (!cell.collapsed()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    TilePriorityQueue::TilePriorityQueue(Grid& grid)
+    {
+        for (auto& rows : grid.getCells()) {
+            for (auto& cell : rows) {
+                _queue.push_back(&cell);
             }
         }
         std::shuffle(_queue.begin(),_queue.end(),generator);
@@ -320,19 +355,11 @@ namespace wfc
     {
         while (idx > 0) {
             uint16_t parent {static_cast<uint16_t>((idx - 1) / 2)};
-            if (_queue[parent].entropy() > _queue[idx].entropy()) {
+            if (_queue[parent]->entropy() > _queue[idx]->entropy()) {
                 _swap(parent,idx);
             } else {
                 break;
             }
-        }
-    }
-    void TilePriorityQueue::print()
-    {
-        for (auto p : _queue) {
-            for (auto state : p.states)
-                std::cout << state << " ";
-            std::cout << '\n';
         }
     }
 
@@ -343,22 +370,23 @@ namespace wfc
             uint16_t left = 2 * idx + 1;
             uint16_t right = 2 * idx + 2;
             uint16_t smallest = idx;
-            if (_queue[left].entropy() < _queue[smallest].entropy() &&
-                left < size) {
+            if (left < size && 
+                _queue[left]->entropy() < _queue[smallest]->entropy()) {
                 smallest = left;
             }
-            if (_queue[right].entropy() < _queue[smallest].entropy() && 
-                right < size) {
+            if (right < size && 
+                _queue[right]->entropy() < _queue[smallest]->entropy()) {
                 smallest = right;
             }
-            if (smallest == idx)
+            if (smallest == idx) {
                 break;
+            }
             _swap(smallest,idx);
             idx = smallest;
         }
     }
 
-    void TilePriorityQueue::insert(const Cell& cell)
+    void TilePriorityQueue::insert(Cell* cell)
     {
         _queue.push_back(cell);
         _bubbleUp(_queue.size() - 1);
@@ -369,9 +397,9 @@ namespace wfc
         return _queue.empty();
     }
 
-    Cell TilePriorityQueue::pop()
+    Cell* TilePriorityQueue::pop()
     {
-        Cell cell = _queue.front();
+        auto cell = _queue.front();
         _queue[0] = _queue.back();
         _queue.pop_back();
         _bubbleDown(0);
@@ -379,74 +407,61 @@ namespace wfc
     }
 
     WaveFunction::WaveFunction(
-            Grid& grid, 
-            std::unordered_map<std::string,Tile>& tiles) : 
-            _grid{grid}, 
-            _tiles{tiles}, 
-            _queue{grid.size(),{}} 
-    {
+        Grid& grid, 
+        std::unordered_map<std::string,Tile>& tiles) 
+        : 
+        _grid{grid}, 
+        _tiles{tiles}, 
+        _queue{grid} {
         std::vector<std::string> states;
         for (auto& pair : _tiles)
             states.push_back(pair.first);
-        _queue = {grid.size(),states};
+        _queue = {grid};
     }
 
-    Vec2<int32_t> _shift(
-            const Direction& dir, 
-            const Vec2<uint16_t>& vec) 
-    {
-        return Vec2<int32_t> {
-            vec[0] + dirs[dir][0],vec[1] + dirs[dir][1]};
+    Vec2<int32_t> _shift_vector(uint16_t dir, const Vec2<int32_t>& vec) {
+        return Vec2<int32_t> {vec[0] + dirs[dir][0],vec[1] + dirs[dir][1]};
     } 
 
-    void WaveFunction::run()
-    {
-        while (!_queue.empty()) {
-            auto cell = _queue.pop();
-            collapse(cell);
-        }
-    }
-
     float WaveFunction::_calculateTileWeight(
-            const Vec2<int32_t>& pos, const Tile& tile)
+            const Vec2<int32_t>& pos, 
+            const Tile& tile)
     {
         auto base = tile.weight;
         auto weight = base;
         for (int i = 0; i < 4; i++) {
             auto shift = pos + dirs[i];
+            auto cell = _grid.get(shift);
             if (shift[0] >= 0 && 
                 shift[0] < _grid.size()[0] && 
                 shift[1] >= 0 && 
                 shift[1] < _grid.size()[1] && 
-                _grid.collapsed(shift)) {
-                auto t_name = _grid.get(shift);
-                if (tile.coefficients.find(t_name) != 
+                cell->collapsed()) {
+                if (tile.coefficients.find(cell->state) != 
                         tile.coefficients.end()) {
-                    auto coefficient = tile.coefficients.at(t_name);
-                    weight = base*coefficient + weight;
+                    auto coefficient = tile.coefficients.at(cell->state);
+                    weight += base * coefficient;
                 }
             }
         }
         return weight;
     } 
     
-    void WaveFunction::collapse(const Cell& cell)
+    void WaveFunction::_collapse(Cell* c)
     {
         float cumulative_weight {0};
         std::vector<std::pair<std::string,float>> state_weights;
-        for (auto& state : cell.states) {
+        for (auto& state : c->states) {
+
             auto it = _tiles.find(state);
             if (it != _tiles.end()) {
-                auto weight = _calculateTileWeight(
-                        cell.pos, 
-                        it->second);
+                auto weight = _calculateTileWeight(c->pos, it->second);
                 cumulative_weight += weight;
                 state_weights.push_back({state,cumulative_weight});
             }
         }
 
-        std::uniform_real_distribution<float> dist {
-            0.0f,cumulative_weight};
+        std::uniform_real_distribution<float> dist {0.0f,cumulative_weight};
 
         float r = dist(generator);
 
@@ -457,7 +472,63 @@ namespace wfc
                 break;
             }
         }
-        _grid.set(cell.pos,selected);
+        _grid.get(c->pos)->state = selected;
+    }
+
+    void WaveFunction::_propagate(Cell* c)
+    {
+        for (int i {0}; i < 4; i++) {
+            auto c1 = _grid.get(_shift_vector(i,c->pos));
+            if (c1 == nullptr || c1->collapsed())
+                continue;
+            for (int j {0}; j < 4; j++) {
+                auto c2 = _grid.get(_shift_vector(j,c1->pos));
+                if (c2 == nullptr || !c2->collapsed())
+                    continue;
+                auto t2 = _tiles.find(c2->state);
+                if (t2 == _tiles.end())
+                    continue;
+                auto t2_rules = t2->second.rules[opposite[j]];
+                for (auto it = c1->states.begin(); it != c1->states.end();) {
+                    auto t1 = _tiles.find(*it);
+                    auto t1_rules = t1->second.rules[j];
+                    
+                    auto s1 = std::find(
+                        t2_rules.begin(),
+                        t2_rules.end(),
+                        *it) != t2_rules.end();
+
+                    auto s2 = std::find(
+                        t1_rules.begin(),
+                        t1_rules.end(),
+                        c2->state) != t1_rules.end();
+
+                    bool compatible = s1 && s2;
+
+                    if (c1->entropy() == 1)
+                        break;
+
+                    if (compatible) {
+                        ++it;
+                    } else {
+                        it = c1->states.erase(it);
+                    }
+                }
+            }
+        }
+    }
+
+    void WaveFunction::run()
+    {
+        while (!_queue.empty()) {
+            if (_grid.collapsed())
+                break;
+            auto cell = _queue.pop();
+            if (cell == nullptr)
+                break;
+            _collapse(cell);
+            _propagate(cell);
+        }
     }
 }
 
@@ -588,8 +659,10 @@ namespace ecs
             float xy {(float) 1 / rows};
             DINFOF("rendering texture (%s) at (%i,%i)\n",
                     texture_key.c_str(),ix,iy);
-            glPushMatrix();
             glBindTexture(GL_TEXTURE_2D,*tex->tex);
+            glEnable(GL_ALPHA_TEST);
+	        glAlphaFunc(GL_GREATER, 0.0f);
+            glColor4ub(255,255,255,255);
             glBegin(GL_QUADS);
                 auto tc = ecs.component().fetch<TRANSFORM>(entity);
                 glTexCoord2f(fx, fy + xy);      
@@ -602,7 +675,7 @@ namespace ecs
                 glVertex2i(tc->pos[0] + sw, tc->pos[1] - sh);
             glEnd();
             glBindTexture(GL_TEXTURE_2D,0);
-            glPopMatrix();
+            glDisable(GL_ALPHA_TEST);
         }
     }
 }

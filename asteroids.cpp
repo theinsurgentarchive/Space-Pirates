@@ -48,7 +48,7 @@ extern double physicsCountdown;
 extern double timeSpan;
 extern double timeDiff(struct timespec *start, struct timespec *end);
 extern void timeCopy(struct timespec *dest, struct timespec *source);
-std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
+//std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 //-----------------------------------------------------------------------------
 
 class Global {
@@ -231,22 +231,14 @@ void physics();
 void render();
 
 //Start - Justin
-void load_textures(void);
-
-// void load_textures() {
-// 	try {
-// 		if (std::filesystem::exists(_IMAGE_FOLDER_PATH) && std::filesystem::is_directory(_IMAGE_FOLDER_PATH)) {
-// 			for (const auto& entry : std::file_system::directory_iteraotr<)
-// 		}
-// 	} catch ()
-// }
 //==========================================================================
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
 ecs::RenderSystem rs;
 ecs::PhysicsSystem ps;
-// Entity* second;
+TextureLoader tl;
+
 std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 int main()
@@ -261,6 +253,16 @@ int main()
 
     ptr = ecs::ecs.entity().checkout();
     ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM>(ptr);
+
+	auto e_ptr = ecs::ecs.entity().checkout();
+	while (e_ptr != nullptr) {
+		ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM>(e_ptr);
+		auto sc = ecs::ecs.component().fetch<SPRITE>(e_ptr);
+		sc->animation_key = "run";
+		auto tc = ecs::ecs.component().fetch<TRANSFORM>(e_ptr);
+		tc->pos = {static_cast<float>(rand() % 5001 - 2500), static_cast<float>(rand() % 5001 - 2500)};
+		e_ptr = ecs::ecs.entity().checkout();
+	}
 	auto sprite = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sprite->animation_key = "run";
 	textures.insert({"skip.png",tl.load("./resources/textures/skip.png",false)});
@@ -332,6 +334,7 @@ void init_opengl(void)
     glTexImage2D(GL_TEXTURE_2D, 0, 3, menuImage->width, menuImage->height, 0,
                  GL_RGB, GL_UNSIGNED_BYTE, menuImage->data);
 }
+
 std::unique_ptr<unsigned char[]> buildAlphaData(Image *img)
 {
 	/*
@@ -351,6 +354,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img)
     }
 	return newdata;
 }
+
 void normalize2d(Vec v)
 {
 	Flt len = v[0]*v[0] + v[1]*v[1];
@@ -436,7 +440,7 @@ int check_keys(XEvent *e)
                 pc->vel = {0,0};
             }
         } else if (e->type == KeyPress) {
-
+			
             static float movement_mag = 300.0;
             switch(key) {
                 case XK_Right:
@@ -466,8 +470,14 @@ void physics()
 void render() {
 
 	DINFOF("rendering state: %d\n",gl.state);
-
-	glClear(GL_COLOR_BUFFER_BIT);
+	Rect r;
+	r.left = 100;
+	r.bot = gl.yres - 20;
+	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+			float cameraX = static_cast<float>(tc->pos[0]);
+			float cameraY = static_cast<float>(tc->pos[1]);
+			DINFOF("Camera Center: (%f, %f)", cameraX - gl.xres / 2, cameraY - gl.yres / 2);
+			glClear(GL_COLOR_BUFFER_BIT);
 	switch(gl.state) {
 		case MENU:
 			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
@@ -476,8 +486,15 @@ void render() {
 			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
 			break;
 		case PLAYING:
-			rs.update((float) 1/20);
-			std::cout << "";
+			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
+			glPushMatrix();
+			glTranslatef(-(cameraX - gl.xres / 2), -(cameraY - gl.yres / 2), 0);  // Apply camera translation
+			// Render a simple test square to verify camera
+			//glColor3f(1.0, 0.0, 0.0);  // Red color
+			rs.update((float)1/20);
+			glPopMatrix();
+			break;
+		case EXIT:
 			break;
 		default:
 			break;
