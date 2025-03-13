@@ -22,10 +22,9 @@ void show_jlo(Rect* r)
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
 }
 
-std::vector<std::string> img_extensions {"png","jpeg","jpg"};
+std::vector<std::string> img_extensions {"png","jpeg","jpg","gif"};
 std::random_device rd;
 std::mt19937 generator(rd());
-TextureLoader tl;
 Vec2<int32_t> dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
 Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
 
@@ -80,6 +79,7 @@ std::shared_ptr<Texture> TextureLoader::load(
     auto data = buildAlphaData(&img);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,
         img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
+
     DINFOF("loaded texture: %s\n",file_name.c_str());
     return tex;
 }
@@ -497,11 +497,14 @@ namespace wfc
                         t2_rules.begin(),
                         t2_rules.end(),
                         *it) != t2_rules.end();
+
                     auto s2 = std::find(
                         t1_rules.begin(),
                         t1_rules.end(),
                         c2->state) != t1_rules.end();
+
                     bool compatible = s1 && s2;
+
                     if (c1->entropy() == 1)
                         break;
 
@@ -656,8 +659,10 @@ namespace ecs
             float xy {(float) 1 / rows};
             DINFOF("rendering texture (%s) at (%i,%i)\n",
                     texture_key.c_str(),ix,iy);
-            glPushMatrix();
             glBindTexture(GL_TEXTURE_2D,*tex->tex);
+            glEnable(GL_ALPHA_TEST);
+	        glAlphaFunc(GL_GREATER, 0.0f);
+            glColor4ub(255,255,255,255);
             glBegin(GL_QUADS);
                 auto tc = ecs.component().fetch<TRANSFORM>(entity);
                 glTexCoord2f(fx, fy + xy);      
@@ -670,7 +675,7 @@ namespace ecs
                 glVertex2i(tc->pos[0] + sw, tc->pos[1] - sh);
             glEnd();
             glBindTexture(GL_TEXTURE_2D,0);
-            glPopMatrix();
+            glDisable(GL_ALPHA_TEST);
         }
     }
 }
