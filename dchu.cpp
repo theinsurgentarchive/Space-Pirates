@@ -1,4 +1,5 @@
 #include "dchu.h"
+#include <string>
 
 //Credit Print Functions
 //Console print

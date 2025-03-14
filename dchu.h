@@ -1,8 +1,5 @@
 #pragma once
 #include "jlo.h"
-#include "jsandoval.h"
-#include "balrowhany.h"
-#include "mchitorog.h"
 #include "fonts.h"
 
 //Credit Print Function
