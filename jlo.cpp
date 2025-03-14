@@ -13,6 +13,7 @@
 #include <GL/glx.h>
 #include <dirent.h>
 
+#include "image.h"
 #include "jlo.h"
 #include "fonts.h"
 #include "image.h"

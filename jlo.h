@@ -11,7 +11,7 @@
 #include <GL/glx.h>
 
 #define MAX_COMPONENTS 32
-#define MAX_ENTITIES 500
+#define MAX_ENTITIES 1000
 
 #define TRANSFORM ecs::Transform
 #define SPRITE ecs::Sprite

@@ -1,7 +1,7 @@
-CFLAGS = -I ./include
+CFLAGS = -I ./include -g
 LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm
 # Target source files
-SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp jsandoval.cpp dchu.cpp balrowhany.cpp mchitorog.cpp
+SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp jsandoval.cpp dchu.cpp balrowhany.cpp mchitorog.cpp image.cpp
 # Compile each source file in 'SRC' to O, when 'OBJ' is used, the files are 
 # spread, so in asteroids the targets appear to be like 
 # asteroids.o log.o timers.o etc.
