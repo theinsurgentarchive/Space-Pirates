@@ -31,21 +31,23 @@
 #include <cstdio>
 #define DINFOF(fmt, ...) printf(_INFO(fmt), __VA_ARGS__),fflush(stdout)
 #define DWARNF(fmt, ...) printf(_WARN(fmt), __VA_ARGS__),fflush(stdout)
-#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__),fflush(stdout)
+#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__),fflush(stdout),exit(1)
 #define DINFO(str) std::cout << _INFO(str) << std::flush
 #define DWARN(str) std::cout << _WARN(str) << std::flush
-#define DERROR(str) std::cout << _ERROR(str) << std::flush
+#define DERROR(str) std::cout << _ERROR(str) << std::flush,exit(1)
 #else
 #define DINFOF(fmt, ...)
 #define DWARNF(fmt, ...)
 #define DERRORF(fmt, ...)
 #define DINFO(str)
 #define DWARN(str)
-#define DERORR(str)
+#define DERROR(str)
 #endif
 
 void show_jlo(Rect* r);
 
+struct WorldTile;
+class World;
 struct Texture;
 class TextureLoader;
 class Animation;
@@ -174,35 +176,55 @@ class AnimationBuilder
         std::shared_ptr<Animation> build();
 };
 
+struct WorldTile
+{
+    Vec2<float> pos;
+    std::string tex_key;
+    WorldTile(Vec2<float> pos, const std::string& tex_key);
+};
+
+class World
+{
+    private:
+        std::vector<std::vector<WorldTile>> _grid;
+    public:
+        World(Vec2<float> origin, wfc::Grid& grid, std::unordered_map<std::string,wfc::Tile>& tiles);
+};
+
 namespace wfc
 {
     struct Tile
     {
         float weight;
+        std::string tex;
         std::array<std::unordered_set<std::string>, 4> rules;
         std::unordered_map<std::string,float> coefficients;
         Tile(
-                float weight, 
-                std::array<std::unordered_set<std::string>,4>& rules, 
-                std::unordered_map<std::string,
-                float>& coefficients);
+            float weight, 
+            std::string tex,
+            std::array<std::unordered_set<std::string>,4>& rules, 
+            std::unordered_map<std::string,
+            float>& coefficients);
     };
 
     class TileBuilder
     {
         private:
             float _weight;
+            std::string _tex;
             std::array<std::unordered_set<std::string>,4> _rules;
             std::unordered_map<std::string,float> _coefficients;
         public:
+            TileBuilder(float weight, const std::string& tex);
             TileBuilder& weight(float weight);
+            TileBuilder& tex(const std::string& tex);
             TileBuilder& rule(
-                    int dir, 
-                    const std::string& tile);
+                int dir, 
+                const std::string& tile);
             TileBuilder& omni(const std::string& tile);
             TileBuilder& coefficient(
-                    const std::string& tile, 
-                    float weight);
+                const std::string& tile, 
+                float weight);
             Tile build();
     };
 
@@ -211,7 +233,9 @@ namespace wfc
         Vec2<int32_t> pos;
         std::unordered_set<std::string> states;
         std::string state;
-        Cell(const Vec2<int32_t>& pos, const std::unordered_set<std::string>& states);
+        Cell(
+            const Vec2<int32_t>& pos, 
+            const std::unordered_set<std::string>& states);
         uint16_t entropy() const;
         bool collapsed() const;
     };
@@ -222,10 +246,12 @@ namespace wfc
             std::vector<std::vector<Cell>> _cells;
             Vec2<uint16_t> _size;
         public:
-            Grid(Vec2<uint16_t> size, const std::unordered_set<std::string>& states);
+            Grid(
+                Vec2<uint16_t> size, 
+                const std::unordered_set<std::string>& states);
             Vec2<uint16_t> size() const;
             Cell* get(Vec2<int32_t> pos);
-            std::vector<std::vector<Cell>>& getCells();
+            std::vector<std::vector<Cell>>& cells();
             bool collapsed();
             void print();
     };

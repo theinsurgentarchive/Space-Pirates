@@ -271,6 +271,20 @@ int main()
 		.setSpriteDimension({64,64})
 		.setFrameDimension({1,8})
 		.setFrameRange({Vec2<uint16_t>{0,0},Vec2<uint16_t>{1,8}}).build()});
+	// create the grid
+	Vec2<uint16_t> v {100,100};
+	std::unordered_map<std::string,wfc::Tile> tile_map;
+    tile_map.insert({"A",wfc::TileBuilder{0.5,"skip.png"}.omni("A").omni("CA").coefficient("A",0.3).coefficient("_",-0.5).build()});
+	tile_map.insert({"_",wfc::TileBuilder{0.5,"skip.png"}.omni("C").omni("_").build()});
+	tile_map.insert({"C",wfc::TileBuilder{0.1,"skip.png"}.omni("_").omni("C").omni("A").build()});
+	std::unordered_set<std::string> tiles;
+	for (auto& pair : tile_map) {
+		tiles.insert(pair.first);
+	}
+	wfc::Grid grid {v, tiles};
+	wfc::WaveFunction wf {grid,tile_map};
+	wf.run();
+	grid.print();
 	logOpen();
 	init_opengl();
 	srand(time(NULL));
@@ -326,7 +340,7 @@ void init_opengl(void)
 	initialize_fonts();
 
 	glGenTextures(1, &menuBackgroundTexture);
-	menuImage = new Image("./resources/textures/menu-bg.jpg");	
+	menuImage = new Image("./resources/textures/menu-bg.webp");	
 	//biship code 
 	glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

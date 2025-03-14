@@ -207,22 +207,69 @@ std::shared_ptr<Animation> AnimationBuilder::build()
             _frame_range);
 }
 
+WorldTile::WorldTile(
+    Vec2<float> pos, 
+    const std::string& tex_key)
+    :
+    pos{pos},
+    tex_key{tex_key}
+{
+}
+
+World::World(
+    Vec2<float> origin, 
+    wfc::Grid& grid, 
+    std::unordered_map<std::string,wfc::Tile>& tiles)
+{
+    for (auto& row : grid.cells()) {
+        for (auto& cell : row) {
+            auto& state = cell.state;
+            if (state.empty())
+                continue;
+
+            auto t = tiles.find(state);
+            if (t == tiles.end()) 
+                continue;
+            auto pos = cell.pos;
+            auto dim = textures[t.tex]->dim;
+            Vec2<float> offset {pos[0] * dim[0],pos[1] * dim[1]};
+        }
+    }
+}
+
 namespace wfc
 {
     Tile::Tile(
         float weight, 
+        std::string tex,
         std::array<std::unordered_set<std::string>,4>& rules, 
         std::unordered_map<std::string,float>& coefficients) 
         : 
         weight{weight}, 
+        tex{tex},
         rules{rules}, 
         coefficients{coefficients} 
     {        
     }
 
+    TileBuilder::TileBuilder(
+        float weight, 
+        const std::string& tex)
+        :
+        _weight{weight},
+        _tex{tex}
+    {
+    }
+
     TileBuilder& TileBuilder::weight(float weight) 
     {
         _weight = weight;
+        return *this;
+    }
+
+    TileBuilder& TileBuilder::tex(const std::string& tex)
+    {
+        _tex = tex;
         return *this;
     }
 
@@ -247,7 +294,7 @@ namespace wfc
 
     Tile TileBuilder::build()
     {
-        return {_weight,_rules,_coefficients};
+        return {_weight,_tex,_rules,_coefficients};
     }
 
     Cell::Cell(
@@ -301,7 +348,7 @@ namespace wfc
         return nullptr;
     }
 
-    std::vector<std::vector<Cell>>& Grid::getCells()
+    std::vector<std::vector<Cell>>& Grid::cells()
     {
         return _cells;
     }
@@ -337,7 +384,7 @@ namespace wfc
 
     TilePriorityQueue::TilePriorityQueue(Grid& grid)
     {
-        for (auto& rows : grid.getCells()) {
+        for (auto& rows : grid.cells()) {
             for (auto& cell : rows) {
                 _queue.push_back(&cell);
             }
