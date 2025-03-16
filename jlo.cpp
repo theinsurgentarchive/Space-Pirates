@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <climits>
 
 #include <GL/glx.h>
 #include <dirent.h>
@@ -23,32 +24,22 @@ void show_jlo(Rect* r)
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
 }
 
-std::vector<std::string> img_extensions {"png","jpeg","jpg","gif"};
+std::vector<std::string> img_extensions {".webp",".png",".jpeg",".jpg",".gif"};
 std::random_device rd;
 std::mt19937 generator(rd());
-Vec2<int32_t> dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
+v2i dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
 Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
-
+extern std::unordered_map<
+    std::string,
+    std::shared_ptr<SpriteSheet>> ssheets;
 extern std::unordered_map<
     std::string,
     std::shared_ptr<Texture>> textures;
-extern std::unordered_map<
-    std::string,
-    std::shared_ptr<Animation>> animations;
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 
-Texture::Texture(
-        const Vec2<uint16_t>& dim, 
-        bool alpha) : 
-        dim{dim}, 
-        alpha{alpha}
-{
-    tex = std::make_shared<GLuint>();
-}
-
-std::shared_ptr<Texture> TextureLoader::load(
-        const std::string& file_name, 
-        bool alpha)
+std::shared_ptr<Texture> load_tex(
+    const std::string& file_name, 
+    bool alpha)
 {
     std::ifstream file (file_name);
     if (!file.is_open()) {
@@ -71,18 +62,49 @@ std::shared_ptr<Texture> TextureLoader::load(
     }
     Image img {file_name.c_str()};
     auto tex = std::make_shared<Texture>(
-            Vec2<uint16_t>{img.width,img.height},
+            v2u{img.width,img.height},
             alpha);
     glGenTextures(1,tex->tex.get());
     glBindTexture(GL_TEXTURE_2D,*tex->tex);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    auto data = buildAlphaData(&img);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,
-        img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,data.get());
+    glTexImage2D(
+        GL_TEXTURE_2D, 
+        0, 
+        alpha ? GL_RGBA : GL_RGB, 
+        img.width, 
+        img.height, 
+        0, 
+        alpha ? GL_RGBA : GL_RGB, 
+        GL_UNSIGNED_BYTE, 
+        alpha ? buildAlphaData(&img).get() : img.data.get());
+
 
     DINFOF("loaded texture: %s\n",file_name.c_str());
     return tex;
+}
+
+Camera::Camera(v2f pos, v2u dim) : pos{pos},dim{dim}
+{
+}
+
+void Camera::move(v2f delta)
+{
+    pos += delta;
+}
+
+void Camera::update() const
+{
+    glTranslatef((dim[0] >> 1) - pos[0], (dim[1] >> 1) - pos[1],0);
+}
+
+Texture::Texture(
+        const Vec2<u16>& dim, 
+        bool alpha) : 
+        dim{dim}, 
+        alpha{alpha}
+{
+    tex = std::make_shared<GLuint>();
 }
 
 // void TextureLoader::loadFolder(
@@ -110,143 +132,116 @@ std::shared_ptr<Texture> TextureLoader::load(
 //     closedir(dir);
 // }
 
-Animation::Animation(const std::string& texture_key, 
-    const Vec2<uint16_t>& sprite_dim, 
-    const Vec2<uint16_t>& frame_dim, 
-    const std::array<Vec2<uint16_t>,2>& frame_range) : 
-    _texture_key {texture_key},
-    _sprite_dim {sprite_dim},
-    _frame_dim {frame_dim},
-    _frame_range {frame_range} 
-{
-}
-
-Animation& Animation::operator+(int value)
-{
-    _frame += value;
-    return *this;
-}
-
-Animation& Animation::operator-(int value)
-{
-    _frame -= value;
-    return *this;
-}
-
-Animation& Animation::operator++()
-{
-    _frame++;
-    return *this;
-}
-
-Animation& Animation::operator=(uint16_t frame)
-{
-    _frame = frame;
-    return *this;
-}
-
-uint16_t Animation::getFrame() const
-{
-    return _frame;
-}
-
-uint16_t Animation::getMaxFrames() const
-{
-   return 0;
-}
-
-std::string Animation::getTextureKey() const
-{
-    return _texture_key;
-}
-
-Vec2<uint16_t> Animation::getSpriteDim() const
-{
-    return _sprite_dim;
-}
-
-Vec2<uint16_t> Animation::getFrameDim() const
-{
-    return _frame_dim;
-}
-
-AnimationBuilder& AnimationBuilder::setTextureKey(
-        const std::string& texture_key)
-{
-    _texture_key = texture_key;
-    return *this;
-}
-
-AnimationBuilder& AnimationBuilder::setSpriteDimension(
-        const Vec2<uint16_t>& sprite_dim)
-{
-    _sprite_dim = sprite_dim;
-    return *this;
-}
-
-AnimationBuilder& AnimationBuilder::setFrameDimension(
-        const Vec2<uint16_t>& frame_dim)
-{
-    _frame_dim = frame_dim;
-    return *this;
-}
-AnimationBuilder& AnimationBuilder::setFrameRange(
-        const std::array<Vec2<uint16_t>,2>& frame_range)
-{
-    _frame_range = frame_range;
-    return *this;
-}
-
-
-std::shared_ptr<Animation> AnimationBuilder::build()
-{
-    return std::make_shared<Animation>(
-            _texture_key,
-            _sprite_dim,
-            _frame_dim,
-            _frame_range);
-}
-
-WorldTile::WorldTile(
-    Vec2<float> pos, 
-    const std::string& tex_key)
+SpriteSheet::SpriteSheet(
+    const v2u& frame_dim,
+    const v2u& sprite_dim,
+    const std::shared_ptr<Texture> tex)
     :
-    pos{pos},
-    tex_key{tex_key}
+    frame_dim{frame_dim},
+    sprite_dim{sprite_dim},
+    tex{tex}
 {
+}
+
+void SpriteSheet::render(u16 frame, v2f pos, v2f scale)
+{
+    v2u f {
+        static_cast<u16>(frame % frame_dim[1]), 
+        static_cast<u16>(frame / frame_dim[1])
+    };
+    u16 sw {static_cast<u16>(sprite_dim[0] * scale[0])};
+    u16 sh {static_cast<u16>(sprite_dim[1] * scale[1])};
+    u16 rows {frame_dim[0]};
+    u16 cols {frame_dim[1]};
+    float fx {(float) f[0] / cols};
+    float fy {(float) f[1] / rows};
+    float xo {(float) 1 / cols};
+    float xy {(float) 1 / rows};
+    glBindTexture(GL_TEXTURE_2D,*tex->tex);
+    glEnable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GREATER, 0.0f);
+    glColor4ub(255,255,255,255);
+    glBegin(GL_QUADS);
+        glTexCoord2f(fx, fy + xy);      
+        glVertex2i(pos[0] - sw, pos[1] - sh);
+        glTexCoord2f(fx, fy);          
+        glVertex2i(pos[0] - sw, pos[1] + sh);
+        glTexCoord2f(fx + xo, fy);      
+        glVertex2i(pos[0] + sw, pos[1] + sh);
+        glTexCoord2f(fx + xo, fy + xy); 
+        glVertex2i(pos[0] + sw, pos[1] - sh);
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D,0);
+    glDisable(GL_ALPHA_TEST);
+}
+
+
+std::vector<std::vector<ecs::Entity*>>& World::tiles()
+{
+    return _grid;
+}
+
+World::~World()
+{
+    for (auto& row : _grid) {
+        for (auto& tile : row) {
+            ecs::ecs.entity().ret(tile);
+        }
+    }
 }
 
 World::World(
-    Vec2<float> origin, 
+    const v2f& origin, 
     wfc::Grid& grid, 
-    std::unordered_map<std::string,wfc::Tile>& tiles)
+    std::unordered_map<std::string,wfc::TileMeta>& tiles)
+    :
+    _tiles{tiles}
 {
-    for (auto& row : grid.cells()) {
-        for (auto& cell : row) {
-            auto& state = cell.state;
-            if (state.empty())
+    const auto grid_size = grid.size();
+    std::cout << grid_size[0] << ' ' << grid_size[1] << '\n';
+    _grid.resize(grid_size[0]);
+    for (int32_t i {0}; i < grid_size[0]; i++) {
+        for (int32_t j {0}; j < grid_size[1]; j++) {
+            std::cout << i << ' ' << j;
+            auto cell = grid.get({i,j});
+            if (cell == nullptr || cell->state.empty())
+                continue;
+            auto tile = tiles.find(cell->state);
+            if (tile == tiles.end())
                 continue;
 
-            auto t = tiles.find(state);
-            if (t == tiles.end()) 
+            auto ssheet = ssheets.find(tile->second.ssheet);
+            if (ssheet == ssheets.end())
                 continue;
-            auto pos = cell.pos;
-            auto dim = textures[t.tex]->dim;
-            Vec2<float> offset {pos[0] * dim[0],pos[1] * dim[1]};
+            auto sd = ssheet->second->sprite_dim;
+            auto p = cell->pos;
+            auto e = ecs::ecs.entity().checkout();
+            if (e == nullptr) {
+                continue;
+            }
+            auto tc = ecs::ecs.component().assign<TRANSFORM>(e);
+            tc->scale = {4,4};
+            tc->pos = origin + v2f {
+                static_cast<float>(sd[0] * p[0] * tc->scale[0]),
+                static_cast<float>(sd[1] * p[1] * tc->scale[1])
+            };
+            auto sc = ecs::ecs.component().assign<SPRITE>(e);
+            sc->ssheet = tile->second.ssheet;
+            _grid[i].push_back(e);
         }
     }
 }
 
 namespace wfc
 {
-    Tile::Tile(
+    TileMeta::TileMeta(
         float weight, 
-        std::string tex,
+        std::string ssheet,
         std::array<std::unordered_set<std::string>,4>& rules, 
         std::unordered_map<std::string,float>& coefficients) 
         : 
         weight{weight}, 
-        tex{tex},
+        ssheet{ssheet},
         rules{rules}, 
         coefficients{coefficients} 
     {        
@@ -254,23 +249,11 @@ namespace wfc
 
     TileBuilder::TileBuilder(
         float weight, 
-        const std::string& tex)
+        const std::string& ssheet)
         :
         _weight{weight},
-        _tex{tex}
+        _ssheet{ssheet}
     {
-    }
-
-    TileBuilder& TileBuilder::weight(float weight) 
-    {
-        _weight = weight;
-        return *this;
-    }
-
-    TileBuilder& TileBuilder::tex(const std::string& tex)
-    {
-        _tex = tex;
-        return *this;
     }
 
     TileBuilder& TileBuilder::rule(int dir, const std::string& tile)
@@ -292,13 +275,13 @@ namespace wfc
         return *this;
     }
 
-    Tile TileBuilder::build()
+    TileMeta TileBuilder::build()
     {
-        return {_weight,_tex,_rules,_coefficients};
+        return {_weight,_ssheet,_rules,_coefficients};
     }
 
     Cell::Cell(
-        const Vec2<int32_t>& pos, 
+        const v2i& pos, 
         const std::unordered_set<std::string>& states) 
         : 
         pos{pos},
@@ -306,9 +289,9 @@ namespace wfc
     { 
     }
 
-    uint16_t Cell::entropy() const
+    u16 Cell::entropy() const
     {
-        return static_cast<uint16_t>(states.size());
+        return static_cast<u16>(states.size());
     }
 
     bool Cell::collapsed() const
@@ -317,7 +300,7 @@ namespace wfc
     }
     
     Grid::Grid(
-        Vec2<uint16_t> size, 
+        Vec2<u16> size, 
         const std::unordered_set<std::string>& states)
         : 
         _size{size} 
@@ -327,17 +310,17 @@ namespace wfc
             auto& row = _cells[i];
             row.reserve(size[0]);
             for (int j {0}; j < size[0]; j++) {
-                row.emplace_back(Vec2<int32_t>(j,i),states);
+                row.emplace_back(v2i(j,i),states);
             }
         }
     }
 
-    Vec2<uint16_t> Grid::size() const
+    Vec2<u16> Grid::size() const
     {
         return _size;
     }
 
-    Cell* Grid::get(Vec2<int32_t> pos)
+    Cell* Grid::get(v2i pos)
     {
         if (pos[0] >= 0 && 
             pos[0] < _size[0] && 
@@ -392,17 +375,17 @@ namespace wfc
         std::shuffle(_queue.begin(),_queue.end(),generator);
     }
 
-    void TilePriorityQueue::_swap(uint16_t i1, uint16_t i2)
+    void TilePriorityQueue::_swap(u16 i1, u16 i2)
     {
         auto temp = _queue[i1];
         _queue[i1] = _queue[i2];
         _queue[i2] = temp;
     }
 
-    void TilePriorityQueue::_bubbleUp(uint16_t idx)
+    void TilePriorityQueue::_bubbleUp(u16 idx)
     {
         while (idx > 0) {
-            uint16_t parent {static_cast<uint16_t>((idx - 1) / 2)};
+            u16 parent {static_cast<u16>((idx - 1) / 2)};
             if (_queue[parent]->entropy() > _queue[idx]->entropy()) {
                 _swap(parent,idx);
             } else {
@@ -411,13 +394,13 @@ namespace wfc
         }
     }
 
-    void TilePriorityQueue::_bubbleDown(uint16_t idx)
+    void TilePriorityQueue::_bubbleDown(u16 idx)
     {
         auto size = _queue.size();
         while (idx <= size) {
-            uint16_t left = 2 * idx + 1;
-            uint16_t right = 2 * idx + 2;
-            uint16_t smallest = idx;
+            u16 left = 2 * idx + 1;
+            u16 right = 2 * idx + 2;
+            u16 smallest = idx;
             if (left < size && 
                 _queue[left]->entropy() < _queue[smallest]->entropy()) {
                 smallest = left;
@@ -456,7 +439,7 @@ namespace wfc
 
     WaveFunction::WaveFunction(
         Grid& grid, 
-        std::unordered_map<std::string,Tile>& tiles) 
+        std::unordered_map<std::string,TileMeta>& tiles) 
         : 
         _grid{grid}, 
         _tiles{tiles}, 
@@ -467,15 +450,15 @@ namespace wfc
         _queue = {grid};
     }
 
-    Vec2<int32_t> _shift_vector(uint16_t dir, const Vec2<int32_t>& vec) {
-        return Vec2<int32_t> {vec[0] + dirs[dir][0],vec[1] + dirs[dir][1]};
+    v2i _shift_vector(u16 dir, const v2i& vec) {
+        return v2i {vec[0] + dirs[dir][0],vec[1] + dirs[dir][1]};
     } 
 
     float WaveFunction::_calculateTileWeight(
-            const Vec2<int32_t>& pos, 
-            const Tile& tile)
+            const v2i& pos, 
+            const TileMeta& meta)
     {
-        auto base = tile.weight;
+        auto base = meta.weight;
         auto weight = base;
         for (int i = 0; i < 4; i++) {
             auto shift = pos + dirs[i];
@@ -485,9 +468,9 @@ namespace wfc
                 shift[1] >= 0 && 
                 shift[1] < _grid.size()[1] && 
                 cell->collapsed()) {
-                if (tile.coefficients.find(cell->state) != 
-                        tile.coefficients.end()) {
-                    auto coefficient = tile.coefficients.at(cell->state);
+                if (meta.coefficients.find(cell->state) != 
+                        meta.coefficients.end()) {
+                    auto coefficient = meta.coefficients.at(cell->state);
                     weight += base * coefficient;
                 }
             }
@@ -583,29 +566,29 @@ namespace wfc
 namespace ecs
 {   
     ECS ecs;
-    
+
     Entity::Entity(eid_t i, cmask_t m) : id(i), mask(m) {}
 
-    ComponentPool::ComponentPool(uint16_t size) : _size {size}
+    ComponentPool::ComponentPool(u16 size) : _size {size}
     {
         _ptr_data = std::make_unique<char[]>(_size * MAX_ENTITIES);
     }
 
-    uint16_t ComponentPool::size() const
+    u16 ComponentPool::size() const
     {
         return _size;
     }
 
-    void *ComponentPool::get(uint16_t idx)
+    void *ComponentPool::get(u16 idx)
     {
         return _ptr_data.get() + idx * _size;
     }
 
     EntityManager::EntityManager(
-            uint16_t max_entities) :
+            u16 max_entities) :
             _max_entities{max_entities}
     {
-        for (uint16_t i{0}; i < _max_entities; i++) {
+        for (u16 i{0}; i < _max_entities; i++) {
             entities.push_back({i, cmask_t()});
             _free.push_back(i);
         }
@@ -620,14 +603,14 @@ namespace ecs
         return &entities[idx];
     }
 
-    void EntityManager::ret(Entity *&e_ptr)
+    void EntityManager::ret(Entity* e_ptr)
     {
         e_ptr->mask.reset();
         _free.push_back(e_ptr->id);
         e_ptr = nullptr;
     }
 
-    uint16_t EntityManager::maxEntities() const
+    u16 EntityManager::maxEntities() const
     {
         return _max_entities;
     }
@@ -644,13 +627,15 @@ namespace ecs
         return _component_manager;
     }
 
-    void System::update([[maybe_unused]]float dt) {}
+    PhysicsSystem::PhysicsSystem(ECS& ecs, float sample_delta) 
+    :
+    System<Transform,Physics>(ecs,sample_delta)
+    {
+    }
 
     void PhysicsSystem::update(float dt)
     {
-        auto entities = ecs::ecs.query<TRANSFORM,PHYSICS>();
-
-        for (auto& entity : entities) {
+        for (auto& entity : _entities) {
             DINFOF("applying physics to entity (%d)\n",entity->id);
             auto tc = ecs.component().fetch<TRANSFORM>(entity);
             auto pc = ecs.component().fetch<PHYSICS>(entity);
@@ -660,70 +645,35 @@ namespace ecs
             }
         }
     }
-    
+
+    RenderSystem::RenderSystem(ECS& ecs, float sample_delta) 
+    :
+    System<Transform,Sprite>(ecs,sample_delta)
+    {
+    }
+
     void RenderSystem::update([[maybe_unused]]float dt)
     {
-        auto entities = ecs::ecs.query<SPRITE,TRANSFORM>();
-
-        for (auto& entity : entities) {
-            auto ec = ecs.component().fetch<SPRITE>(entity);
-            if (ec->animation_key.empty()) {
+        for (auto& entity : _entities) {
+            auto ec = _ecs.component().fetch<SPRITE>(entity);
+            if (ec->ssheet.empty()) {
                 DWARNF("animation key was empty for entity (%d)\n", 
                         entity->id);
                 continue;
             }
             
-            auto a = animations[ec->animation_key];
-            if (a == nullptr) {
+            auto ssheet = ssheets[ec->ssheet];
+            if (ssheet == nullptr) {
                 DWARNF("animation from animation key: %s was null\n", 
-                        ec->animation_key.c_str());
+                        ec->ssheet.c_str());
                 continue;
             }
 
-            auto texture_key = a->getTextureKey();
-            if (texture_key.empty()) {
-                DWARN("texture key was empty");
+            if (ssheet->tex == nullptr) {
                 continue;
             }
-
-            std::shared_ptr<Texture> tex = textures[texture_key];
-            if (tex == nullptr) {
-                DWARNF("texture from texture key: %s was null\n",
-                        texture_key.c_str());
-                continue;
-            }
-            Vec2<uint16_t> sprite_dim = a->getSpriteDim();
-            Vec2<uint16_t> frame_dim = a->getFrameDim();
-            uint16_t frame {a->getFrame()};
-            uint16_t sw {sprite_dim[0]};
-            uint16_t sh {sprite_dim[1]};
-            uint16_t rows {frame_dim[0]};
-            uint16_t columns {frame_dim[1]};
-            uint16_t ix {static_cast<uint16_t>(frame / columns)};
-            uint16_t iy {static_cast<uint16_t>(frame % columns)};
-            float fx {(float) ix / columns};
-            float fy {(float) iy / rows};
-            float xo {(float) 1 / columns};
-            float xy {(float) 1 / rows};
-            DINFOF("rendering texture (%s) at (%i,%i)\n",
-                    texture_key.c_str(),ix,iy);
-            glBindTexture(GL_TEXTURE_2D,*tex->tex);
-            glEnable(GL_ALPHA_TEST);
-	        glAlphaFunc(GL_GREATER, 0.0f);
-            glColor4ub(255,255,255,255);
-            glBegin(GL_QUADS);
-                auto tc = ecs.component().fetch<TRANSFORM>(entity);
-                glTexCoord2f(fx, fy + xy);      
-                glVertex2i(tc->pos[0] - sw, tc->pos[1] - sh);
-                glTexCoord2f(fx, fy);          
-                glVertex2i(tc->pos[0] - sw, tc->pos[1] + sh);
-                glTexCoord2f(fx + xo, fy);      
-                glVertex2i(tc->pos[0] + sw, tc->pos[1] + sh);
-                glTexCoord2f(fx + xo, fy + xy); 
-                glVertex2i(tc->pos[0] + sw, tc->pos[1] - sh);
-            glEnd();
-            glBindTexture(GL_TEXTURE_2D,0);
-            glDisable(GL_ALPHA_TEST);
+            auto tc = _ecs.component().fetch<TRANSFORM>(entity);
+            ssheet->render(ec->frame,tc->pos, tc->scale);
         }
     }
 }
