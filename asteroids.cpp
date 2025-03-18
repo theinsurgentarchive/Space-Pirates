@@ -238,7 +238,7 @@ void render();
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
-ecs::RenderSystem rs {ecs::ecs,5};
+ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
 const Camera* c;
@@ -246,8 +246,7 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
 {
-	Camera camera {{0,0},{gl.xres,gl.yres}};
-	c = &camera;
+	
     // [[maybe_unused]]auto character = ecs::character_x(); 
 
     // Initialize audio system
@@ -260,13 +259,15 @@ int main()
     ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
 	
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	Camera camera {tc->pos,{gl.xres,gl.yres}};
+	c = &camera;
 	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sc->ssheet = "skip";
 	sc->render_order = 15;
 	ssheets.insert({"skip",
 		std::make_shared<SpriteSheet>(
 			v2u {1,8},
-			v2u {64, 64},
+			v2u {32,32},
 			load_tex("./resources/textures/skip.png", true)
 		)
 	});
@@ -295,9 +296,9 @@ int main()
 		)
 	});
 
-	Vec2<uint16_t> v {100,100};
+	Vec2<uint16_t> v {250,250};
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
-    tile_map.insert({"A",wfc::TileBuilder{0.5,"grass"}.omni("A").omni("C").coefficient("A",0.3).coefficient("_",-0.5).build()});
+    tile_map.insert({"A",wfc::TileBuilder{1,"grass"}.omni("A").omni("C").coefficient("A",0.3).coefficient("_",-0.2).build()});
 	tile_map.insert({"_",wfc::TileBuilder{0.5,"water"}.omni("C").omni("_").build()});
 	tile_map.insert({"C",wfc::TileBuilder{0.1,"sand"}.omni("_").omni("C").omni("A").build()});
 	std::unordered_set<std::string> tiles;
@@ -310,8 +311,10 @@ int main()
 	grid.print();
 	auto w = World{{0,0},grid,tile_map};
 	world = &w;
-	logOpen();
+	rs.sample();
+	ps.sample();
 	init_opengl();
+	logOpen();
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
 	clock_gettime(CLOCK_REALTIME, &timeStart);
@@ -331,12 +334,11 @@ int main()
         //clear screen just once at the beginning
         //glClear(GL_COLOR_BUFFER_BIT); 
 		auto current = std::chrono::high_resolution_clock::now();
-		auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(current - rs.lastSampled());
-		if (dur.count() >= rs.sample_delta) {
-			std::cout << "sampled render" << '\n';
-			rs.sample();
-		}
-		dur = std::chrono::duration_cast<std::chrono::milliseconds>(current - ps.lastSampled());
+		// auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - rs.lastSampled());
+		// if (dur.count() >= rs.sample_delta) {
+		// 	rs.sample();
+		// }
+		auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - ps.lastSampled());
 		if (dur.count() >= ps.sample_delta) {
 			ps.sample();
 		}
@@ -345,6 +347,7 @@ int main()
         ps.update((float) 1/20);
         render(); 
         x11.swapBuffers();
+        usleep(10000);
     }
     shutdownAudioSystem();
     cleanup_fonts();
@@ -532,7 +535,7 @@ void render() {
 		case PLAYING:
 			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
 			glPushMatrix();
-			glTranslatef(gl.xres / 2 - tc->pos[0], gl.yres / 2 - tc->pos[1], 0);  // Apply camera translation
+			c->update();
 			rs.update((float)1/10);
 			glPopMatrix();
 			break;

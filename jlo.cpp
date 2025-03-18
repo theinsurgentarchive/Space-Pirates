@@ -36,6 +36,7 @@ extern std::unordered_map<
     std::string,
     std::shared_ptr<Texture>> textures;
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
+extern const Camera* c;
 
 std::shared_ptr<Texture> load_tex(
     const std::string& file_name, 
@@ -84,7 +85,7 @@ std::shared_ptr<Texture> load_tex(
     return tex;
 }
 
-Camera::Camera(v2f pos, v2u dim) : pos{pos},dim{dim}
+Camera::Camera(v2f& pos, const v2u dim) : pos{pos},dim{dim}
 {
 }
 
@@ -96,6 +97,15 @@ void Camera::move(v2f delta)
 void Camera::update() const
 {
     glTranslatef((dim[0] >> 1) - pos[0], (dim[1] >> 1) - pos[1],0);
+}
+
+bool Camera::visible(v2f curr) const
+{
+    float wh = dim[0] >> 1;
+    float hh = dim[1] >> 1;
+    v2f v1 {pos[0] - wh, pos[1] - hh};
+    v2f v2 {pos[0] + wh, pos[1] + hh};
+    return curr[0] >= v1[0] && curr[0] <= v2[0] && curr[1] >= v1[1] && curr[1] <= v2[1];
 }
 
 Texture::Texture(
@@ -198,11 +208,9 @@ World::World(
     _tiles{tiles}
 {
     const auto grid_size = grid.size();
-    std::cout << grid_size[0] << ' ' << grid_size[1] << '\n';
     _grid.resize(grid_size[0]);
     for (int32_t i {0}; i < grid_size[0]; i++) {
         for (int32_t j {0}; j < grid_size[1]; j++) {
-            std::cout << i << ' ' << j;
             auto cell = grid.get({i,j});
             if (cell == nullptr || cell->state.empty())
                 continue;
@@ -220,7 +228,7 @@ World::World(
                 continue;
             }
             auto tc = ecs::ecs.component().assign<TRANSFORM>(e);
-            tc->scale = {4,4};
+            tc->scale = {2,2};
             tc->pos = origin + v2f {
                 static_cast<float>(sd[0] * p[0] * tc->scale[0]),
                 static_cast<float>(sd[1] * p[1] * tc->scale[1])
@@ -567,14 +575,14 @@ namespace ecs
 {   
     ECS ecs;
 
-    Entity::Entity(eid_t i, cmask_t m) : id(i), mask(m) {}
+    Entity::Entity(u32 i, cmask_t m) : id(i), mask(m) {}
 
-    ComponentPool::ComponentPool(u16 size) : _size {size}
+    ComponentPool::ComponentPool(u32 size) : _size {size}
     {
-        _ptr_data = std::make_unique<char[]>(_size * MAX_ENTITIES);
+        _ptr_data = std::make_unique<char[]>(size * MAX_ENTITIES);
     }
 
-    u16 ComponentPool::size() const
+    u32 ComponentPool::size() const
     {
         return _size;
     }
@@ -585,20 +593,22 @@ namespace ecs
     }
 
     EntityManager::EntityManager(
-            u16 max_entities) :
+            u32 max_entities) :
             _max_entities{max_entities}
     {
-        for (u16 i{0}; i < _max_entities; i++) {
+        for (u32 i{0}; i < _max_entities; i++) {
+            std::cout << i << ' ';
             entities.push_back({i, cmask_t()});
             _free.push_back(i);
         }
+        std::cout << '\n';
     }
 
     Entity *EntityManager::checkout()
     {
         if (_free.empty())
             return nullptr;
-        eid_t idx{_free.front()};
+        u32 idx{_free.front()};
         _free.pop_front();
         return &entities[idx];
     }
@@ -610,7 +620,7 @@ namespace ecs
         e_ptr = nullptr;
     }
 
-    u16 EntityManager::maxEntities() const
+    u32 EntityManager::maxEntities() const
     {
         return _max_entities;
     }
@@ -652,9 +662,30 @@ namespace ecs
     {
     }
 
+    void RenderSystem::sample()
+    {
+        _entities = _ecs.query<SPRITE,TRANSFORM>();
+        std::sort(_entities.begin(), _entities.end(), [this](const Entity* a, const Entity* b) {
+            auto as = _ecs.component().fetch<SPRITE>(a);
+            auto bs = _ecs.component().fetch<SPRITE>(b);
+            if (as == nullptr && bs == nullptr)
+                return false;
+            if (as == nullptr)
+                return false;
+            if (bs == nullptr)
+                return true;
+            return as->render_order < bs->render_order;
+        });
+    }
+
     void RenderSystem::update([[maybe_unused]]float dt)
     {
         for (auto& entity : _entities) {
+            auto tc = _ecs.component().fetch<TRANSFORM>(entity);
+            if (!c->visible(tc->pos)) {
+                DINFO("entity was skipped");
+                continue;
+            }
             auto ec = _ecs.component().fetch<SPRITE>(entity);
             if (ec->ssheet.empty()) {
                 DWARNF("animation key was empty for entity (%d)\n", 
@@ -672,7 +703,6 @@ namespace ecs
             if (ssheet->tex == nullptr) {
                 continue;
             }
-            auto tc = _ecs.component().fetch<TRANSFORM>(entity);
             ssheet->render(ec->frame,tc->pos, tc->scale);
         }
     }

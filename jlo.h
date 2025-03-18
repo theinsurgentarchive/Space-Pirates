@@ -13,7 +13,7 @@
 #include "fonts.h"
 
 #define MAX_COMPONENTS 32
-#define MAX_ENTITIES 20001
+#define MAX_ENTITIES 62501
 
 #define TRANSFORM ecs::Transform
 #define SPRITE ecs::Sprite
@@ -87,22 +87,24 @@ namespace ecs
     class RenderSystem;
 }
 
-extern uint16_t counter;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using i32 = int32_t;
+using v2u = Vec2<u16>;
+using v2i = Vec2<i32>;
+using v2f = Vec2<float>;
+
+extern u16 counter;
 extern std::shared_ptr<Texture> load_tex(const std::string&, bool);
 template <class T>
-uint16_t getId()
+u16 getId()
 {
     static int cid = counter++;
     return cid;
 }
 
-using u16 = uint16_t;
-using i32 = int32_t;
-using v2u = Vec2<u16>;
-using v2i = Vec2<i32>;
-using v2f = Vec2<float>;
+
 using time_point = std::chrono::high_resolution_clock::time_point;
-typedef uint16_t eid_t;
 typedef std::bitset<MAX_COMPONENTS> cmask_t;
 
 enum Direction
@@ -131,10 +133,11 @@ class Vec2
 
 struct Camera
 {
-    v2f pos;
-    v2u dim;
-    Camera(v2f pos, v2u dim);
+    v2f& pos;
+    const v2u dim;
+    Camera(v2f& pos, const v2u dim);
     void move(v2f delta);
+    bool visible(v2f curr) const;
     void update() const;
 };
 
@@ -156,8 +159,8 @@ struct SpriteSheet
         const v2u& frame_dim, 
         const v2u& sprite_dim, 
         const std::shared_ptr<Texture> tex);
-    void render(uint16_t frame, v2f pos);
-    void render(uint16_t frame, v2f pos, v2f scale);
+    void render(u16 frame, v2f pos);
+    void render(u16 frame, v2f pos, v2f scale);
 };
 
 class World
@@ -216,7 +219,7 @@ namespace wfc
         Cell(
             const v2i& pos, 
             const std::unordered_set<std::string>& states);
-        uint16_t entropy() const;
+        u16 entropy() const;
         bool collapsed() const;
     };
 
@@ -240,9 +243,9 @@ namespace wfc
     {
         private:
             std::vector<Cell*> _queue;
-            void _swap(uint16_t i1, uint16_t i2);
-            void _bubbleUp(uint16_t idx);
-            void _bubbleDown(uint16_t idx);
+            void _swap(u16 i1, u16 i2);
+            void _bubbleUp(u16 idx);
+            void _bubbleDown(u16 idx);
         public:
             TilePriorityQueue(Grid& grid);
             void insert(Cell* cell);
@@ -308,20 +311,20 @@ namespace ecs
 
     struct Entity
     {
-        eid_t id;
+        u32 id;
         mutable cmask_t mask;
-        Entity(eid_t i, cmask_t m);
+        Entity(u32 i, cmask_t m);
     };
 
     class ComponentPool
     {
         private:
             std::unique_ptr<char[]> _ptr_data;
-            uint16_t _size;
+            u32 _size;
         public:
-            ComponentPool(uint16_t s);
-            uint16_t size() const;
-            void* get(uint16_t idx);
+            ComponentPool(u32 size);
+            u32 size() const;
+            void* get(u16 idx);
     };
 
     class ComponentManager
@@ -375,11 +378,11 @@ namespace ecs
                 after the constructor is called.
         */
         private:
-            uint16_t _max_entities;
-            std::deque<eid_t> _free;
+            u32 _max_entities;
+            std::deque<u32> _free;
         public:
             std::vector<Entity> entities;
-            EntityManager(uint16_t max_entities);
+            EntityManager(u32 max_entities);
 
             /*
                 Checks out an entity from the system.
@@ -408,7 +411,7 @@ namespace ecs
                 Mask = 0...000
             */
             void ret(Entity* e_ptr);
-            uint16_t maxEntities() const;
+            u32 maxEntities() const;
             
     };
 
@@ -438,7 +441,7 @@ namespace ecs
             System(ECS& ecs, float sample_delta);
             virtual void update(float dt);
             time_point& lastSampled();
-            void sample();
+            virtual void sample();
     };
 
     class PhysicsSystem : public System<Transform,Physics>
@@ -453,6 +456,7 @@ namespace ecs
         public:
             RenderSystem(ECS& ecs, float sample_delta);
             void update(float dt) override;
+            void sample() override;
     };
 }
 #include "jlo.tpp"
