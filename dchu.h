@@ -2,9 +2,6 @@
 #include "jlo.h"
 #include "fonts.h"
 
-//Credit Print Function
-void ShowDChu(Rect*);
-
 //Entity Components
 struct oxygen_resource
 {
@@ -26,59 +23,8 @@ struct fuel_resource
 	bool depleted;
 };
 
-struct color
-{
-    uint8_t red;
-    uint8_t blue;
-    uint8_t green;
-    uint8_t alpha;
-};
-
-struct item
-{
-    std::string item_name;
-    uint16_t slot_num;
-    /*TBD*/
-};
-
-//Declaration of Inventory Management
-class Inventory
-{
-    private:
-        void initStoreVolume(int, int);
-        bool full;
-        item** storage;
-        Vec2<uint16_t> inv_size;
-        public:
-        //Constructor
-        Inventory();
-
-        //Destructor
-        ~Inventory();
-
-        //Setters
-        void addItem(item);
-        void useItemSlot(/*TBD*/);
-
-        //Getters:
-        void getInventory();
-        item returnItemSlot(int, int);
-};
-
-//ECS: Inventory Management System
-namespace ecs
-{
-    class InventorySystem : public System
-    {
-        public:
-            InventorySystem();
-            void update(float dt) override;
-    };
-}
-
 //A* Pathfinding Algorithm
 //(NEEDS TO BE UPDATED TO MATCH AND INTEGRATE WITH PROJECT)
-/*
 class Node
 {
     public:
@@ -86,7 +32,7 @@ class Node
         bool obstacle, visited;
         
         //Node Position
-        int x, y;
+        uint16_t x, y;
         
         //Node Distance from Initial Node
         float local_dist;
@@ -105,42 +51,93 @@ class Node
         Node(bool);
 };
 
-//Grid of Node Elements, Used in A* Search
-class Grid 
+//AStarGrid of Node Elements, Used in A* Search
+class AStarGrid 
 {
     private:
-        //Grid's X & Y Axis Size
-        int grid_size[2];
+        //AStarGrid's X & Y Axis Size
+        uint16_t grid_size[2];
     public:
         //Dynamic Node Grid
-        Node** node_grid;
+        std::vector<std::vector<Node>> node_grid;
 
         //Constructor
-        Grid();
-        Grid(int, int);
+        AStarGrid();
+        AStarGrid(Node**);
+        AStarGrid(uint16_t, uint16_t);
 
-        //Function
-        void setObstacle(int, int);
-        int getSizeX();
-        int getSizeY();
-        Node* getNode(int, int);
+        //Sets a Node to an Obstacle in A*
+        void setObstacle(uint16_t, uint16_t);
+
+        //Get The Node Grid's Size
+        uint16_t getSizeX();
+        uint16_t getSizeY();
+
+        //Retrieves a Pointer to The Node
+        Node* getNode(uint16_t, uint16_t);
+
+        //Initializes The Node Grid
         void initGrid();
+
+        //Generate All Neighbors for Each Node
         void genNeighbors();
+
+        //Check If The Passed Node has Neighbors
         bool hasNeighbors(Node*);
-        
-        //Destructor
-        ~Grid();
+
+        //A* Search Algorithm
+        void aStar(uint16_t[2], uint16_t[2]);
+
+        //Node Refresh
+        void resetNodes();
+
+        //Calculates The Distance From One Node to The Next
+        float distance(Node*, Node*);
+
+        //Generates Biased Data Based On Two Given Input Nodes
+        float heuristics(Node*, Node*);
 };
 
-//A* Search Algorithm
-void aStar(Grid*, int[2], int[2]);
+/*
+struct item
+{
+    std::string item_name;
+    uint16_t slot_num;
+    //TBD
+};
 
-//Node Refresh
-void resetNodes(Grid*);
+//Declaration of Inventory Management
+class Inventory
+{
+    private:
+        void initStoreVolume(uint16_t, uint16_t);
+        bool full;
+        item** storage;
+        Vec2<uint16_t> inv_size;
+        public:
+        //Constructor
+        Inventory();
 
-//Calculate The Distance From One Node to The Next
-float distance(Node*, Node*);
+        //Destructor
+        ~Inventory();
 
-//Calls distance() (May be Deprecated in The Future Due to Redundancy)
-float heuristics(Node*, Node*);
+        //Setters
+        void addItem(item);
+        void useItemSlot(); //To Be Completed
+
+        //Getters:
+        void getInventory();
+        item returnItemSlot(uint16_t, uint16_t);
+};
+
+//ECS: Inventory Management System
+namespace ecs
+{
+    class InventorySystem : public System
+    {
+        public:
+            InventorySystem();
+            void update(float dt) override;
+    };
+}
 */

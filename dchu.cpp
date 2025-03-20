@@ -1,109 +1,10 @@
 #include "dchu.h"
-#include <string>
-
-//Credit Print Functions
-//Console print
-void ShowDChu()
-{
-    std::cout << "Developer - David Chu\n";
-}
-
-//Window render
-void ShowDChu(Rect* r)
-{
-    ggprint8b(r, 16, 0x00ff0000, "Developer - David Chu");
-}
-
-//Inventory Class Functions
-Inventory::Inventory()
-{
-    initStoreVolume(3, 4);
-    full = false;
-}
-
-Inventory::~Inventory()
-{
-    //Delete through all rows in the matrix
-    for (int i = 0; i < inv_size[0]; i++) {
-        delete [] storage[i];
-    }
-
-    //Delete Storage Matrix
-    delete [] storage;
-}
-
-void Inventory::initStoreVolume(int x, int y)
-{
-    //Initialize Variables
-    inv_size = {static_cast<uint16_t>(x),static_cast<uint16_t>(y)};
-    //Initialize Inventory Matrix
-    storage = new item*[inv_size[0]];
-    for (int i = 0; i < inv_size[0]; i++) {
-        storage[i] = new item[inv_size[1]];
-    }
-
-    //Pre-Load Item Slots
-    if (inv_size[0] > 0 && inv_size[1] > 0) {
-        int counter = 0;
-        for (int i = 0; i < inv_size[0]; i++) {
-            for (int j = 0; j < inv_size[1]; j++) {
-                storage[i][j].item_name = ("Slot " + std::to_string(counter));
-                storage[i][j].slot_num = ++counter;
-            }
-        }
-    }
-    //If DEVMODE, Run Unit Test
-    #ifdef DEBUG
-        std::string test = "testItem";
-        bool flag = false;
-        for (int i = 0; i < inv_size[0]; i++) {
-            for (int j = 0; j < inv_size[1]; j++) {
-                storage[i][j].item_name = test;
-            }
-            
-        }
-        for (int i = 0; i < inv_size[0]; i++) {
-            for (int j = 0; j < inv_size[1]; j++) {
-                if(storage[i][j].item_name != test) {
-                    flag = true;
-                    break;
-                }
-            }
-            if(flag) {
-                break;
-            }
-        }
-        if (!flag) {
-            for (int i = 0; i < inv_size[0]; i++) {
-                for (int j = 0; j < inv_size[1]; j++) {
-                    std::cout << storage[i][j].item_name << " ";
-                }
-                std::cout << std::endl;
-            }
-            std::cout << "Inventory Matrix - OK\n\n";
-        } else {
-            std::cout << "ERROR, Inventory Matrix not Loading";
-        }
-    #endif
-}
-//ECS: Inventory Management System
-namespace ecs
-{
-    InventorySystem::InventorySystem()
-    {
-
-    }
-
-    void InventorySystem::update([[maybe_unused]]float dt)
-    {
-
-    }
-}
+#include <cmath>
+#include <list>
 
 //A* Pathfinding Algorithm
 //(NEEDS TO BE UPDATED TO MATCH AND INTEGRATE WITH PROJECT)
-/*
-    Node::Node()
+Node::Node()
 {
     //Initialize Variables
     obstacle = false;
@@ -123,7 +24,7 @@ Node::Node(bool isObstacle)
     parent = nullptr;
 }
 
-Grid::Grid()
+AStarGrid::AStarGrid()
 {
     //Initialize Variables
     grid_size[0] = 10;
@@ -133,8 +34,19 @@ Grid::Grid()
     initGrid();
 }
 
-Grid::Grid(int x_size, int y_size)
+AStarGrid::AStarGrid(Node** grid)
 {
+    //Set this.node_grid to The Passed Grid
+    node_grid = grid;
+
+    //Initialize Variables
+    grid_size[0] = sizeof(grid) / sizeof(grid[0]);
+    grid_size[1] = sizeof(grid[0]) / sizeof(grid[0][0]);
+}
+
+AStarGrid::AStarGrid(uint16_t x_size, uint16_t y_size)
+{
+    //Initalize Variables
     grid_size[0] = x_size;
     grid_size[1] = y_size;
 
@@ -143,39 +55,43 @@ Grid::Grid(int x_size, int y_size)
 }
 
 //Sets The Given Coordinate's Node to an Obstacle
-void Grid::setObstacle(int x, int y)
+void AStarGrid::setObstacle(uint16_t x, uint16_t y)
 {
     node_grid[x][y].obstacle = true;
 }
 
-//Return Grid's X-Axis Size
-int Grid::getSizeX()
+//Returns The Node Grid's X-Axis Size
+uint16_t AStarGrid::getSizeX()
 {
     return grid_size[0];
 }
 
-//Return Grid's Y-Axis Size
-int Grid::getSizeY()
+//Returns The Node Grid's Y-Axis Size
+uint16_t AStarGrid::getSizeY()
 {
     return grid_size[1];
 }
 
-//Retrieves The Node requested in the Grid
-Node* Grid::getNode(int x, int y)
+//Retrieves The Node requested in the AStarGrid
+Node* AStarGrid::getNode(uint16_t x, uint16_t y)
 {
     if ((x <= grid_size[0]) && (y <= grid_size[1])) {
         return &node_grid[x][y];
     }
 }
 
-//Generate Node Grid, Set Node Positions
-void Grid::initGrid()
+//Generate Node AStarGrid, Set Node Positions
+void AStarGrid::initGrid()
 {
+    //Resize The Node Grid
+    node_grid.resize(grid_size[0]);
+    for (uint16_t i = 0; i < node_grid.size(); i++) {
+        node_grid[i].resize(grid_size[i]);
+    }
+
     //Generate Nodes
-    node_grid = new Node *[grid_size[0]];
-    for (int x = 0; x < grid_size[0]; x++) {
-        node_grid[x] = new Node [grid_size[1]];
-        for (int y = 0; y < grid_size[1]; y++) {
+    for (uint16_t x = 0; x < grid_size[0]; x++) {
+        for (uint16_t y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].x = x;
             node_grid[x][y].y = y;
             node_grid[x][y].obstacle = false;
@@ -188,50 +104,62 @@ void Grid::initGrid()
     genNeighbors();
 }
 
-void Grid::genNeighbors()
+void AStarGrid::genNeighbors()
 {
-    for (int x = 0; x < grid_size[0]; x++) {
-        for (int y = 0; y < grid_size[1]; y++) {
-            //Load All Y-Axis Neighbors into The Node's Vector Matrix
+    //Load Each Node's neighbors Vector with all Adjacent Nodes
+    for (uint16_t x = 0; x < grid_size[0]; x++) {
+        for (uint16_t y = 0; y < grid_size[1]; y++) {
+            
+            //Bottom Neighbor
             if (y > 0) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x][y - 1]
                 );
             }
+
+            //Top Neighbor
             if (y < grid_size[1] - 1) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x][y + 1]
                 );
             }
-
-            //Load All X-Axis Neighbors into The Node's Vector Matrix
+            
+            //Left Neighbor
             if (x > 0) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x - 1][y]
                 );
             }
+
+            //Right Neighbor
             if (x < grid_size[0] - 1) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x + 1][y]
                 );
             }
-
-            //Load All Diagonal Neighbors into The Node's Vector Matrix
+            
+            //Bottom-Left Neighbor
             if (x > 0 && y > 0) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x - 1][y - 1]
                 );
             }
+
+            //Top-Left Neighbor
             if (x > 0 && y < grid_size[1] - 1) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x - 1][y + 1]
                 );
             }
+
+            //Bottom-Right Neighbor
             if (x < grid_size[0] - 1 && y > 0) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x + 1][y - 1]
                 );
             }
+
+            //Top-Right Neighbor
             if (x < grid_size[0] - 1 && y < grid_size[1] - 1) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x + 1][y + 1]
@@ -241,39 +169,25 @@ void Grid::genNeighbors()
     }
 }
 
-bool Grid::hasNeighbors(Node* node)
+bool AStarGrid::hasNeighbors(Node* node)
 {
     return (node->neighbors.empty() == false);
 }
 
-Grid::~Grid()
-{
-    for (int x = 0; x < grid_size[0]; x++) {
-        delete [] node_grid[x];
-    }
-    delete [] node_grid;
-}
-
-void aStar(Grid* grid, int begin_node[], int ending_node[])
+void AStarGrid::aStar(uint16_t begin_node[], uint16_t ending_node[])
 {
 
-    //Retrieve Pointer to Start Node
-    Node* start = grid->getNode(
-        begin_node[0],
-        begin_node[1]
-    );
+    //Pointer to Start Node
+    Node* start = &node_grid[begin_node[0]][begin_node[1]];
 
-    //Retrieve Pointer to Goal Node
-    Node* goal = grid->getNode(
-        ending_node[0],
-        ending_node[1]
-    );
+    //Pointer to Goal Node
+    Node* goal = &node_grid[ending_node[0]][ending_node[1]];
 
     //Reset All Nodes to Default
-    resetNodes(grid);
+    resetNodes();
 
-    //Check if the Node has Neighbors
-    if (!grid->hasNeighbors(start)) {
+    //Check If The Start Node has Neighbors
+    if (!hasNeighbors(start)) {
         return;
     }
 
@@ -281,10 +195,10 @@ void aStar(Grid* grid, int begin_node[], int ending_node[])
     start->local_dist = 0.0f;
     start->global_dist = heuristics(start, goal);
 
-    //Set Current Node to the Start Node
+    //Initialize Current Node to the Start Node
     Node* current = start;
 
-    //Initialize Array of Untested Nodes
+    //Initialize an Ordered List of Untested Nodes
     std::list<Node*> untestedNodes;
     untestedNodes.push_back(start);
 
@@ -292,7 +206,9 @@ void aStar(Grid* grid, int begin_node[], int ending_node[])
     while (!untestedNodes.empty()) {
         //Sort the list from least to greatest distance from the Goal
         untestedNodes.sort(
-            //This is a Lambda function, which is a unnamed function call
+            //(This is a Lambda function, which is a unnamed function call)
+            
+            //If Equal to or Greater than, then swap positions
             [](const Node* a, const Node* b)
             {
                 return a->global_dist < b->global_dist;
@@ -334,26 +250,14 @@ void aStar(Grid* grid, int begin_node[], int ending_node[])
                     (neighbor->parent != current) &&
                     (neighbor->parent != start)
                 ) {
-                    Node* checkPath = neighbor;
-                    bool valid = true;
-                    while (checkPath != nullptr && valid) {
-                        if ((checkPath->parent == current) ||
-                            (checkPath->parent == start)
-                        ) {
-                            valid = false;
-                        }
-                        checkPath = checkPath->parent;
-                    }
-                    if (valid) {
-                        neighbor->parent = current;
-                        neighbor->local_dist = potential_low_goal;
+                    neighbor->parent = current;
+                    neighbor->local_dist = potential_low_goal;
 
-                        //The global_dist is a Measure of local_dist
-                        //+ The Heuristic of neighbor Node and goal Node
-                        neighbor->global_dist = (
-                            neighbor->local_dist + heuristics(neighbor, goal)
-                        );
-                    }
+                    //The global_dist is a Measure of local_dist
+                    //+ The Heuristic of neighbor Node and goal Node
+                    neighbor->global_dist = (
+                        neighbor->local_dist + heuristics(neighbor, goal)
+                    );
 
                     //If Neighboring Node is Goal Node, Exit Algorithm
                     if (neighbor == goal) {
@@ -365,27 +269,114 @@ void aStar(Grid* grid, int begin_node[], int ending_node[])
     }
 }
 
-void resetNodes(Grid* grid)
+void AStarGrid::resetNodes()
 {
-    for (int x = 0; x < grid->getSizeX(); x++) {
-        for (int y = 0; y < grid->getSizeY(); y++) {
-            grid->node_grid[x][y].visited = false;
-            grid->node_grid[x][y].global_dist = INFINITY;
-            grid->node_grid[x][y].local_dist = INFINITY;
-            grid->node_grid[x][y].parent = nullptr;
+    for (uint16_t x = 0; x < grid_size[0]; x++) {
+        for (uint16_t y = 0; y < grid_size[1]; y++) {
+            node_grid[x][y].visited = false;
+            node_grid[x][y].global_dist = INFINITY;
+            node_grid[x][y].local_dist = INFINITY;
+            node_grid[x][y].parent = nullptr;
         }
     }
 }
 
-float distance(Node* a, Node* b)
+float AStarGrid::distance(Node* a, Node* b)
 {
     return sqrtf(
         ((a->x - b->x) * ((a->x - b->x))) + ((a->y - b->y) * (a->y - b->y))
     );
 }
 
-float heuristics(Node* a, Node* b)
+float AStarGrid::heuristics(Node* a, Node* b)
 {
     return distance(a, b);
+}
+/*
+//Inventory Class Functions
+Inventory::Inventory()
+{
+    initStoreVolume(3, 4);
+    full = false;
+}
+
+Inventory::~Inventory()
+{
+    //Delete through all rows in the matrix
+    for (uint16_t i = 0; i < inv_size[0]; i++) {
+        delete [] storage[i];
+    }
+
+    //Delete Storage Matrix
+    delete [] storage;
+}
+
+void Inventory::initStoreVolume(uint16_t x, uint16_t y)
+{
+    //Initialize Variables
+    inv_size = {static_cast<uint16_t>(x),static_cast<uint16_t>(y)};
+    //Initialize Inventory Matrix
+    storage = new item*[inv_size[0]];
+    for (uint16_t i = 0; i < inv_size[0]; i++) {
+        storage[i] = new item[inv_size[1]];
+    }
+
+    //Pre-Load Item Slots
+    if (inv_size[0] > 0 && inv_size[1] > 0) {
+        uint16_t counter = 0;
+        for (uint16_t i = 0; i < inv_size[0]; i++) {
+            for (uint16_t j = 0; j < inv_size[1]; j++) {
+                storage[i][j].item_name = ("Slot " + std::to_string(counter));
+                storage[i][j].slot_num = ++counter;
+            }
+        }
+    }
+    //If DEVMODE, Run Unit Test
+    #ifdef DEBUG
+        std::string test = "testItem";
+        bool flag = false;
+        for (uint16_t i = 0; i < inv_size[0]; i++) {
+            for (uint16_t j = 0; j < inv_size[1]; j++) {
+                storage[i][j].item_name = test;
+            }
+            
+        }
+        for (uint16_t i = 0; i < inv_size[0]; i++) {
+            for (uint16_t j = 0; j < inv_size[1]; j++) {
+                if(storage[i][j].item_name != test) {
+                    flag = true;
+                    break;
+                }
+            }
+            if(flag) {
+                break;
+            }
+        }
+        if (!flag) {
+            for (uint16_t i = 0; i < inv_size[0]; i++) {
+                for (uint16_t j = 0; j < inv_size[1]; j++) {
+                    std::cout << storage[i][j].item_name << " ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << "Inventory Matrix - OK\n\n";
+        } else {
+            std::cout << "ERROR, Inventory Matrix not Loading";
+        }
+    #endif
+}
+
+//ECS: Inventory Management System
+namespace ecs
+{
+    InventorySystem::InventorySystem()
+    {
+
+    }
+
+    void InventorySystem::update([[maybe_unused]]float dt)
+    {
+
+    }
 }
 */
