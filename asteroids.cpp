@@ -242,6 +242,7 @@ ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
 const Camera* c;
+int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
@@ -250,6 +251,8 @@ int main()
     // [[maybe_unused]]auto character = ecs::character_x(); 
 
     // Initialize audio system
+	auto biome = selectBiome(30.0f,0.5f);
+	std::cout << biome.type << ' ' << biome.description << '\n';
     initAudioSystem();
     
     // Set initial music according to game state (starting in MENU state)
@@ -268,7 +271,7 @@ int main()
 		std::make_shared<SpriteSheet>(
 			v2u {1,8},
 			v2u {32,32},
-			load_tex("./resources/textures/skip.png", true)
+			loadTexture("./resources/textures/skip.png", true)
 		)
 	});
 
@@ -276,7 +279,7 @@ int main()
 		std::make_shared<SpriteSheet>(
 			v2u {1,1},
 			v2u {16,16},
-			load_tex("./resources/textures/sand.webp",false)
+			loadTexture("./resources/textures/sand.webp",false)
 		)
 	});
 
@@ -284,7 +287,7 @@ int main()
 		std::make_shared<SpriteSheet>(
 			v2u {1,1},
 			v2u {16,16},
-			load_tex("./resources/textures/water.webp",false)
+			loadTexture("./resources/textures/water.webp",false)
 		)
 	});
 
@@ -292,15 +295,15 @@ int main()
 		std::make_shared<SpriteSheet>(
 			v2u {1,1},
 			v2u {16,16},
-			load_tex("./resources/textures/grass.webp",false)
+			loadTexture("./resources/textures/grass.webp",false)
 		)
 	});
 
-	Vec2<uint16_t> v {250,250};
+	Vec2<uint16_t> v {50,50};
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
-    tile_map.insert({"A",wfc::TileBuilder{1,"grass"}.omni("A").omni("C").coefficient("A",0.3).coefficient("_",-0.2).build()});
-	tile_map.insert({"_",wfc::TileBuilder{0.5,"water"}.omni("C").omni("_").build()});
-	tile_map.insert({"C",wfc::TileBuilder{0.1,"sand"}.omni("_").omni("C").omni("A").build()});
+    tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
+    tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
+	tile_map.insert({"C",wfc::TileBuilder{0.3,"sand"}.omni("_").coefficient("C",3).omni("C").omni("A").build()});
 	std::unordered_set<std::string> tiles;
 	for (auto& pair : tile_map) {
 		tiles.insert(pair.first);
@@ -308,7 +311,6 @@ int main()
 	wfc::Grid grid {v, tiles};
 	wfc::WaveFunction wf {grid,tile_map};
 	wf.run();
-	grid.print();
 	auto w = World{{0,0},grid,tile_map};
 	world = &w;
 	rs.sample();
@@ -320,7 +322,7 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	int done = 0;
+	done = 0;
     while (!done) {
         while (x11.getXPending()) {
             XEvent e = x11.getXNextEvent();
@@ -503,6 +505,9 @@ int check_keys(XEvent *e)
                 case XK_Down:
                     pc->vel = {0,-movement_mag};
                     break;
+				case XK_a:
+					done = 1;
+					break;
             }
         }
     }

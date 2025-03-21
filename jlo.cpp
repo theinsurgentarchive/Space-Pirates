@@ -19,6 +19,35 @@
 #include "fonts.h"
 #include "image.h"
 
+std::array<Biome, 13> biomes = {
+    Biome(CHRISTMAS, v2f{-20.0f, 0.0f}, v2f{0.3f, 0.7f}, 
+        "Cold, snowy terrain, often covered in Christmas trees."),
+    Biome(RAINFOREST, v2f{25.0f, 35.0f}, v2f{0.6f, 1.0f}, 
+        "Tropical, dense vegetation with high biodiversity."),
+    Biome(SAVANNA, v2f{25.0f, 35.0f}, v2f{0.2f, 0.6f}, 
+        "Warm grasslands with scattered trees, wet and dry seasons."),
+    Biome(FOREST, v2f{10.0f, 25.0f}, v2f{0.4f, 0.8f}, 
+        "Moderate temperature, lush tree-filled areas."),
+    Biome(GRASSLAND, v2f{10.0f, 25.0f}, v2f{0.1f, 0.5f}, 
+        "Wide open plains with grasses and few trees."),
+    Biome(WOODLAND, v2f{5.0f, 20.0f}, v2f{0.2f, 0.6f}, 
+        "Drier areas with scattered trees and underbrush."),
+    Biome(DESERT, v2f{30.0f, 50.0f}, v2f{0.0f, 0.2f}, 
+        "Hot and dry, minimal precipitation and vegetation."),
+    Biome(TAIGA, v2f{-10.0f, 10.0f}, v2f{0.2f, 0.6f}, 
+        "Cold, coniferous forest with long winters."),
+    Biome(TUNDRA, v2f{-20.0f, -5.0f}, v2f{0.3f, 0.7f}, 
+        "Frozen, barren land with little vegetation."),
+    Biome(ARCTIC_DESERT, v2f{_MIN_TEMPERATURE, -10.0f}, v2f{0.0f, 0.2f}, 
+        "Extremely cold and dry, often covered with ice."),
+    Biome(MEADOW, v2f{-5.0f, 15.0f}, v2f{0.4f, 0.8f}, 
+        "Cold, wet grasslands often found in mountainous regions."),
+    Biome(WETLANDS, v2f{5.0f, 20.0f}, v2f{0.6f, 1.0f}, 
+        "Wet, marshy areas with abundant aquatic life."),
+    Biome(HELL, v2f{40.0f, _MAX_TEMPERATURE}, v2f{0.0f, 0.1f}, 
+        "Extreme temperatures and dry conditions, inhospitable to life.")
+};
+
 void show_jlo(Rect* r)
 {
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
@@ -38,7 +67,7 @@ extern std::unordered_map<
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 extern const Camera* c;
 
-std::shared_ptr<Texture> load_tex(
+std::shared_ptr<Texture> loadTexture(
     const std::string& file_name, 
     bool alpha)
 {
@@ -85,6 +114,36 @@ std::shared_ptr<Texture> load_tex(
     return tex;
 }
 
+Biome selectBiome(float temperature, float humidity) {
+    std::vector<int> indices(13);
+    std::iota(indices.begin(), indices.end(), 0);
+    std::shuffle(indices.begin(), indices.end(), generator);
+
+    for (int i : indices) {
+        auto& biome = biomes[i];
+        if (temperature >= biome.temperature[0] && 
+            temperature <= biome.temperature[1] &&
+            humidity >= biome.humidity[0] && 
+            humidity <= biome.humidity[1]) {
+            return biome;
+        }
+    }
+    return biomes[0];
+}
+
+Biome::Biome(
+    BiomeType type, 
+    const v2f& temperature, 
+    const v2f& humidity,
+    const std::string& description) 
+    : 
+    type{type}, 
+    temperature{temperature}, 
+    humidity{humidity},
+    description{description}
+{
+}
+
 Camera::Camera(v2f& pos, const v2u dim) : pos{pos},dim{dim}
 {
 }
@@ -105,7 +164,8 @@ bool Camera::visible(v2f curr) const
     float hh = dim[1] >> 1;
     v2f v1 {pos[0] - wh, pos[1] - hh};
     v2f v2 {pos[0] + wh, pos[1] + hh};
-    return curr[0] >= v1[0] && curr[0] <= v2[0] && curr[1] >= v1[1] && curr[1] <= v2[1];
+    return curr[0] >= v1[0] && curr[0] <= v2[0] &&
+    curr[1] >= v1[1] && curr[1] <= v2[1];
 }
 
 Texture::Texture(
@@ -116,31 +176,6 @@ Texture::Texture(
 {
     tex = std::make_shared<GLuint>();
 }
-
-// void TextureLoader::loadFolder(
-// const std::string& folder_name, 
-// bool alpha)
-// {
-//     std::vector<std::string> files;
-
-//     DIR* dir = opendir(folder_name.c_str());
-//     if (dir == nullptr) {
-//         DWARNF("failed to open directory: %s",folder_name.c_str());
-//         return;
-//     }
-
-//     struct dirent* entry;
-//     while ((entry = readdir(dir)) != nullptr) {
-//         std::string file_name = entry->d_name;
-//         if (file_name == "." || file_name == "..") {
-//             continue;
-//         }
-//         std::ostringstream file_path;
-//         file_path << folder_name << "/" << file_name;
-//         load(file_path.str(), alpha);
-//     }
-//     closedir(dir);
-// }
 
 SpriteSheet::SpriteSheet(
     const v2u& frame_dim,
@@ -181,7 +216,6 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale)
         glTexCoord2f(fx + xo, fy + xy); 
         glVertex2i(pos[0] + sw, pos[1] - sh);
     glEnd();
-    glBindTexture(GL_TEXTURE_2D,0);
     glDisable(GL_ALPHA_TEST);
 }
 
@@ -204,8 +238,6 @@ World::World(
     const v2f& origin, 
     wfc::Grid& grid, 
     std::unordered_map<std::string,wfc::TileMeta>& tiles)
-    :
-    _tiles{tiles}
 {
     const auto grid_size = grid.size();
     _grid.resize(grid_size[0]);
@@ -228,7 +260,7 @@ World::World(
                 continue;
             }
             auto tc = ecs::ecs.component().assign<TRANSFORM>(e);
-            tc->scale = {2,2};
+            tc->scale = {4,4};
             tc->pos = origin + v2f {
                 static_cast<float>(sd[0] * p[0] * tc->scale[0]),
                 static_cast<float>(sd[1] * p[1] * tc->scale[1])
@@ -575,7 +607,7 @@ namespace ecs
 {   
     ECS ecs;
 
-    Entity::Entity(u32 i, cmask_t m) : id(i), mask(m) {}
+    Entity::Entity(u32 i, cmask m) : id(i), mask(m) {}
 
     ComponentPool::ComponentPool(u32 size) : _size {size}
     {
@@ -597,11 +629,9 @@ namespace ecs
             _max_entities{max_entities}
     {
         for (u32 i{0}; i < _max_entities; i++) {
-            std::cout << i << ' ';
-            entities.push_back({i, cmask_t()});
+            entities.push_back({i, cmask()});
             _free.push_back(i);
         }
-        std::cout << '\n';
     }
 
     Entity *EntityManager::checkout()

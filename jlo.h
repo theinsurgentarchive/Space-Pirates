@@ -12,8 +12,10 @@
 
 #include "fonts.h"
 
-#define MAX_COMPONENTS 32
+#define _MAX_COMPONENTS 32
 #define MAX_ENTITIES 62501
+#define _MAX_TEMPERATURE 100.0f
+#define _MIN_TEMPERATURE -30.0f
 
 #define TRANSFORM ecs::Transform
 #define SPRITE ecs::Sprite
@@ -46,8 +48,32 @@
 #define DERROR(str)
 #endif
 
-void show_jlo(Rect* r);
+enum BiomeType
+{
+    CHRISTMAS,
+    RAINFOREST,
+    SAVANNA,
+    FOREST,
+    GRASSLAND,
+    WOODLAND,
+    DESERT,
+    TAIGA,
+    TUNDRA,
+    ARCTIC_DESERT,
+    MEADOW,
+    WETLANDS,
+    HELL
+};
 
+enum Direction
+{
+    TOP,
+    BOTTOM,
+    LEFT,
+    RIGHT
+};
+
+struct Biome;
 struct SpriteSheet;
 struct Camera;
 class World;
@@ -55,9 +81,6 @@ struct Texture;
 class TextureLoader;
 class Animation;
 class AnimationBuilder;
-
-template <typename T>
-class Vec2;
 
 namespace wfc
 {
@@ -87,34 +110,6 @@ namespace ecs
     class RenderSystem;
 }
 
-using u16 = uint16_t;
-using u32 = uint32_t;
-using i32 = int32_t;
-using v2u = Vec2<u16>;
-using v2i = Vec2<i32>;
-using v2f = Vec2<float>;
-
-extern u16 counter;
-extern std::shared_ptr<Texture> load_tex(const std::string&, bool);
-template <class T>
-u16 getId()
-{
-    static int cid = counter++;
-    return cid;
-}
-
-
-using time_point = std::chrono::high_resolution_clock::time_point;
-typedef std::bitset<MAX_COMPONENTS> cmask_t;
-
-enum Direction
-{
-    TOP,
-    BOTTOM,
-    LEFT,
-    RIGHT
-};
-
 template <typename T>
 class Vec2
 {
@@ -130,6 +125,39 @@ class Vec2
         Vec2<T>& operator+=(const Vec2<T>& v);
 };
 
+using u16 = uint16_t;
+using u32 = uint32_t;
+using i32 = int32_t;
+using v2u = Vec2<u16>;
+using v2i = Vec2<i32>;
+using v2f = Vec2<float>;
+using cmask = std::bitset<_MAX_COMPONENTS>;
+using time_point = std::chrono::high_resolution_clock::time_point;
+
+void show_jlo(Rect* r);
+extern u16 counter;
+extern std::shared_ptr<Texture> loadTexture(const std::string&, bool);
+extern Biome selectBiome(float temperature, float humidity);
+
+template <class T>
+u16 getId()
+{
+    static int cid = counter++;
+    return cid;
+}
+
+struct Biome
+{
+    const BiomeType type;
+    const v2f temperature;
+    const v2f humidity;
+    const std::string description;
+    Biome(
+        BiomeType type, 
+        const v2f& temperature, 
+        const v2f& humidity, 
+        const std::string& description);
+};
 
 struct Camera
 {
@@ -167,7 +195,6 @@ class World
 {
     private:
         std::vector<std::vector<ecs::Entity*>> _grid;
-        std::unordered_map<std::string,wfc::TileMeta> _tiles;
     public:
         std::vector<std::vector<ecs::Entity*>>& tiles();
         ~World();
@@ -278,6 +305,7 @@ namespace ecs
     struct Planet
     {
         float temperature;
+        float humidity;
     };
 
     struct Physics
@@ -312,8 +340,8 @@ namespace ecs
     struct Entity
     {
         u32 id;
-        mutable cmask_t mask;
-        Entity(u32 i, cmask_t m);
+        mutable cmask mask;
+        Entity(u32 i, cmask m);
     };
 
     class ComponentPool
