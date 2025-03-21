@@ -63,7 +63,7 @@ class AStarGrid
 
         //Constructor
         AStarGrid();
-        AStarGrid(Node**);
+        AStarGrid(std::vector<std::vector<Node>>);
         AStarGrid(uint16_t, uint16_t);
 
         //Sets a Node to an Obstacle in A*
