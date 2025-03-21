@@ -11,7 +11,7 @@
 #include <GL/glx.h>
 
 #define MAX_COMPONENTS 32
-#define MAX_ENTITIES 500
+#define MAX_ENTITIES 1000
 
 #define TRANSFORM ecs::Transform
 #define SPRITE ecs::Sprite
@@ -179,11 +179,11 @@ namespace wfc
     struct Tile
     {
         float weight;
-        std::array<std::vector<std::string>, 4> rules;
+        std::array<std::unordered_set<std::string>, 4> rules;
         std::unordered_map<std::string,float> coefficients;
         Tile(
                 float weight, 
-                std::array<std::vector<std::string>,4>& rules, 
+                std::array<std::unordered_set<std::string>,4>& rules, 
                 std::unordered_map<std::string,
                 float>& coefficients);
     };
@@ -192,76 +192,70 @@ namespace wfc
     {
         private:
             float _weight;
-            std::array<std::vector<std::string>,4> _rules;
+            std::array<std::unordered_set<std::string>,4> _rules;
             std::unordered_map<std::string,float> _coefficients;
         public:
-            TileBuilder& setWeight(float weight);
-            TileBuilder& addRule(
-                    const Direction& dir, 
+            TileBuilder& weight(float weight);
+            TileBuilder& rule(
+                    int dir, 
                     const std::string& tile);
-            TileBuilder& addCoefficient(
+            TileBuilder& omni(const std::string& tile);
+            TileBuilder& coefficient(
                     const std::string& tile, 
                     float weight);
             Tile build();
     };
 
-    struct Cell
+    struct Cell 
     {
-        std::vector<std::string> states;
         Vec2<int32_t> pos;
-        Cell(std::vector<std::string> states, Vec2<int32_t> pos);
+        std::unordered_set<std::string> states;
+        std::string state;
+        Cell(const Vec2<int32_t>& pos, const std::unordered_set<std::string>& states);
         uint16_t entropy() const;
+        bool collapsed() const;
     };
 
-    class Grid
+    class Grid 
     {
         private:
-            std::vector<std::vector<std::string>> _cells;
+            std::vector<std::vector<Cell>> _cells;
             Vec2<uint16_t> _size;
         public:
-            Grid(Vec2<uint16_t> size);
+            Grid(Vec2<uint16_t> size, const std::unordered_set<std::string>& states);
             Vec2<uint16_t> size() const;
-            std::string get(Vec2<int32_t> pos) const;
-            void set(Vec2<int32_t> pos, std::string name);
-            bool collapsed(const Vec2<int32_t>& pos);
+            Cell* get(Vec2<int32_t> pos);
+            std::vector<std::vector<Cell>>& getCells();
+            bool collapsed();
             void print();
     };
 
     class TilePriorityQueue
     {
         private:
-            std::vector<Cell> _queue;
+            std::vector<Cell*> _queue;
             void _swap(uint16_t i1, uint16_t i2);
             void _bubbleUp(uint16_t idx);
             void _bubbleDown(uint16_t idx);
         public:
-            TilePriorityQueue(
-                    const Vec2<uint16_t>& grid_size, 
-                    std::vector<std::string> states);
-            void insert(const Cell& cell);
+            TilePriorityQueue(Grid& grid);
+            void insert(Cell* cell);
             bool empty();
-            Cell pop();
-            void print();
+            Cell* pop();
     };
 
-    class WaveFunction
+    class WaveFunction 
     {
         private:
             Grid& _grid;
             std::unordered_map<std::string,Tile>& _tiles;
             TilePriorityQueue _queue;
-            Vec2<int32_t> _shift(
-                    const Direction& direction, 
-                    const Vec2<uint16_t>& vec);
-            float _calculateTileWeight(
-                    const Vec2<int32_t>& pos, 
-                    const Tile& tile);
+            float _calculateTileWeight(const Vec2<int32_t>& pos, const Tile& tile);
+            void _collapse(Cell* c);
+            void _propagate(Cell* c);
         public:
-            WaveFunction(
-                    Grid& grid, 
-                    std::unordered_map<std::string,Tile>& tiles);
+            WaveFunction(Grid& grid, std::unordered_map<std::string,Tile>& tiles);
             void run();
-            void collapse(const Cell& cell);
     };
 }
 
