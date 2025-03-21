@@ -6,8 +6,7 @@
 //This program is a game starting point for a 3350 project.
 //
 //
-#include "jlo.h"
-#include "image.h"
+#include <chrono>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -17,10 +16,16 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+
+#include "image.h"
 #include "log.h"
 #include "fonts.h"
+
+#include "jlo.h"
+#include "balrowhany.h"
+#include "jsandoval.h"
 #define GAME_TITLE "Space Pirates"
-#define TEXTURE_FOLDER_PATH "./textures"
+#define _TEXTURES "./textures"
 using namespace std; 
 
 // #define CREDITS
@@ -36,7 +41,6 @@ const float gravity = -0.2f;
 #define ALPHA 1
 const int MAX_BULLETS = 11;
 const Flt MINIMUM_ASTEROID_SIZE = 60.0;
-
 //-----------------------------------------------------------------------------
 //Setup timers
 const double physicsRate = 1.0 / 60.0;
@@ -47,13 +51,9 @@ extern double physicsCountdown;
 extern double timeSpan;
 extern double timeDiff(struct timespec *start, struct timespec *end);
 extern void timeCopy(struct timespec *dest, struct timespec *source);
+//std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 //-----------------------------------------------------------------------------
-enum GameState {
-	MENU, // GAME STATE: 0 
-	PLAYING, // 1
-	CONTROLS,  // 2 
-	EXIT 
-};
+
 class Global {
 public:
 	int xres, yres;
@@ -234,76 +234,129 @@ void physics();
 void render();
 
 //Start - Justin
-void load_textures(void);
-
-// void load_textures() {
-// 	try {
-// 		if (std::filesystem::exists(_IMAGE_FOLDER_PATH) && std::filesystem::is_directory(_IMAGE_FOLDER_PATH)) {
-// 			for (const auto& entry : std::file_system::directory_iteraotr<)
-// 		}
-// 	} catch ()
-// }
 //==========================================================================
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
-// Entity* second;
-// std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
-// std::unordered_map<std::string,std::unique_ptr<Animation>> animations;
+ecs::RenderSystem rs {ecs::ecs,60};
+ecs::PhysicsSystem ps {ecs::ecs,5};
+const World* world;
+const Camera* c;
+int done;
+std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
 {
-	auto e = ecs::ecs.entity().checkout();
-	[[maybe_unused]]auto transform = (
-		ecs::ecs.component().assign<ecs::Transform>(e)
-	);
+	
+    // [[maybe_unused]]auto character = ecs::character_x(); 
 
-	//Assign Physics component to entity
-	[[maybe_unused]]auto physics = (
-		ecs::ecs.component().assign<ecs::Physics>(e)
-	);
+    // Initialize audio system
+	auto biome = selectBiome(30.0f,0.5f);
+	std::cout << biome.type << ' ' << biome.description << '\n';
+    initAudioSystem();
+    
+    // Set initial music according to game state (starting in MENU state)
+    updateAudioState(gl.state);
 
-	//Assign Sprite component to entity
-	[[maybe_unused]]auto sprite = (
-		ecs::ecs.component().assign<ecs::Sprite>(e)
-	);
-	logOpen();
+    ptr = ecs::ecs.entity().checkout();
+    ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
+	
+	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	Camera camera {tc->pos,{gl.xres,gl.yres}};
+	c = &camera;
+	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
+	sc->ssheet = "skip";
+	sc->render_order = 15;
+	ssheets.insert({"skip",
+		std::make_shared<SpriteSheet>(
+			v2u {1,8},
+			v2u {32,32},
+			loadTexture("./resources/textures/skip.png", true)
+		)
+	});
+
+	ssheets.insert({"sand",
+		std::make_shared<SpriteSheet>(
+			v2u {1,1},
+			v2u {16,16},
+			loadTexture("./resources/textures/sand.webp",false)
+		)
+	});
+
+	ssheets.insert({"water",
+		std::make_shared<SpriteSheet>(
+			v2u {1,1},
+			v2u {16,16},
+			loadTexture("./resources/textures/water.webp",false)
+		)
+	});
+
+	ssheets.insert({"grass",
+		std::make_shared<SpriteSheet>(
+			v2u {1,1},
+			v2u {16,16},
+			loadTexture("./resources/textures/grass.webp",false)
+		)
+	});
+
+	Vec2<uint16_t> v {50,50};
+	std::unordered_map<std::string,wfc::TileMeta> tile_map;
+    tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
+    tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
+	tile_map.insert({"C",wfc::TileBuilder{0.3,"sand"}.omni("_").coefficient("C",3).omni("C").omni("A").build()});
+	std::unordered_set<std::string> tiles;
+	for (auto& pair : tile_map) {
+		tiles.insert(pair.first);
+	}
+	wfc::Grid grid {v, tiles};
+	wfc::WaveFunction wf {grid,tile_map};
+	wf.run();
+	auto w = World{{0,0},grid,tile_map};
+	world = &w;
+	rs.sample();
+	ps.sample();
 	init_opengl();
+	logOpen();
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	int done=0;
-
-	while (!done) {
-		while (x11.getXPending()) {
-			XEvent e = x11.getXNextEvent();
-			x11.check_resize(&e);
-			check_mouse(&e);
-			done = check_keys(&e);
+	done = 0;
+    while (!done) {
+        while (x11.getXPending()) {
+            XEvent e = x11.getXNextEvent();
+            x11.check_resize(&e);
+            check_mouse(&e);
+            done = check_keys(&e);
 		}
-
-		clock_gettime(CLOCK_REALTIME, &timeCurrent);
-		timeSpan = timeDiff(&timeStart, &timeCurrent);
-		timeCopy(&timeStart, &timeCurrent);
-		//clear screen just once at the beginning
-		//glClear(GL_COLOR_BUFFER_BIT); 
-
-		// render based on game state 
-
-		if (gl.state == MENU || gl.state == CONTROLS) {
-			//USE RENDER() NOT ECS RENDER SYSTEM IF IN MENU STATE
-			render(); 
-		} else if (gl.state == PLAYING) {
-			//entity_system_manager.update(s, (float) 0.05);
+        clock_gettime(CLOCK_REALTIME, &timeCurrent);
+        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        timeCopy(&timeStart, &timeCurrent);
+        //clear screen just once at the beginning
+        //glClear(GL_COLOR_BUFFER_BIT); 
+		auto current = std::chrono::high_resolution_clock::now();
+		// auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - rs.lastSampled());
+		// if (dur.count() >= rs.sample_delta) {
+		// 	rs.sample();
+		// }
+		auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - ps.lastSampled());
+		if (dur.count() >= ps.sample_delta) {
+			ps.sample();
 		}
-		x11.swapBuffers();
-	}
-	cleanup_fonts();
-	logClose();
-	return 0;
+        // Update audio system each frame
+        getAudioManager()->update();
+        ps.update((float) 1/20);
+        render(); 
+        x11.swapBuffers();
+        usleep(10000);
+    }
+    shutdownAudioSystem();
+    cleanup_fonts();
+    logClose();
+    return 0;
 }
-
+GLuint tex;
 void init_opengl(void)
 {
 	//OpenGL initialization
@@ -326,48 +379,32 @@ void init_opengl(void)
 	initialize_fonts();
 
 	glGenTextures(1, &menuBackgroundTexture);
-	menuImage = new Image("./textures/menu-bg.jpg");	
+	menuImage = new Image("./resources/textures/menu-bg.webp");	
 	//biship code 
 	glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, 3, menuImage->width, menuImage->height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, menuImage->data);
-
-
-	//
-
+                 GL_RGB, GL_UNSIGNED_BYTE, menuImage->data.get());
 }
-unsigned char *buildAlphaData(Image *img)
+
+std::unique_ptr<unsigned char[]> buildAlphaData(Image* img)
 {
-	//add 4th component to RGB stream...
-	int i;
-	unsigned char *newdata, *ptr;
-	unsigned char *data = (unsigned char *)img->data;
-	//2 bytes * 2 bytes * 4;
-	newdata = (unsigned char *)malloc(img->width * img->height * sizeof(int));
-	ptr = newdata;
-	unsigned char a,b,c;
-	//use the first pixel in the image as the transparent color.
-	unsigned char t0 = *(data+0);
-	unsigned char t1 = *(data+1);
-	unsigned char t2 = *(data+2);
-	for (i=0; i<img->width * img->height * 3; i+=3) {
-		a = *(data+0); //255
-		b = *(data+1); //0
-		c = *(data+2); //0
-		*(ptr+0) = a; //255
-		*(ptr+1) = b; //0
-		*(ptr+2) = c; //0
-		*(ptr+3) = 1; //1
-		if (a==t0 && b==t1 && c==t2)
-			*(ptr+3) = 0;
-		//-----------------------------------------------
-		ptr += sizeof(int);
-		data += 3;
-	}
-	return newdata;
+	//refactored version of gordon's code
+    auto img_size = img->width * img->height;
+    auto newdata = std::make_unique<unsigned char[]>(img_size * 4);
+    auto* data = img->data.get();
+    auto* ptr = newdata.get();
+    auto t0 = data[0], t1 = data[1], t2 = data[2];
+    for (int i = 0; i < img_size; ++i) {
+        std::copy(data, data + 3, ptr);
+        ptr[3] = (data[0] == t0 && data[1] == t1 && data[2] == t2) ? 0 : 255;
+        data += 3;
+        ptr += 4;
+    }
+    return newdata;
 }
+
 void normalize2d(Vec v)
 {
 	Flt len = v[0]*v[0] + v[1]*v[1];
@@ -433,67 +470,27 @@ int check_keys(XEvent *e)
 
     int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 
-    // handle key events - modified to add menu state handling, cout for debugging
+    // handle key events - modified to add menu state handling, 
+    // cout for debugging
     if (e->type == KeyPress) {
-        switch(key) {
-            case XK_Escape:
-                if (gl.state == CONTROLS) {
-                    gl.state = MENU;
-                    cout << "Returning to menu from controls" << endl;
-                } else if (gl.state == PLAYING) {
-                    gl.state = MENU;
-                    cout << "Pausing game - returning to menu" << endl;
-                } else if (gl.state == MENU) {
-                    cout << "Exiting game from menu" << endl;
-                    exit_request = 1;
-                    return exit_request;
-                }
-                break;
-            case XK_Up:
-                if (gl.state == MENU) {
-                    gl.selected_option = (gl.selected_option - 1 + 3) % 3;
-					cout << "Selected option: " << gl.selected_option << endl;
-                }
-                break;
-            case XK_Down:
-                if (gl.state == MENU) {
-                    gl.selected_option = (gl.selected_option + 1) % 3; 
-					cout << "Selected option: " << gl.selected_option << endl;
-                }
-                break;
-            case XK_Return:
-                if (gl.state == MENU) {
-                    switch(gl.selected_option) {
-                        case 0: 
-                            gl.state = PLAYING;
-							cout << "Starting game" << endl;
-                            break;
-                        case 1:
-                            gl.state = CONTROLS;
-							cout << "Showing controls" << endl;
-                            break;
-                        case 2:
-							cout << "Exiting game" << endl;
-                            exit_request = 1;
-                            return exit_request;
-                    }
-                }
-                break;
-        }
-    }
+      exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
+	  	if (exit_request) {
+			return exit_request;
+    	}
+	}
 
     // Playing state handling
     if (gl.state == PLAYING) {
-        if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
+        if (!ecs::ecs.component().has<PHYSICS>(ptr)) {
             return 0;
         }
         auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
-        
         if (e->type == KeyRelease) {
             if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
                 pc->vel = {0,0};
             }
         } else if (e->type == KeyPress) {
+			
             static float movement_mag = 300.0;
             switch(key) {
                 case XK_Right:
@@ -508,6 +505,9 @@ int check_keys(XEvent *e)
                 case XK_Down:
                     pc->vel = {0,-movement_mag};
                     break;
+				case XK_a:
+					done = 1;
+					break;
             }
         }
     }
@@ -517,80 +517,36 @@ int check_keys(XEvent *e)
 
 void physics()
 {
-	
+	ps.update(1/20);
 }
+
 void render() {
 
-	DPRINTF("rendering state: %d\n",gl.state);
-
+	DINFOF("rendering state: %d\n",gl.state);
+	Rect r;
+	r.left = 100;
+	r.bot = gl.yres - 20;
+	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	float cameraX = static_cast<float>(tc->pos[0]);
+	float cameraY = static_cast<float>(tc->pos[1]);
 	glClear(GL_COLOR_BUFFER_BIT);
-	// glLoadIdentity(); 
-	// glEnable(GL_TEXTURE_2D);  
-    // glDisable(GL_DEPTH_TEST);
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-    if (gl.state == MENU) {
-        //  menu background
-		glPushMatrix();
-        glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 1.0f); glVertex2i(0, 0);
-            glTexCoord2f(0.0f, 0.0f); glVertex2i(0, gl.yres);
-            glTexCoord2f(1.0f, 0.0f); glVertex2i(gl.xres, gl.yres);
-            glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
-        glEnd();
-        glBindTexture(GL_TEXTURE_2D, 0);
-		glPopMatrix();
-        // menu title
-        Rect title;
-        title.left = gl.xres/2;
-        title.bot = gl.yres - 200;
-        title.center = 1;
-        
-        ggprint40(&title, 50, 0x867933, "SPACE  PIRATES");
-        title.bot = gl.yres - 198;
-        ggprint40(&title, 50, 0x2C2811, "SPACE  PIRATES");
-        title.bot = gl.yres - 200;
-        ggprint40(&title, 50, 0xDBAD6A, "SPACE  PIRATES");
-
-        //  menu options
-        Rect r;
-        r.left = gl.xres/2;
-        r.bot = gl.yres - 270;
-        r.center = 1;
-        
-        const char* options[] = {"START", "CONTROLS", "EXIT"};
-        for (int i = 0; i < 3; i++) {
-            int color = (i == gl.selected_option) ? 0x00FF99FF : 0x00FFFFFF;
-            ggprint17(&r, 40, color, options[i]);
-        }
-    }
-    else if (gl.state == CONTROLS) {
-        //  controls screen bg
-        glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 1.0f); glVertex2i(0, 0);
-            glTexCoord2f(0.0f, 0.0f); glVertex2i(0, gl.yres);
-            glTexCoord2f(1.0f, 0.0f); glVertex2i(gl.xres, gl.yres);
-            glTexCoord2f(1.0f, 1.0f); glVertex2i(gl.xres, 0);
-        glEnd();
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        // controls 
-        Rect r;
-        r.left = gl.xres/2;
-        r.bot = gl.yres - 150;
-        r.center = 1;
-
-        ggprint40(&r, 30, 0x00FF99FF, "CONTROLS");
-        r.bot = gl.yres/2;
-        ggprint17(&r, 30, 0x00ffffff, "WASD - move ship");
-        ggprint17(&r, 30, 0x00ffffff, "SPACE - tbd");
-        ggprint17(&r, 30, 0x00ffffff, "E - interact");
-        ggprint17(&r, 30, 0x00ffffff, "ESC - exit/menu");
-    }
+	switch(gl.state) {
+		case MENU:
+			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
+			break;
+		case CONTROLS:
+			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			break;
+		case PLAYING:
+			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
+			glPushMatrix();
+			c->update();
+			rs.update((float)1/10);
+			glPopMatrix();
+			break;
+		case EXIT:
+			break;
+		default:
+			break;
+	}
 }

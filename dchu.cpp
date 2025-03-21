@@ -365,7 +365,6 @@ void Inventory::initStoreVolume(uint16_t x, uint16_t y)
         }
     #endif
 }
-
 //ECS: Inventory Management System
 //namespace ecs
 //{

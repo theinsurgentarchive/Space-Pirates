@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <chrono>
 #include "jlo.h"
 
 template <typename T>
@@ -23,7 +24,7 @@ Vec2<T> Vec2<T>::operator+(const Vec2<T>& v) const
 template <typename T>
 Vec2<T> Vec2<T>::operator*(float scale) const
 {
-    return Vec2<T>(vec[0] * scale, vec[1] * scale);
+    return {vec[0] * scale, vec[1] * scale};
 }
 
 template <typename T>
@@ -41,47 +42,72 @@ T& Vec2<T>::operator[](int idx)
 template <typename T>
 Vec2<T>& Vec2<T>::operator+=(const Vec2<T>& v)
 {
-    return vec[0] += v.vec[0], vec[1] += v.vec[1], *this;
+    vec[0] += v.vec[0];
+    vec[1] += v.vec[1];
+    return *this;
 }
+
 namespace ecs
 {
     template <typename T>
-    T* ComponentManager::assign(Entity *e_ptr)
+    T* ComponentManager::assign(const Entity *e_ptr)
     {
         if (e_ptr == nullptr)
             return nullptr;
-        uint16_t cid = getId<T>();
-        DPRINTF("component (%d) -> entity (address|id): %p | %d\n",cid,e_ptr,e_ptr->id);
+        auto cid = getId<T>();
+        DINFOF("component (%d) -> entity (%p | %d)\n",cid,e_ptr,e_ptr->id);
         if (e_ptr->mask.test(cid)) {
-            DPRINTF("reassignment for component (%d) to entity id: %d, returning null\n",cid, e_ptr->id);
+            DINFOF("reassignment for component (%d) to entity (%d), returning null\n",cid, e_ptr->id);
             return nullptr;
         }
         if (cid >= _pools.size()) {
-            uint16_t n = _pools.size() + 1;
-            DPRINTF("component pool (%d) to: %d -> %d\n", cid, static_cast<uint16_t>(_pools.size()), n);
+            u32 n = _pools.size() + 1;
+            DINFOF("expanded component pools to: %d -> %d\n", static_cast<u32>(_pools.size()), n);
             _pools.resize(n);
         }
         if (_pools[cid] == nullptr) {
-            DPRINTF("instantiated component pool (%d)\n",cid);
+            DINFOF("instantiated component pool (%d)\n",cid);
             _pools[cid] = std::make_unique<ComponentPool>(sizeof(T));
         }
         void *mem = _pools[cid]->get(e_ptr->id);
-        DPRINTF("creating new component (%d) at (address): %p\n", cid, mem);
-        T *ptr_component = new (mem) T();
+        DINFOF("creating new component (%d) at (%p)\n", cid, mem);
+        auto *ptr_component = new (mem) T();
         e_ptr->mask.set(cid);
         return ptr_component;
     }
 
     template <typename T>
-    T* ComponentManager::fetch(Entity *e_ptr)
+    void bulkAssignHelper(const Entity* e_ptr, T)
     {
         if (e_ptr == nullptr) {
-            DPRINT("entity pointer was null\n");
+            DWARN("entity pointer was null\n");
+            return;
+        }
+        ecs::ecs.component().assign<T>(e_ptr);
+    }
+    template <typename T, typename... Ts>
+    void bulkAssignHelper(const Entity* e_ptr, T, Ts... ts)
+    {
+        bulkAssignHelper(e_ptr,T());
+        bulkAssignHelper(e_ptr,ts...);
+    }
+
+    template <typename... T>
+    void ComponentManager::bulkAssign(const Entity* e_ptr)
+    {
+        bulkAssignHelper(e_ptr,T()...);
+    }
+
+    template <typename T>
+    T* ComponentManager::fetch(const Entity *e_ptr)
+    {
+        if (e_ptr == nullptr) {
+            DWARN("entity pointer was null\n");
             return nullptr;
         }
         uint16_t cid = getId<T>();
         if (!ComponentManager::has<T>(e_ptr)) {
-            DPRINTF("entity (%d) does not own component (%d)\n",e_ptr->id,cid);
+            DINFOF("entity (%d) does not own component (%d)\n",e_ptr->id,cid);
             return nullptr;
         }
         void *mem = _pools[cid]->get(e_ptr->id);
@@ -90,10 +116,10 @@ namespace ecs
 
 
     template <typename T>
-    bool has_helper(Entity* e_ptr, T)
+    bool hasHelper(const Entity* e_ptr, T)
     {
         if (e_ptr == nullptr) {
-            DPRINT("entity pointer was null");
+            DWARN("entity pointer was null\n");
             return false;
         }
         uint16_t cid = getId<T>();
@@ -101,26 +127,59 @@ namespace ecs
     }
 
     template <typename T, typename... Ts>
-    bool has_helper(Entity* e_ptr, T, Ts ... ts)
+    bool hasHelper(const Entity* e_ptr, T, Ts ... ts)
     {
-        return has_helper(e_ptr,T()) && has_helper(e_ptr,ts...);
+        return hasHelper(e_ptr,T()) && hasHelper(e_ptr,ts...);
     }
 
     template <typename... T>
-    bool ComponentManager::has(Entity *e_ptr)
+    bool ComponentManager::has(const Entity *e_ptr) const
     {
-        return has_helper(e_ptr,T()...);
+        return hasHelper(e_ptr,T()...);
     }      
 
     template <typename... T>
-    std::vector<Entity*> ECS::query()
+    std::vector<const Entity*> ECS::query() const
     {
-        std::vector<Entity*> entities;
-        for (auto& ptr : _entity_manager.getEntities()) {
+        std::vector<const Entity*> entities;
+        for (auto& ptr : _entity_manager.entities) {
             if (_component_manager.has<T...>(&ptr)) {
+                DINFOF("entity (%d) matched query\n",ptr.id);
                 entities.push_back(&ptr);
             }
         }
         return entities;
-    }     
+    }   
+    
+    template <typename... T>
+    void System<T...>::update([[maybe_unused]] float dt)
+    {
+        
+    }
+
+    template <typename... T>
+    System<T...>::System(
+        ECS& ecs, 
+        float sample_delta) 
+        : 
+        _ecs{ecs},
+        sample_delta{sample_delta}
+    {
+        sample();
+    }
+
+    template <typename... T>
+    time_point& System<T...>::lastSampled()
+    {
+        return _last_sampled;
+    }
+
+    template <typename... T>
+    void System<T...>::sample()
+    {
+        _entities = _ecs.query<T...>();
+        _last_sampled = std::chrono::high_resolution_clock::now();
+    }
+
+
 }
