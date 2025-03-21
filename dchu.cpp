@@ -24,7 +24,7 @@ Node::Node(bool isObstacle)
     parent = nullptr;
 }
 
-AStarGrid::AStarGrid()
+AStar::AStar()
 {
     //Initialize Variables
     grid_size[0] = 10;
@@ -34,17 +34,26 @@ AStarGrid::AStarGrid()
     initGrid();
 }
 
-AStarGrid::AStarGrid(std::vector<std::vector<Node>> grid)
+AStar::AStar(
+    const v2f& origin,
+    wfc::Grid& grid,
+    std::unordered_map<std::string,wfc::TileMeta>& tiles
+)
 {
-    //Set this.node_grid to The Passed Grid
-    node_grid = grid;
+    const auto grid_size = grid.size();
+    node_grid.resize(grid.size);
+    v2u dim = ssheet->second->sprite_dim;
+    v2u node_dim = dim/
 
-    //Initialize Variables
-    grid_size[0] = sizeof(grid) / sizeof(grid[0]);
-    grid_size[1] = sizeof(grid[0]) / sizeof(grid[0][0]);
+    for (uint16_t i; i < grid_size[0]; i++) {
+        for (uint16_t j = 0; j < grid_size[1]; j++) {
+            
+        }
+        
+    }
 }
 
-AStarGrid::AStarGrid(uint16_t x_size, uint16_t y_size)
+AStar::AStar(uint16_t x_size, uint16_t y_size)
 {
     //Initalize Variables
     grid_size[0] = x_size;
@@ -55,33 +64,27 @@ AStarGrid::AStarGrid(uint16_t x_size, uint16_t y_size)
 }
 
 //Sets The Given Coordinate's Node to an Obstacle
-void AStarGrid::setObstacle(uint16_t x, uint16_t y)
+void AStar::setObstacle(uint16_t x, uint16_t y)
 {
     node_grid[x][y].obstacle = true;
 }
 
-//Returns The Node Grid's X-Axis Size
-uint16_t AStarGrid::getSizeX()
+//Returns The Node Grid's Size
+v2u AStar::size()
 {
-    return grid_size[0];
+    return grid_size;
 }
 
-//Returns The Node Grid's Y-Axis Size
-uint16_t AStarGrid::getSizeY()
-{
-    return grid_size[1];
-}
-
-//Retrieves The Node requested in the AStarGrid
-Node* AStarGrid::getNode(uint16_t x, uint16_t y)
+//Retrieves The Node requested in the AStar
+Node* AStar::getNode(uint16_t x, uint16_t y)
 {
     if ((x <= grid_size[0]) && (y <= grid_size[1])) {
         return &node_grid[x][y];
     }
 }
 
-//Generate Node AStarGrid, Set Node Positions
-void AStarGrid::initGrid()
+//Set Node Positions & Conditionals
+void AStar::initGrid()
 {
     //Resize The Node Grid
     node_grid.resize(grid_size[0]);
@@ -92,8 +95,8 @@ void AStarGrid::initGrid()
     //Generate Nodes
     for (uint16_t x = 0; x < grid_size[0]; x++) {
         for (uint16_t y = 0; y < grid_size[1]; y++) {
-            node_grid[x][y].x = x;
-            node_grid[x][y].y = y;
+            node_grid[x][y].pos[0] = x;
+            node_grid[x][y].pos[1] = y;
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
             node_grid[x][y].parent = nullptr;
@@ -104,7 +107,7 @@ void AStarGrid::initGrid()
     genNeighbors();
 }
 
-void AStarGrid::genNeighbors()
+void AStar::genNeighbors()
 {
     //Load Each Node's neighbors Vector with all Adjacent Nodes
     for (uint16_t x = 0; x < grid_size[0]; x++) {
@@ -169,12 +172,12 @@ void AStarGrid::genNeighbors()
     }
 }
 
-bool AStarGrid::hasNeighbors(Node* node)
+bool AStar::hasNeighbors(Node* node)
 {
     return (node->neighbors.empty() == false);
 }
 
-void AStarGrid::aStar(uint16_t begin_node[], uint16_t ending_node[])
+void AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
 {
 
     //Pointer to Start Node
@@ -269,7 +272,7 @@ void AStarGrid::aStar(uint16_t begin_node[], uint16_t ending_node[])
     }
 }
 
-void AStarGrid::resetNodes()
+void AStar::resetNodes()
 {
     for (uint16_t x = 0; x < grid_size[0]; x++) {
         for (uint16_t y = 0; y < grid_size[1]; y++) {
@@ -281,14 +284,15 @@ void AStarGrid::resetNodes()
     }
 }
 
-float AStarGrid::distance(Node* a, Node* b)
+float AStar::distance(Node* a, Node* b)
 {
     return sqrtf(
-        ((a->x - b->x) * ((a->x - b->x))) + ((a->y - b->y) * (a->y - b->y))
+        ((a->pos[0] - b->pos[0]) * (a->pos[0] - b->pos[0])) +
+        ((a->pos[1] - b->pos[1]) * (a->pos[1] - b->pos[1]))
     );
 }
 
-float AStarGrid::heuristics(Node* a, Node* b)
+float AStar::heuristics(Node* a, Node* b)
 {
     return distance(a, b);
 }

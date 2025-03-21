@@ -32,7 +32,7 @@ class Node
         bool obstacle, visited;
         
         //Node Position
-        uint16_t x, y;
+        v2f pos;
         
         //Node Distance from Initial Node
         float local_dist;
@@ -52,26 +52,30 @@ class Node
 };
 
 //AStarGrid of Node Elements, Used in A* Search
-class AStarGrid 
+class AStar
 {
     private:
-        //AStarGrid's X & Y Axis Size
-        uint16_t grid_size[2];
+        //AStar's X & Y Axis Size
+        v2u grid_size;
+        v2f world_pos
     public:
         //Dynamic Node Grid
         std::vector<std::vector<Node>> node_grid;
 
         //Constructor
         AStarGrid();
-        AStarGrid(std::vector<std::vector<Node>>);
+        AStarGrid(
+            const v2f&,
+            wfc::Grid&,
+            std::unordered_map<std::string,wfc::TileMeta>&
+        );
         AStarGrid(uint16_t, uint16_t);
 
         //Sets a Node to an Obstacle in A*
         void setObstacle(uint16_t, uint16_t);
 
         //Get The Node Grid's Size
-        uint16_t getSizeX();
-        uint16_t getSizeY();
+        uint16_t size();
 
         //Retrieves a Pointer to The Node
         Node* getNode(uint16_t, uint16_t);
@@ -97,7 +101,6 @@ class AStarGrid
         //Generates Biased Data Based On Two Given Input Nodes
         float heuristics(Node*, Node*);
 };
-
 /*
 struct item
 {
