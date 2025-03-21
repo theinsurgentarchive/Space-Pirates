@@ -6,9 +6,7 @@
 //This program is a game starting point for a 3350 project.
 //
 //
-#include "jlo.h"
-#include "balrowhany.h"
-#include "image.h"
+#include <chrono>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -18,8 +16,13 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+
+#include "image.h"
 #include "log.h"
 #include "fonts.h"
+
+#include "jlo.h"
+#include "balrowhany.h"
 #include "jsandoval.h"
 #define GAME_TITLE "Space Pirates"
 #define _TEXTURES "./textures"
@@ -235,50 +238,91 @@ void render();
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
-ecs::RenderSystem rs;
-ecs::PhysicsSystem ps;
-TextureLoader tl;
-
-std::unordered_map<std::string,std::shared_ptr<Animation>> animations;
+ecs::RenderSystem rs {ecs::ecs,60};
+ecs::PhysicsSystem ps {ecs::ecs,5};
+const World* world;
+const Camera* c;
+int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
+std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
 {
-    [[maybe_unused]]auto character = ecs::character_x(); 
+	
+    // [[maybe_unused]]auto character = ecs::character_x(); 
 
     // Initialize audio system
+	auto biome = selectBiome(30.0f,0.5f);
+	std::cout << biome.type << ' ' << biome.description << '\n';
     initAudioSystem();
     
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
 
     ptr = ecs::ecs.entity().checkout();
-    ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM>(ptr);
+    ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
+	
+	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	Camera camera {tc->pos,{gl.xres,gl.yres}};
+	c = &camera;
+	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
+	sc->ssheet = "skip";
+	sc->render_order = 15;
+	ssheets.insert({"skip",
+		std::make_shared<SpriteSheet>(
+			v2u {1,8},
+			v2u {32,32},
+			loadTexture("./resources/textures/skip.png", true)
+		)
+	});
 
-	auto e_ptr = ecs::ecs.entity().checkout();
-	while (e_ptr != nullptr) {
-		ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM>(e_ptr);
-		auto sc = ecs::ecs.component().fetch<SPRITE>(e_ptr);
-		sc->animation_key = "run";
-		auto tc = ecs::ecs.component().fetch<TRANSFORM>(e_ptr);
-		tc->pos = {static_cast<float>(rand() % 5001 - 2500), static_cast<float>(rand() % 5001 - 2500)};
-		e_ptr = ecs::ecs.entity().checkout();
+	ssheets.insert({"sand",
+		std::make_shared<SpriteSheet>(
+			v2u {1,1},
+			v2u {16,16},
+			loadTexture("./resources/textures/sand.webp",false)
+		)
+	});
+
+	ssheets.insert({"water",
+		std::make_shared<SpriteSheet>(
+			v2u {1,1},
+			v2u {16,16},
+			loadTexture("./resources/textures/water.webp",false)
+		)
+	});
+
+	ssheets.insert({"grass",
+		std::make_shared<SpriteSheet>(
+			v2u {1,1},
+			v2u {16,16},
+			loadTexture("./resources/textures/grass.webp",false)
+		)
+	});
+
+	Vec2<uint16_t> v {50,50};
+	std::unordered_map<std::string,wfc::TileMeta> tile_map;
+    tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
+    tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
+	tile_map.insert({"C",wfc::TileBuilder{0.3,"sand"}.omni("_").coefficient("C",3).omni("C").omni("A").build()});
+	std::unordered_set<std::string> tiles;
+	for (auto& pair : tile_map) {
+		tiles.insert(pair.first);
 	}
-	auto sprite = ecs::ecs.component().fetch<SPRITE>(ptr);
-	sprite->animation_key = "run";
-	textures.insert({"skip",tl.load("./resources/textures/skip.png",false)});
-	AnimationBuilder ab {};
-	animations.insert({"run",ab.setTextureKey("skip")
-		.setSpriteDimension({64,64})
-		.setFrameDimension({1,8})
-		.setFrameRange({Vec2<uint16_t>{0,0},Vec2<uint16_t>{1,8}}).build()});
-	logOpen();
+	wfc::Grid grid {v, tiles};
+	wfc::WaveFunction wf {grid,tile_map};
+	wf.run();
+	auto w = World{{0,0},grid,tile_map};
+	world = &w;
+	rs.sample();
+	ps.sample();
 	init_opengl();
+	logOpen();
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	int done = 0;
+	done = 0;
     while (!done) {
         while (x11.getXPending()) {
             XEvent e = x11.getXNextEvent();
@@ -291,12 +335,21 @@ int main()
         timeCopy(&timeStart, &timeCurrent);
         //clear screen just once at the beginning
         //glClear(GL_COLOR_BUFFER_BIT); 
-
+		auto current = std::chrono::high_resolution_clock::now();
+		// auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - rs.lastSampled());
+		// if (dur.count() >= rs.sample_delta) {
+		// 	rs.sample();
+		// }
+		auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - ps.lastSampled());
+		if (dur.count() >= ps.sample_delta) {
+			ps.sample();
+		}
         // Update audio system each frame
         getAudioManager()->update();
         ps.update((float) 1/20);
         render(); 
         x11.swapBuffers();
+        usleep(10000);
     }
     shutdownAudioSystem();
     cleanup_fonts();
@@ -326,7 +379,7 @@ void init_opengl(void)
 	initialize_fonts();
 
 	glGenTextures(1, &menuBackgroundTexture);
-	menuImage = new Image("./resources/textures/menu-bg.jpg");	
+	menuImage = new Image("./resources/textures/menu-bg.webp");	
 	//biship code 
 	glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -452,6 +505,9 @@ int check_keys(XEvent *e)
                 case XK_Down:
                     pc->vel = {0,-movement_mag};
                     break;
+				case XK_a:
+					done = 1;
+					break;
             }
         }
     }
@@ -471,10 +527,9 @@ void render() {
 	r.left = 100;
 	r.bot = gl.yres - 20;
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-		float cameraX = static_cast<float>(tc->pos[0]);
-		float cameraY = static_cast<float>(tc->pos[1]);
-		DINFOF("Camera Center: (%f, %f)", cameraX - gl.xres / 2, cameraY - gl.yres / 2);
-		glClear(GL_COLOR_BUFFER_BIT);
+	float cameraX = static_cast<float>(tc->pos[0]);
+	float cameraY = static_cast<float>(tc->pos[1]);
+	glClear(GL_COLOR_BUFFER_BIT);
 	switch(gl.state) {
 		case MENU:
 			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
@@ -485,7 +540,7 @@ void render() {
 		case PLAYING:
 			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
 			glPushMatrix();
-			glTranslatef(gl.xres / 2 - tc->pos[0], gl.yres / 2 - tc->pos[1], 0);  // Apply camera translation
+			c->update();
 			rs.update((float)1/10);
 			glPopMatrix();
 			break;
