@@ -34,7 +34,7 @@ AStarGrid::AStarGrid()
     initGrid();
 }
 
-AStarGrid::AStarGrid(Node** grid)
+AStarGrid::AStarGrid(std::vector<std::vector<Node>> grid)
 {
     //Set this.node_grid to The Passed Grid
     node_grid = grid;
