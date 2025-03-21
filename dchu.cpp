@@ -367,16 +367,16 @@ void Inventory::initStoreVolume(uint16_t x, uint16_t y)
 }
 
 //ECS: Inventory Management System
-namespace ecs
-{
-    InventorySystem::InventorySystem()
-    {
-
-    }
-
-    void InventorySystem::update([[maybe_unused]]float dt)
-    {
-
-    }
-}
+//namespace ecs
+//{
+//    InventorySystem::InventorySystem()
+//    {
+//
+//    }
+//
+//    void InventorySystem::update([[maybe_unused]]float dt)
+//    {
+//
+//    }
+//}
 */

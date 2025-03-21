@@ -131,13 +131,13 @@ class Inventory
 };
 
 //ECS: Inventory Management System
-namespace ecs
-{
-    class InventorySystem : public System
-    {
-        public:
-            InventorySystem();
-            void update(float dt) override;
-    };
-}
+//namespace ecs
+//{
+//    class InventorySystem : public System
+//    {
+//        public:
+//            InventorySystem();
+//            void update(float dt) override;
+//    };
+//}
 */
