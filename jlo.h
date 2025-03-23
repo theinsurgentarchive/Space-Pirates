@@ -1,5 +1,5 @@
 #pragma once
-#include "fonts.h"
+#include <chrono>
 #include <cstdint>
 #include <bitset>
 #include <memory>
@@ -9,9 +9,12 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <GL/glx.h>
+#include "fonts.h"
 
-#define MAX_COMPONENTS 32
-#define MAX_ENTITIES 1000
+#define _MAX_COMPONENTS 32
+#define MAX_ENTITIES 62501
+#define _MAX_TEMPERATURE 100.0f
+#define _MIN_TEMPERATURE -30.0f
 
 #define TRANSFORM ecs::Transform
 #define SPRITE ecs::Sprite
@@ -31,32 +34,56 @@
 #include <cstdio>
 #define DINFOF(fmt, ...) printf(_INFO(fmt), __VA_ARGS__),fflush(stdout)
 #define DWARNF(fmt, ...) printf(_WARN(fmt), __VA_ARGS__),fflush(stdout)
-#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__),fflush(stdout)
+#define DERRORF(fmt, ...) printf(_ERROR(fmt), __VA_ARGS__),fflush(stdout),exit(1)
 #define DINFO(str) std::cout << _INFO(str) << std::flush
 #define DWARN(str) std::cout << _WARN(str) << std::flush
-#define DERROR(str) std::cout << _ERROR(str) << std::flush
+#define DERROR(str) std::cout << _ERROR(str) << std::flush,exit(1)
 #else
 #define DINFOF(fmt, ...)
 #define DWARNF(fmt, ...)
 #define DERRORF(fmt, ...)
 #define DINFO(str)
 #define DWARN(str)
-#define DERORR(str)
+#define DERROR(str)
 #endif
 
-void show_jlo(Rect* r);
+enum BiomeType
+{
+    CHRISTMAS,
+    RAINFOREST,
+    SAVANNA,
+    FOREST,
+    GRASSLAND,
+    WOODLAND,
+    DESERT,
+    TAIGA,
+    TUNDRA,
+    ARCTIC_DESERT,
+    MEADOW,
+    WETLANDS,
+    HELL
+};
 
+enum Direction
+{
+    TOP,
+    BOTTOM,
+    LEFT,
+    RIGHT
+};
+
+struct Biome;
+struct SpriteSheet;
+struct Camera;
+class World;
 struct Texture;
 class TextureLoader;
 class Animation;
 class AnimationBuilder;
 
-template <typename T>
-class Vec2;
-
 namespace wfc
 {
-    struct Tile;
+    struct TileMeta;
     class TileBuilder;
     struct Cell;
     class Grid;
@@ -76,30 +103,11 @@ namespace ecs
     class ComponentManager;
     class EntityManager;
     class ECS;
+    template <typename... T>
     class System;
     class PhysicsSystem;
     class RenderSystem;
 }
-
-extern uint16_t counter;
-extern TextureLoader tl;
-template <class T>
-uint16_t getId()
-{
-    static int cid = counter++;
-    return cid;
-}
-
-typedef uint16_t eid_t;
-typedef std::bitset<MAX_COMPONENTS> cmask_t;
-
-enum Direction
-{
-    TOP,
-    BOTTOM,
-    LEFT,
-    RIGHT
-};
 
 template <typename T>
 class Vec2
@@ -116,103 +124,130 @@ class Vec2
         Vec2<T>& operator+=(const Vec2<T>& v);
 };
 
+using u16 = uint16_t;
+using u32 = uint32_t;
+using i32 = int32_t;
+using v2u = Vec2<u16>;
+using v2i = Vec2<i32>;
+using v2f = Vec2<float>;
+using cmask = std::bitset<_MAX_COMPONENTS>;
+using time_point = std::chrono::high_resolution_clock::time_point;
+
+void show_jlo(Rect* r);
+extern u16 counter;
+extern std::shared_ptr<Texture> loadTexture(const std::string&, bool);
+extern Biome selectBiome(float temperature, float humidity);
+
+template <class T>
+u16 getId()
+{
+    static int cid = counter++;
+    return cid;
+}
+
+struct Biome
+{
+    const BiomeType type;
+    const v2f temperature;
+    const v2f humidity;
+    const std::string description;
+    Biome(
+        BiomeType type, 
+        const v2f& temperature, 
+        const v2f& humidity, 
+        const std::string& description);
+};
+
+struct Camera
+{
+    v2f& pos;
+    const v2u dim;
+    Camera(v2f& pos, const v2u dim);
+    void move(v2f delta);
+    bool visible(v2f curr) const;
+    void update() const;
+};
+
 
 struct Texture
 {
-    Vec2<uint16_t> dim;
+    const v2u dim;
     bool alpha {false};
     std::shared_ptr<GLuint> tex;
-    Texture(const Vec2<uint16_t>& dim, bool alpha);
+    Texture(const v2u& dim, bool alpha);
 };
 
-class TextureLoader
+struct SpriteSheet
 {
-    public:
-        std::shared_ptr<Texture> load(const std::string&, bool);
+    const v2u frame_dim;
+    const v2u sprite_dim;
+    std::shared_ptr<Texture> tex;
+    SpriteSheet(
+        const v2u& frame_dim, 
+        const v2u& sprite_dim, 
+        const std::shared_ptr<Texture> tex);
+    void render(u16 frame, v2f pos);
+    void render(u16 frame, v2f pos, v2f scale);
 };
 
-class Animation
-{
-    private:
-        std::string _texture_key;
-        Vec2<uint16_t> _sprite_dim;
-        Vec2<uint16_t> _frame_dim;
-        std::array<Vec2<uint16_t>,2> _frame_range;
-        uint16_t _frame {0};
-    public:
-        Animation(const std::string& texture_key,
-            const Vec2<uint16_t>& sprite_dim,
-            const Vec2<uint16_t>& frame_dim,
-            const std::array<Vec2<uint16_t>,2>& frame_range);
-        Animation& operator+(int value);
-        Animation& operator-(int value);
-        Animation& operator++();
-        Animation& operator=(uint16_t frame);
-        uint16_t getFrame() const;
-        uint16_t getMaxFrames() const;
-        std::string getTextureKey() const;
-        Vec2<uint16_t> getSpriteDim() const;
-        Vec2<uint16_t> getFrameDim() const;
-};
-
-class AnimationBuilder
+class World
 {
     private:
-        std::string _texture_key;
-        Vec2<uint16_t> _sprite_dim;
-        Vec2<uint16_t> _frame_dim;
-        std::array<Vec2<uint16_t>,2> _frame_range;
+        std::vector<std::vector<ecs::Entity*>> _grid;
     public:
-        AnimationBuilder& setTextureKey(
-                const std::string& texture_key);
-        AnimationBuilder& setSpriteDimension(
-                const Vec2<uint16_t>& sprite_dim);
-        AnimationBuilder& setFrameDimension(
-                const Vec2<uint16_t>& frame_dim);
-        AnimationBuilder& setFrameRange(
-                const std::array<Vec2<uint16_t>,2>& frame_range);
-        std::shared_ptr<Animation> build();
+        std::vector<std::vector<ecs::Entity*>>& tiles();
+        ~World();
+        World(
+            const v2f& origin, wfc::Grid& grid,
+            std::unordered_map<std::string,wfc::TileMeta>& tiles);
 };
 
 namespace wfc
 {
-    struct Tile
+    struct TileMeta
     {
         float weight;
+        std::string ssheet;
         std::array<std::unordered_set<std::string>, 4> rules;
         std::unordered_map<std::string,float> coefficients;
-        Tile(
-                float weight, 
-                std::array<std::unordered_set<std::string>,4>& rules, 
-                std::unordered_map<std::string,
-                float>& coefficients);
+        TileMeta(
+            float weight, 
+            std::string ssheet,
+            std::array<std::unordered_set<std::string>,4>& rules, 
+            std::unordered_map<std::string,
+            float>& coefficients);
+>>>>>>> origin/main
     };
 
     class TileBuilder
     {
         private:
             float _weight;
+            std::string _ssheet;
             std::array<std::unordered_set<std::string>,4> _rules;
             std::unordered_map<std::string,float> _coefficients;
         public:
-            TileBuilder& weight(float weight);
+            TileBuilder(float weight, const std::string& ssheet);
             TileBuilder& rule(
-                    int dir, 
-                    const std::string& tile);
+                int dir, 
+                const std::string& tile);
             TileBuilder& omni(const std::string& tile);
             TileBuilder& coefficient(
-                    const std::string& tile, 
-                    float weight);
-            Tile build();
+                const std::string& tile, 
+                float weight);
+            TileMeta build();
+>>>>>>> origin/main
     };
 
     struct Cell 
     {
-        Vec2<int32_t> pos;
+        v2i pos;
         std::unordered_set<std::string> states;
         std::string state;
-        Cell(const Vec2<int32_t>& pos, const std::unordered_set<std::string>& states);
-        uint16_t entropy() const;
+        Cell(
+            const v2i& pos, 
+            const std::unordered_set<std::string>& states);
+        u16 entropy() const;
         bool collapsed() const;
     };
 
@@ -220,12 +255,15 @@ namespace wfc
     {
         private:
             std::vector<std::vector<Cell>> _cells;
-            Vec2<uint16_t> _size;
+            v2u _size;
         public:
-            Grid(Vec2<uint16_t> size, const std::unordered_set<std::string>& states);
-            Vec2<uint16_t> size() const;
-            Cell* get(Vec2<int32_t> pos);
-            std::vector<std::vector<Cell>>& getCells();
+            Grid(
+                v2u size, 
+                const std::unordered_set<std::string>& states);
+            v2u size() const;
+            Cell* get(v2i pos);
+            std::vector<std::vector<Cell>>& cells();
+>>>>>>> origin/main
             bool collapsed();
             void print();
     };
@@ -234,9 +272,9 @@ namespace wfc
     {
         private:
             std::vector<Cell*> _queue;
-            void _swap(uint16_t i1, uint16_t i2);
-            void _bubbleUp(uint16_t idx);
-            void _bubbleDown(uint16_t idx);
+            void _swap(u16 i1, u16 i2);
+            void _bubbleUp(u16 idx);
+            void _bubbleDown(u16 idx);
         public:
             TilePriorityQueue(Grid& grid);
             void insert(Cell* cell);
@@ -248,13 +286,15 @@ namespace wfc
     {
         private:
             Grid& _grid;
-            std::unordered_map<std::string,Tile>& _tiles;
+            std::unordered_map<std::string,TileMeta>& _tiles;
             TilePriorityQueue _queue;
-            float _calculateTileWeight(const Vec2<int32_t>& pos, const Tile& tile);
+            float _calculateTileWeight(const v2i& pos, const TileMeta& meta);
             void _collapse(Cell* c);
             void _propagate(Cell* c);
         public:
-            WaveFunction(Grid& grid, std::unordered_map<std::string,Tile>& tiles);
+            WaveFunction(
+                Grid& grid, 
+                std::unordered_map<std::string,TileMeta>& tiles);
             void run();
     };
 }
@@ -266,21 +306,22 @@ namespace ecs
 
     struct Planet
     {
-
+        float temperature;
+        float humidity;
     };
 
     struct Physics
     {
-        Vec2<float> vel;
-        Vec2<float> acc;
+        v2f vel;
+        v2f acc;
         float mass;
         bool enabled {true};
     };
 
     struct Transform
     {
-        Vec2<float> pos;
-        Vec2<float> scale;
+        v2f pos;
+        v2f scale {1,1};
         float rotation;
     };
 
@@ -292,26 +333,28 @@ namespace ecs
 
     struct Sprite
     {
-        std::string animation_key;
+        std::string ssheet;
+        u16 frame;
+        u16 render_order {0};
         bool invertY {false};
     };
 
     struct Entity
     {
-        eid_t id;
-        cmask_t mask;
-        Entity(eid_t i, cmask_t m);
+        u32 id;
+        mutable cmask mask;
+        Entity(u32 i, cmask m);
     };
 
     class ComponentPool
     {
         private:
             std::unique_ptr<char[]> _ptr_data;
-            uint16_t _size;
+            u32 _size;
         public:
-            ComponentPool(uint16_t s);
-            uint16_t size() const;
-            void* get(uint16_t idx);
+            ComponentPool(u32 size);
+            u32 size() const;
+            void* get(u16 idx);
     };
 
     class ComponentManager
@@ -328,10 +371,10 @@ namespace ecs
                 @returns a pointer to <T>
             */
             template <typename T>
-            T* assign(Entity* e_ptr);
+            T* assign(const Entity* e_ptr);
             
             template <typename... T>
-            void bulkAssign(Entity* e_ptr);
+            void bulkAssign(const Entity* e_ptr);
 
             /*
                 Retrieves a component <T> assigned to the entity;
@@ -342,7 +385,7 @@ namespace ecs
                 @returns a pointer to <T>
             */
             template <typename T>
-            T* fetch(Entity* e_ptr);
+            T* fetch(const Entity* e_ptr);
 
             /*
                 Checks whether the entity has 
@@ -351,7 +394,7 @@ namespace ecs
                 @returns a bool of whether the entity has all components
             */
             template <typename... T>
-            bool has(Entity* e_ptr);
+            bool has(const Entity* e_ptr) const;
     };
 
     class EntityManager
@@ -365,11 +408,11 @@ namespace ecs
                 after the constructor is called.
         */
         private:
-            uint16_t _max_entities;
-            std::deque<eid_t> _free;
+            u32 _max_entities;
+            std::deque<u32> _free;
         public:
             std::vector<Entity> entities;
-            EntityManager(uint16_t max_entities);
+            EntityManager(u32 max_entities);
 
             /*
                 Checks out an entity from the system.
@@ -397,8 +440,9 @@ namespace ecs
                 Entity ID = 1;
                 Mask = 0...000
             */
-            void ret(Entity*& e_ptr);
-            uint16_t maxEntities() const;
+            void ret(Entity* e_ptr);
+            u32 maxEntities() const;
+            
     };
 
     class ECS
@@ -411,34 +455,38 @@ namespace ecs
             EntityManager& entity();
             ComponentManager& component();
             template <typename... T>
-            std::vector<Entity*> query();
+            std::vector<const Entity*> query() const;
     };
 
+    template <typename... T>
     class System
     {
-        //TODO: improve this by adding sampling frequency
         private:
-            float _sample_frequency;
+            time_point _last_sampled;
+        protected:
+            ECS& _ecs;
+            std::vector<const Entity*> _entities;
         public:
+            const float sample_delta;
+            System(ECS& ecs, float sample_delta);
             virtual void update(float dt);
+            time_point& lastSampled();
+            virtual void sample();
     };
 
-    class PhysicsSystem : public System
+    class PhysicsSystem : public System<Transform,Physics>
     {
         public:
+            PhysicsSystem(ECS& ecs, float sample_delta);
             void update(float dt) override;
     };
 
-    class PlanetPhysicsSystem : public System
+    class RenderSystem : public System<Transform,Sprite>
     {
         public:
+            RenderSystem(ECS& ecs, float sample_delta);
             void update(float dt) override;
-    };
-
-    class RenderSystem : public System
-    {
-        public:
-            void update(float dt) override;
+            void sample() override;
     };
 }
 #include "jlo.tpp"

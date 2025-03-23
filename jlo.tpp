@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <chrono>
 #include "jlo.h"
 
 template <typename T>
@@ -49,19 +50,19 @@ Vec2<T>& Vec2<T>::operator+=(const Vec2<T>& v)
 namespace ecs
 {
     template <typename T>
-    T* ComponentManager::assign(Entity *e_ptr)
+    T* ComponentManager::assign(const Entity *e_ptr)
     {
         if (e_ptr == nullptr)
             return nullptr;
-        uint16_t cid = getId<T>();
+        auto cid = getId<T>();
         DINFOF("component (%d) -> entity (%p | %d)\n",cid,e_ptr,e_ptr->id);
         if (e_ptr->mask.test(cid)) {
             DINFOF("reassignment for component (%d) to entity (%d), returning null\n",cid, e_ptr->id);
             return nullptr;
         }
         if (cid >= _pools.size()) {
-            uint16_t n = _pools.size() + 1;
-            DINFOF("expanded component pools to: %d -> %d\n", static_cast<uint16_t>(_pools.size()), n);
+            u32 n = _pools.size() + 1;
+            DINFOF("expanded component pools to: %d -> %d\n", static_cast<u32>(_pools.size()), n);
             _pools.resize(n);
         }
         if (_pools[cid] == nullptr) {
@@ -70,13 +71,13 @@ namespace ecs
         }
         void *mem = _pools[cid]->get(e_ptr->id);
         DINFOF("creating new component (%d) at (%p)\n", cid, mem);
-        T *ptr_component = new (mem) T();
+        auto *ptr_component = new (mem) T();
         e_ptr->mask.set(cid);
         return ptr_component;
     }
 
     template <typename T>
-    void bulkAssignHelper(Entity* e_ptr, T)
+    void bulkAssignHelper(const Entity* e_ptr, T)
     {
         if (e_ptr == nullptr) {
             DWARN("entity pointer was null\n");
@@ -85,20 +86,20 @@ namespace ecs
         ecs::ecs.component().assign<T>(e_ptr);
     }
     template <typename T, typename... Ts>
-    void bulkAssignHelper(Entity* e_ptr, T, Ts... ts)
+    void bulkAssignHelper(const Entity* e_ptr, T, Ts... ts)
     {
         bulkAssignHelper(e_ptr,T());
         bulkAssignHelper(e_ptr,ts...);
     }
 
     template <typename... T>
-    void ComponentManager::bulkAssign(Entity* e_ptr)
+    void ComponentManager::bulkAssign(const Entity* e_ptr)
     {
         bulkAssignHelper(e_ptr,T()...);
     }
 
     template <typename T>
-    T* ComponentManager::fetch(Entity *e_ptr)
+    T* ComponentManager::fetch(const Entity *e_ptr)
     {
         if (e_ptr == nullptr) {
             DWARN("entity pointer was null\n");
@@ -115,7 +116,7 @@ namespace ecs
 
 
     template <typename T>
-    bool hasHelper(Entity* e_ptr, T)
+    bool hasHelper(const Entity* e_ptr, T)
     {
         if (e_ptr == nullptr) {
             DWARN("entity pointer was null\n");
@@ -126,21 +127,21 @@ namespace ecs
     }
 
     template <typename T, typename... Ts>
-    bool hasHelper(Entity* e_ptr, T, Ts ... ts)
+    bool hasHelper(const Entity* e_ptr, T, Ts ... ts)
     {
         return hasHelper(e_ptr,T()) && hasHelper(e_ptr,ts...);
     }
 
     template <typename... T>
-    bool ComponentManager::has(Entity *e_ptr)
+    bool ComponentManager::has(const Entity *e_ptr) const
     {
         return hasHelper(e_ptr,T()...);
     }      
 
     template <typename... T>
-    std::vector<Entity*> ECS::query()
+    std::vector<const Entity*> ECS::query() const
     {
-        std::vector<Entity*> entities;
+        std::vector<const Entity*> entities;
         for (auto& ptr : _entity_manager.entities) {
             if (_component_manager.has<T...>(&ptr)) {
                 DINFOF("entity (%d) matched query\n",ptr.id);
@@ -148,5 +149,38 @@ namespace ecs
             }
         }
         return entities;
-    }     
+    }   
+    
+    template <typename... T>
+    void System<T...>::update([[maybe_unused]] float dt)
+    {
+        
+    }
+
+    template <typename... T>
+    System<T...>::System(
+        ECS& ecs, 
+        float sample_delta) 
+        : 
+        _ecs{ecs},
+        sample_delta{sample_delta}
+    {
+        sample();
+    }
+
+    template <typename... T>
+    time_point& System<T...>::lastSampled()
+    {
+        return _last_sampled;
+    }
+
+    template <typename... T>
+    void System<T...>::sample()
+    {
+        _entities = _ecs.query<T...>();
+        _last_sampled = std::chrono::high_resolution_clock::now();
+    }
+
+
 }
+>>>>>>> origin/main

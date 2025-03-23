@@ -3,7 +3,8 @@
 #include "image.h"
 #include "jlo.h"
 Image::~Image()=default;
-Image::Image(const std::string& file_name) {
+Image::Image(const std::string& file_name) 
+{
     if (file_name.empty())
         return;
     int adjusted_len = file_name.length() - 4;
