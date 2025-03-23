@@ -64,7 +64,6 @@ void EnableFor3D(){
     glEnable(GL_LIGHTING);
 }
 void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float planetPosZ, GLfloat* lightPosition, GLuint planetTexture, float size, float rotationX, float rotationY) {
-
     static int firsttime = 1;
     // 16 longitude lines, 9 latitude levels, 3 values each: x, y, z.
     int i, j, i2, j2, j3;
