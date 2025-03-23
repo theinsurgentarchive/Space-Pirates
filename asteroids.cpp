@@ -105,9 +105,11 @@ public:
 }; 
 Global gl;
 GLuint menuBackgroundTexture;
-GLuint planetTexture;  
+GLuint planetTexture;
+GLuint planet2Texture;   
 Image *menuImage = NULL;
-Image *planetImage; 
+Image *planetImage;
+Image *planet2Image; 
 
 class Game {
 public:
@@ -366,8 +368,7 @@ int main()
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
-        //clear screen just once at the beginning
-        //glClear(GL_COLOR_BUFFER_BIT); 
+
 		auto current = std::chrono::high_resolution_clock::now();
 		// auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - rs.lastSampled());
 		// if (dur.count() >= rs.sample_delta) {
@@ -377,6 +378,9 @@ int main()
 		if (dur.count() >= ps.sample_delta) {
 			ps.sample();
 		}
+		//clear screen just once at the beginning
+        glClear(GL_COLOR_BUFFER_BIT); 
+
         // Update audio system each frame
         getAudioManager()->update();
         ps.update((float) 1/20);
@@ -393,38 +397,22 @@ int main()
 GLuint tex;
 void init_opengl(void)
 {
-	//jc
-	//OpenGL initialization
 	glViewport(0, 0, gl.xres, gl.yres);
-	//Initialize matrices
-	glMatrixMode(GL_PROJECTION); glLoadIdentity();
-	glMatrixMode(GL_MODELVIEW); glLoadIdentity();
-	//This sets 2D mode (no perspective)
-	glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
-	//
-	glDisable(GL_LIGHTING);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_FOG);
-	glDisable(GL_CULL_FACE);
-	//
-	//Clear the screen to black
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-	//Do this to allow fonts
+	glClearColor(1.0, 0.0, 0.0, 1.0);
 	glEnable(GL_TEXTURE_2D);
-
-	//jc 
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	
 	glClearDepth(1.0);
 	glDepthFunc(GL_LESS);
 	//wen enabled, buttons arent shown (glEnable)
 	glEnable(GL_DEPTH_TEST);
 	glShadeModel(GL_SMOOTH);
-	glMatrixMode(GL_PROJECTION);
+	
+	// glMatrixMode(GL_PROJECTION);
 	
 			// glLoadIdentity();
 	//JC when gluPerspective enable screen breaks for menu 
-	gluPerspective(45.0f,(GLfloat)gl.xres/(GLfloat)gl.yres,0.1f,100.0f);
-	glMatrixMode(GL_MODELVIEW);
+	//gluPerspective(45.0f,(GLfloat)gl.xres/(GLfloat)gl.yres,0.1f,100.0f);
+	// glMatrixMode(GL_MODELVIEW);
 					//glLoadIdentity();
 					//gluLookAt(0,5,10,  0,0,0,  0,1,0);
 					//Enable this so material colors are the same as vert colors.
@@ -454,6 +442,15 @@ void init_opengl(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, planetImage->width, planetImage->height, 0,
 				GL_RGB, GL_UNSIGNED_BYTE, planetImage->data.get());
+
+	glGenTextures(1, &planet2Texture);
+	planet2Image = new Image("./resources/textures/planet.gif");	
+	//biship code 
+	glBindTexture(GL_TEXTURE_2D, planet2Texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, planet2Image->width, planet2Image->height, 0,
+				GL_RGB, GL_UNSIGNED_BYTE, planet2Image->data.get());
 
 	initialize_fonts();
 
@@ -609,18 +606,54 @@ void render() {
 
 	switch(gl.state) {
 		case MENU:
-			//render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
-			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]-4, gl.planetPos[1], gl.planetPos[2], gl.lightPosition, planetTexture);
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+
+			glMatrixMode(GL_MODELVIEW); 
+			glPushMatrix(); glLoadIdentity();
+
+			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
+			
 			glPopMatrix();
+            glMatrixMode(GL_PROJECTION);
+            glPopMatrix();
+
+			std::cout << "Light Position: (" 
+			<< gl.lightPosition[0] << ", " 
+			<< gl.lightPosition[1] << ", " 
+			<< gl.lightPosition[2] << ", " 
+			<< gl.lightPosition[3] << ")" << std::endl;
+
+
+			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+4, gl.planetPos[1], gl.planetPos[2], gl.lightPosition, planetTexture);
+			glLoadIdentity();
+			gluPerspective(45.0f, (GLfloat)gl.xres / (GLfloat)gl.yres, 0.1f, 100.0f);
+			
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+
+			glPushMatrix();
+			DrawPlanet(gl.planetAng[2], gl.planetPos[0]-4.5, gl.planetPos[1]-3, gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1);
 			glPopMatrix();
+
+			glPushMatrix();
+			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+5.5, gl.planetPos[1], gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 0, 1);
+			glPopMatrix();
+
+			glPopMatrix();
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix();
+
 			break;
 		case CONTROLS:
 			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
 			break;
 		case PLAYING:
+			DisableFor2D();
 			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
 			glPushMatrix();
 			c->update();

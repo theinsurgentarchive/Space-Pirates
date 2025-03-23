@@ -27,4 +27,7 @@ class Planet {
     void setPlanetAngle(float angle);
 };
 
-void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float planetPosZ, GLfloat* lightPosition, GLuint planetTexture);
+void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float planetPosZ, GLfloat* lightPosition, GLuint planetTexture, float size, float rotationX, float rotationY);
+
+void DisableFor2D();
+void EnableFor3D();
