@@ -8,3 +8,5 @@ struct Image {
 	~Image();
 	Image(const std::string& file_name);
 };
+//end - gordon
+

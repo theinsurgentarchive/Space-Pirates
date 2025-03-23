@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <GL/glx.h>
-
 #include "fonts.h"
 
 #define _MAX_COMPONENTS 32

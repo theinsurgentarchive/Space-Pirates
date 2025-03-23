@@ -3,6 +3,7 @@
 #include <X11/keysym.h>
 #include "balrowhany.h"
 #include "mchitorog.h"
+#include "jsandoval.h"
 //#include <GL/glx.h>
 
 using namespace std;
@@ -61,6 +62,8 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
 
 
 void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, int selected_option){
+    DisableFor2D();
+
     glPushMatrix();
         glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
         glColor3f(1.0f, 1.0f, 1.0f);
@@ -96,12 +99,17 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, int se
             ggprint17(&r, 40, color, options[i]);
         }
 
-
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    
+    EnableFor3D();
 }; 
 
 
 void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
-    glPushMatrix();
+    DisableFor2D();
     //  controls screen bg
     glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -112,7 +120,6 @@ void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
         glTexCoord2f(1.0f, 1.0f); glVertex2i(xres, 0);
     glEnd();
     glBindTexture(GL_TEXTURE_2D, 0);
-    glPopMatrix();
 
     // controls 
     Rect r;
@@ -126,4 +133,6 @@ void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
     ggprint17(&r, 30, 0x00ffffff, "SPACE - tbd");
     ggprint17(&r, 30, 0x00ffffff, "E - interact");
     ggprint17(&r, 30, 0x00ffffff, "ESC - exit/menu");
+
+    EnableFor3D();
 };

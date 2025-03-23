@@ -338,7 +338,7 @@ namespace wfc
     {
         return !state.empty();
     }
-    
+
     Grid::Grid(
         Vec2<u16> size, 
         const std::unordered_set<std::string>& states)
@@ -729,7 +729,7 @@ namespace ecs
                         ec->ssheet.c_str());
                 continue;
             }
-
+            
             if (ssheet->tex == nullptr) {
                 continue;
             }

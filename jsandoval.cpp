@@ -53,8 +53,17 @@ Entity* character_x()
     return x;
 }
 }
-void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float planetPosZ, GLfloat* lightPosition, GLuint planetTexture) {
-
+void DisableFor2D(){
+    glDisable(GL_LIGHTING);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_FOG);
+	glDisable(GL_CULL_FACE);
+}
+void EnableFor3D(){
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+}
+void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float planetPosZ, GLfloat* lightPosition, GLuint planetTexture, float size, float rotationX, float rotationY) {
     static int firsttime = 1;
     // 16 longitude lines, 9 latitude levels, 3 values each: x, y, z.
     int i, j, i2, j2, j3;
@@ -91,19 +100,16 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float plan
         }
     }
     
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    glLoadIdentity();
-    // Set up the camera
-    gluLookAt(0,5,-4,  0,0,-7,  0,1,0);
+
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
 
     glPushMatrix();
     //glTranslatef(0.0,0.0,-5.0f);
-    glTranslatef(planetPosX, planetPosY, planetPosZ);
+    glTranslatef(planetPosX, planetPosY-5, planetPosZ);
     // Scale the ball (this controls its size)
-    glScalef(0.5f, 0.5f, 0.5f);
+    glScalef(size, size, size);
     // Rotate the ball around the z-axis
-    glRotatef(planetAngY, 0.0f, 0.0f, 1.0f);
+    glRotatef(planetAngY, rotationX, rotationY, 0.0f);
     glColor3f(1.0, 1.0, 1.0);
     //glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, planetTexture);
@@ -128,12 +134,13 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float plan
     glBindTexture(GL_TEXTURE_2D, 0);
     glPopMatrix();
 
+    //This adds shadow
     glPushMatrix();
 
     glTranslatef(planetPosX, 0.0, planetPosZ);
 
     //glDisable(GL_TEXTURE_2D);
-    //glPushAttrib(GL_ENABLE_BIT);
+    glPushAttrib(GL_ENABLE_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glColor4ub(0,0,0,80);
@@ -153,8 +160,8 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, float plan
         }
     }
     glEnd();
-    //glPopAttrib();
-    glDisable (GL_BLEND);
+    glPopAttrib();
+    //glDisable (GL_BLEND);
     glPopMatrix();
     
     }
