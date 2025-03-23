@@ -216,7 +216,6 @@ namespace wfc
             std::array<std::unordered_set<std::string>,4>& rules, 
             std::unordered_map<std::string,
             float>& coefficients);
->>>>>>> origin/main
     };
 
     class TileBuilder
@@ -236,7 +235,6 @@ namespace wfc
                 const std::string& tile, 
                 float weight);
             TileMeta build();
->>>>>>> origin/main
     };
 
     struct Cell 
@@ -263,7 +261,6 @@ namespace wfc
             v2u size() const;
             Cell* get(v2i pos);
             std::vector<std::vector<Cell>>& cells();
->>>>>>> origin/main
             bool collapsed();
             void print();
     };

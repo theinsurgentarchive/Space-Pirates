@@ -57,7 +57,6 @@ std::vector<std::string> img_extensions {".webp",".png",".jpeg",".jpg",".gif"};
 std::random_device rd;
 std::mt19937 generator(rd());
 v2i dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
-
 Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
 extern std::unordered_map<
     std::string,
@@ -99,7 +98,6 @@ std::shared_ptr<Texture> loadTexture(
     glBindTexture(GL_TEXTURE_2D,*tex->tex);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-
     glTexImage2D(
         GL_TEXTURE_2D, 
         0, 
@@ -276,7 +274,6 @@ World::World(
 
 namespace wfc
 {
-
     TileMeta::TileMeta(
         float weight, 
         std::string ssheet,
@@ -288,7 +285,6 @@ namespace wfc
         rules{rules}, 
         coefficients{coefficients} 
     {        
-
     }
 
     TileBuilder::TileBuilder(
@@ -301,7 +297,6 @@ namespace wfc
     }
 
     TileBuilder& TileBuilder::rule(int dir, const std::string& tile)
-
     {
         _rules[dir].insert(tile);
         return *this;
@@ -326,7 +321,6 @@ namespace wfc
     }
 
     Cell::Cell(
-
         const v2i& pos, 
         const std::unordered_set<std::string>& states) 
         : 
@@ -345,11 +339,6 @@ namespace wfc
         return !state.empty();
     }
 
-    bool Cell::collapsed() const
-    {
-        return !state.empty();
-    }
-    
     Grid::Grid(
         Vec2<u16> size, 
         const std::unordered_set<std::string>& states)
@@ -361,9 +350,7 @@ namespace wfc
             auto& row = _cells[i];
             row.reserve(size[0]);
             for (int j {0}; j < size[0]; j++) {
-
                 row.emplace_back(v2i(j,i),states);
-
             }
         }
     }
@@ -742,7 +729,7 @@ namespace ecs
                         ec->ssheet.c_str());
                 continue;
             }
-
+            
             if (ssheet->tex == nullptr) {
                 continue;
             }

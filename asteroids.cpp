@@ -83,7 +83,7 @@ public:
 		mouse_cursor_on = 1;
 
 		//planet shadow
-		GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
+		//GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
 		GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
 		GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
 
@@ -277,7 +277,6 @@ ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
 const Camera* c;
 int done;
->>>>>>> origin/main
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
@@ -398,7 +397,7 @@ GLuint tex;
 void init_opengl(void)
 {
 	glViewport(0, 0, gl.xres, gl.yres);
-	glClearColor(1.0, 0.0, 0.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glEnable(GL_TEXTURE_2D);
 	
 	glClearDepth(1.0);
