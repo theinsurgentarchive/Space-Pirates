@@ -63,13 +63,13 @@ class AStar
         std::vector<std::vector<Node>> node_grid;
 
         //Constructor
-        AStarGrid();
-        AStarGrid(
+        AStar();
+        AStar(
             const v2f&,
             wfc::Grid&,
             std::unordered_map<std::string,wfc::TileMeta>&
         );
-        AStarGrid(uint16_t, uint16_t);
+        AStar(uint16_t, uint16_t);
 
         //Sets a Node to an Obstacle in A*
         void setObstacle(uint16_t, uint16_t);
