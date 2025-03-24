@@ -29,30 +29,36 @@ AStar::AStar()
     //Initialize Variables
     grid_size[0] = 10;
     grid_size[1] = 10;
+    world_origin_pos[0] = 0.0f;
+    world_origin_pos[1] = 0.0f;
 
     //Initialize Grid Nodes
     initGrid();
 }
 
-AStar::AStar(
-    const v2f& origin,
-    wfc::Grid& grid,
-    std::unordered_map<std::string,wfc::TileMeta>& tiles
-)
+AStar::AStar(const v2f& origin, World& grid, v2u tile_dim)
 {
-    const auto grid_size = grid.size();
-    node_grid.resize(grid.size);
-    v2u dim = ssheet->second->sprite_dim;
-    v2u node_dim = dim/
-
-    for (uint16_t i; i < grid_size[0]; i++) {
-        for (uint16_t j = 0; j < grid_size[1]; j++) {
-            
-        }
-        
+    //Initialize Variables
+    v2u grid_size;
+    grid_size[0] = grid.tiles().size();
+    grid_size[1] = grid.tiles()[0].size();
+    node_grid.resize(grid_size[0]);
+    for (uint16_t i = 0; i < node_grid.size(); i++) {
+        node_grid[0].resize(grid_size[1]);
     }
-}
+    auto tiles = grid.tiles();
+    v2u node_dim;
+    node_dim[0] = tile_dim[0] / 4;
+    node_dim[1] = tile_dim[1] / 4;
+    world_origin_pos[0] = origin[0];
+    world_origin_pos[1] = origin[1];
 
+    //Initialize Grid Nodes
+    initGrid();
+
+    //Generate Nodes If The Current Position Has a Tile
+    
+}
 AStar::AStar(uint16_t x_size, uint16_t y_size)
 {
     //Initalize Variables

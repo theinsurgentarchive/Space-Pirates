@@ -57,25 +57,23 @@ class AStar
     private:
         //AStar's X & Y Axis Size
         v2u grid_size;
-        v2f world_pos
+
+        //The Position in The World that The Grid is Generated From.
+        v2f world_origin_pos;
     public:
         //Dynamic Node Grid
         std::vector<std::vector<Node>> node_grid;
 
         //Constructor
         AStar();
-        AStar(
-            const v2f&,
-            wfc::Grid&,
-            std::unordered_map<std::string,wfc::TileMeta>&
-        );
+        AStar(const v2f&, World&, v2u);
         AStar(uint16_t, uint16_t);
 
         //Sets a Node to an Obstacle in A*
         void setObstacle(uint16_t, uint16_t);
 
         //Get The Node Grid's Size
-        uint16_t size();
+        v2u size();
 
         //Retrieves a Pointer to The Node
         Node* getNode(uint16_t, uint16_t);
