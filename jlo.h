@@ -77,9 +77,6 @@ struct SpriteSheet;
 struct Camera;
 class World;
 struct Texture;
-class TextureLoader;
-class Animation;
-class AnimationBuilder;
 
 namespace wfc
 {
@@ -135,6 +132,8 @@ using time_point = std::chrono::high_resolution_clock::time_point;
 
 void show_jlo(Rect* r);
 extern u16 counter;
+extern void loadTextures(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets);
 extern std::shared_ptr<Texture> loadTexture(const std::string&, bool);
 extern Biome selectBiome(float temperature, float humidity);
 
@@ -182,17 +181,37 @@ struct SpriteSheet
     const v2u frame_dim;
     const v2u sprite_dim;
     std::shared_ptr<Texture> tex;
+    bool animated;
     SpriteSheet(
         const v2u& frame_dim, 
         const v2u& sprite_dim, 
-        const std::shared_ptr<Texture> tex);
-    void render(u16 frame, v2f pos);
-    void render(u16 frame, v2f pos, v2f scale);
+        const std::shared_ptr<Texture> tex,
+        bool animated=false);
+    u16 maxFrames() const;
+    void render(u16 frame, v2f pos, v2f scale, bool invertY);
+};
+
+class SpriteSheetLoader
+{
+    public:
+        SpriteSheetLoader(std::unordered_map<
+            std::string,
+            std::shared_ptr<SpriteSheet>>& ssheets);
+        SpriteSheetLoader& loadStatic(
+            const std::string& key,
+            const std::shared_ptr<Texture>& tex,
+            const v2u& frame_dim = v2u{1,1},
+            const v2u& sprite_dim = v2u{0,0},
+            bool animated=false
+        );
+    private:
+        std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets_;
 };
 
 class World
 {
     private:
+        std::vector<std::vector<ecs::Entity*>> decoration_;
         std::vector<std::vector<ecs::Entity*>> _grid;
     public:
         std::vector<std::vector<ecs::Entity*>>& tiles();
@@ -252,17 +271,16 @@ namespace wfc
     class Grid 
     {
         private:
-            std::vector<std::vector<Cell>> _cells;
-            v2u _size;
+            std::vector<Cell> cells_;
+            v2u size_;
         public:
             Grid(
                 v2u size, 
                 const std::unordered_set<std::string>& states);
             v2u size() const;
             Cell* get(v2i pos);
-            std::vector<std::vector<Cell>>& cells();
+            std::vector<Cell>& cells();
             bool collapsed();
-            void print();
     };
 
     class TilePriorityQueue
@@ -305,6 +323,7 @@ namespace ecs
     {
         float temperature;
         float humidity;
+        float roughness;
     };
 
     struct Physics
@@ -333,7 +352,7 @@ namespace ecs
         std::string ssheet;
         u16 frame;
         u16 render_order {0};
-        bool invertY {false};
+        bool invert_y {false};
     };
 
     struct Entity
