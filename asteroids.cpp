@@ -313,8 +313,8 @@ int main()
 	wfc::Grid grid {v, tiles};
 	wfc::WaveFunction wf {grid,tile_map};
 	wf.run();
-	auto as = AStar({0,0}, grid, tile_map);
 	auto w = World{{0,0},grid,tile_map};
+	auto as = AStar(w, {16,16});
 	world = &w;
 	a_star = &as;
 	rs.sample();

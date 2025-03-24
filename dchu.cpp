@@ -36,7 +36,7 @@ AStar::AStar()
     initGrid();
 }
 
-AStar::AStar(const v2f& origin, World& grid, v2u tile_dim)
+AStar::AStar(World& grid, v2u tile_dim)
 {
     //Initialize Variables
     v2u grid_size;
@@ -50,14 +50,39 @@ AStar::AStar(const v2f& origin, World& grid, v2u tile_dim)
     v2u node_dim;
     node_dim[0] = tile_dim[0] / 4;
     node_dim[1] = tile_dim[1] / 4;
-    world_origin_pos[0] = origin[0];
-    world_origin_pos[1] = origin[1];
 
     //Initialize Grid Nodes
     initGrid();
 
-    //Generate Nodes If The Current Position Has a Tile
-    
+    //Set Each Node to an Obstacle if there is either no Tile or
+    //The Tile is a Water Tile in The Current Position
+    for (uint16_t x = 0; x < grid_size[0]; x++) {
+        for (uint16_t y = 0; y < grid_size[1]; y++) {
+            //Check if the Entity Has a Transform Component
+            auto t = ecs::ecs.component().fetch<TRANSFORM>(tiles[x][y]);
+            if (t == nullptr) {
+                DWARNF("")
+                continue;
+            }
+            
+            //Check if the Entity Has a Sprite Component
+            auto s = ecs::ecs.component().fetch<SPRITE>(tiles[x][y]);
+            if (s->ssheet.empty()) {
+                DWARNF(
+                    "animation key was empty for entity (%d)\n", 
+                    tiles[x][y]->id
+                );
+                node_grid[x][y].obstacle = true;
+                continue;
+            }
+            
+            //Check If The Sprite Component Has a Water Texture
+            if (s->ssheet != "./resources/textures/water.webp") {
+                node_grid[x][y].obstacle = true;
+            }
+        }
+        
+    }
 }
 AStar::AStar(uint16_t x_size, uint16_t y_size)
 {
@@ -70,8 +95,11 @@ AStar::AStar(uint16_t x_size, uint16_t y_size)
 }
 
 //Sets The Given Coordinate's Node to an Obstacle
-void AStar::setObstacle(uint16_t x, uint16_t y)
+void AStar::toggleObstacle(uint16_t x, uint16_t y)
 {
+    if (node_grid[x][y].obstacle) {
+        node_grid[x][y].obstacle = false;
+    }
     node_grid[x][y].obstacle = true;
 }
 
@@ -180,10 +208,10 @@ void AStar::genNeighbors()
 
 bool AStar::hasNeighbors(Node* node)
 {
-    return (node->neighbors.empty() == false);
+    return (!node->neighbors.empty());
 }
 
-void AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
+Node* AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
 {
 
     //Pointer to Start Node
@@ -197,7 +225,7 @@ void AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
 
     //Check If The Start Node has Neighbors
     if (!hasNeighbors(start)) {
-        return;
+        return nullptr;
     }
 
     //Initialize Start Node
@@ -231,7 +259,7 @@ void AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
 
         //If the list is empty, break out of the loop
         if (untestedNodes.empty()) {
-            break;
+            return nullptr;
         }
         
         //Set The Current Node to the front of the list and set to visited
@@ -270,12 +298,13 @@ void AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
 
                     //If Neighboring Node is Goal Node, Exit Algorithm
                     if (neighbor == goal) {
-                        return;
+                        return current;
                     }
                 }
             }
         } 
     }
+    return nullptr;
 }
 
 void AStar::resetNodes()

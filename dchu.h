@@ -66,11 +66,11 @@ class AStar
 
         //Constructor
         AStar();
-        AStar(const v2f&, World&, v2u);
+        AStar(World&, v2u);
         AStar(uint16_t, uint16_t);
 
         //Sets a Node to an Obstacle in A*
-        void setObstacle(uint16_t, uint16_t);
+        void toggleObstacle(uint16_t, uint16_t);
 
         //Get The Node Grid's Size
         v2u size();
@@ -88,7 +88,7 @@ class AStar
         bool hasNeighbors(Node*);
 
         //A* Search Algorithm
-        void aStar(uint16_t[2], uint16_t[2]);
+        Node* aStar(uint16_t[2], uint16_t[2]);
 
         //Node Refresh
         void resetNodes();
