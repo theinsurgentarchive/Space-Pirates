@@ -73,6 +73,7 @@ public:
 
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
+	ecs::Entity* spaceship;
 
 	Global() {
 		xres = 1280;
@@ -281,7 +282,10 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
 {
-	
+	gl.spaceship = ecs::ecs.entity().checkout(); 
+	initializeEntity(gl.spaceship); 
+	DINFOF("spaceship initialized spaceship %s", "");
+
     // [[maybe_unused]]auto character = ecs::character_x(); 
 
     // Initialize audio system
@@ -618,13 +622,6 @@ void render() {
             glMatrixMode(GL_PROJECTION);
             glPopMatrix();
 
-			std::cout << "Light Position: (" 
-			<< gl.lightPosition[0] << ", " 
-			<< gl.lightPosition[1] << ", " 
-			<< gl.lightPosition[2] << ", " 
-			<< gl.lightPosition[3] << ")" << std::endl;
-
-
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
 			glLoadIdentity();
@@ -652,12 +649,32 @@ void render() {
 			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
 			break;
 		case PLAYING:
-			DisableFor2D();
-			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
 			glPushMatrix();
 			c->update();
 			rs.update((float)1/10);
 			glPopMatrix();
+			
+			DisableFor2D();
+			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
+			
+			//bar
+			if (gl.spaceship) {
+				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+				auto spaceshipOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(gl.spaceship);
+				auto spaceshipFuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship);
+			
+				if (spaceshipHealth) {
+					drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.yres - 50, 0xF00FF00);
+				}
+			
+				if (spaceshipOxygen) {
+					drawUIBar("Oxygen", spaceshipOxygen->oxygen, spaceshipOxygen->max, 20, gl.yres - 90, 0x00FFFF);
+				}
+			
+				if (spaceshipFuel) {
+					drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
+				}
+			}
 			break;
 		case EXIT:
 			break;
