@@ -67,6 +67,79 @@ extern std::unordered_map<
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 extern const Camera* c;
 
+void loadTextures(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
+{
+    SpriteSheetLoader loader {ssheets};
+    loader
+    .loadStatic("cherry-001", 
+        loadTexture(
+            "./resources/textures/decorations/cherry-001.webp", true))
+    .loadStatic("cherry-002", 
+        loadTexture(
+            "./resources/textures/decorations/cherry-002.webp", true))
+    .loadStatic("chestnut-001", 
+        loadTexture(
+            "./resources/textures/decorations/chestnut-001.webp", true))
+    .loadStatic("chestnut-002", 
+        loadTexture(
+            "./resources/textures/decorations/chestnut-002.webp", true))
+    .loadStatic("chestnut-003", 
+        loadTexture(
+            "./resources/textures/decorations/chestnut-003.webp", true))
+    .loadStatic("pine000", 
+        loadTexture(
+            "./resources/textures/decorations/pine000.webp", true))
+    .loadStatic("pine001", 
+        loadTexture(
+            "./resources/textures/decorations/pine001.webp", true))
+    .loadStatic("pine002", 
+        loadTexture(
+            "./resources/textures/decorations/pine002.webp", true))
+    .loadStatic("pine003", 
+        loadTexture(
+            "./resources/textures/decorations/pine003.webp", true))
+    .loadStatic("pine004", 
+        loadTexture(
+            "./resources/textures/decorations/pine004.webp", true))
+    .loadStatic("pine000snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine000snow.webp", true))
+    .loadStatic("pine001snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine001snow.webp", true))
+    .loadStatic("pine002snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine002snow.webp", true))
+    .loadStatic("pine003snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine003snow.webp", true))
+    .loadStatic("pine004snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine004snow.webp", true))
+    .loadStatic("player-idle",
+        loadTexture(
+            "./resources/textures/player/idle.webp",true),{1,1},{18,32})
+    .loadStatic("player-front",
+        loadTexture(
+            "./resources/textures/player/front.webp",true),{1,3},{24,32},true)
+    .loadStatic("player-back",
+        loadTexture(
+            "./resources/textures/player/back.webp",true),{1,3},{24,32},true)
+    .loadStatic("player-right",
+        loadTexture(
+            "./resources/textures/player/right.webp",true),{1,3},{24,32},true)
+    .loadStatic("sand",
+        loadTexture(
+            "./resources/textures/tiles/sand.webp",false))
+    .loadStatic("grass",
+        loadTexture(
+            "./resources/textures/tiles/grass.webp",false))
+    .loadStatic("water",
+        loadTexture(
+            "./resources/textures/tiles/warmwater.webp",false),{1,3},{16,16},true);
+}
+
 std::shared_ptr<Texture> loadTexture(
     const std::string& file_name, 
     bool alpha)
@@ -177,18 +250,45 @@ Texture::Texture(
     tex = std::make_shared<GLuint>();
 }
 
-SpriteSheet::SpriteSheet(
-    const v2u& frame_dim,
-    const v2u& sprite_dim,
-    const std::shared_ptr<Texture> tex)
-    :
-    frame_dim{frame_dim},
-    sprite_dim{sprite_dim},
-    tex{tex}
+SpriteSheetLoader::SpriteSheetLoader(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets) 
+: 
+ssheets_{ssheets}
 {
 }
 
-void SpriteSheet::render(u16 frame, v2f pos, v2f scale)
+SpriteSheetLoader& SpriteSheetLoader::loadStatic(
+    const std::string& key, 
+    const std::shared_ptr<Texture>& tex,
+    const v2u& frame_dim,
+    const v2u& sprite_dim,
+    bool animated)
+{
+    ssheets_.insert({key,std::make_shared<SpriteSheet>(frame_dim,
+        sprite_dim[0] == 0 && sprite_dim[1] == 0 ? tex->dim : sprite_dim,tex,
+        animated)});
+    return *this;
+}
+
+SpriteSheet::SpriteSheet(
+    const v2u& frame_dim,
+    const v2u& sprite_dim,
+    const std::shared_ptr<Texture> tex,
+    bool animated)
+    :
+    frame_dim{frame_dim},
+    sprite_dim{sprite_dim},
+    tex{tex},
+    animated{animated}
+{
+}
+
+u16 SpriteSheet::maxFrames() const
+{
+    return sprite_dim[0] * sprite_dim[1];
+}
+
+void SpriteSheet::render(u16 frame, v2f pos, v2f scale, bool invertY)
 {
     v2u f {
         static_cast<u16>(frame % frame_dim[1]), 
@@ -207,14 +307,17 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale)
 	glAlphaFunc(GL_GREATER, 0.0f);
     glColor4ub(255,255,255,255);
     glBegin(GL_QUADS);
-        glTexCoord2f(fx, fy + xy);      
-        glVertex2i(pos[0] - sw, pos[1] - sh);
-        glTexCoord2f(fx, fy);          
-        glVertex2i(pos[0] - sw, pos[1] + sh);
-        glTexCoord2f(fx + xo, fy);      
-        glVertex2i(pos[0] + sw, pos[1] + sh);
-        glTexCoord2f(fx + xo, fy + xy); 
-        glVertex2i(pos[0] + sw, pos[1] - sh);
+        if (invertY) {
+            glTexCoord2f(fx + xo, fy + xy);     glVertex2i(pos[0] - sw, pos[1] - sh);
+            glTexCoord2f(fx + xo, fy);          glVertex2i(pos[0] - sw, pos[1] + sh);
+            glTexCoord2f(fx, fy);     glVertex2i(pos[0] + sw, pos[1] + sh);
+            glTexCoord2f(fx, fy + xy);glVertex2i(pos[0] + sw, pos[1] - sh);
+        } else {
+            glTexCoord2f(fx, fy + xy);     glVertex2i(pos[0] - sw, pos[1] - sh);
+            glTexCoord2f(fx, fy);          glVertex2i(pos[0] - sw, pos[1] + sh);
+            glTexCoord2f(fx + xo, fy);     glVertex2i(pos[0] + sw, pos[1] + sh);
+            glTexCoord2f(fx + xo, fy + xy);glVertex2i(pos[0] + sw, pos[1] - sh);
+        }
     glEnd();
     glDisable(GL_ALPHA_TEST);
 }
@@ -343,63 +446,42 @@ namespace wfc
         Vec2<u16> size, 
         const std::unordered_set<std::string>& states)
         : 
-        _size{size} 
+        size_{size} 
     {
-        _cells.resize(size[1]);
-        for (int i {0}; i < size[1]; i++) {
-            auto& row = _cells[i];
-            row.reserve(size[0]);
-            for (int j {0}; j < size[0]; j++) {
-                row.emplace_back(v2i(j,i),states);
+        cells_.reserve(size[0] * size[1]);
+        for (int i {0}; i < size[0]; i++) {
+            for (int j {0}; j < size[1]; j++) {
+                cells_.emplace_back(v2i(i,j),states);
             }
         }
     }
 
     Vec2<u16> Grid::size() const
     {
-        return _size;
+        return size_;
     }
 
     Cell* Grid::get(v2i pos)
     {
         if (pos[0] >= 0 && 
-            pos[0] < _size[0] && 
+            pos[0] < size_[0] && 
             pos[1] >= 0 && 
-            pos[1] < _size[1]) {
-            return &_cells[pos[0]][pos[1]];
+            pos[1] < size_[1]) {
+            return &cells_[pos[0] * size_[0] + pos[1]];
         }
         return nullptr;
     }
 
-    std::vector<std::vector<Cell>>& Grid::cells()
+    std::vector<Cell>& Grid::cells()
     {
-        return _cells;
-    }
-
-    void Grid::print()
-    {
-        for (auto& rows : _cells) {
-            for (auto& str : rows) {
-                if (str.state == "A") {
-                    std::cout << "\033[92m" << str.state << "\033[0m ";
-                } else if (str.state == "_") {
-                    std::cout << "\033[94m" << str.state << "\033[0m ";
-                } else {
-                    std::cout << "\033[93m" << str.state << "\033[0m ";
-                }
-                //std::cout << str.entropy() << ' ';
-            }
-            std::cout << '\n';
-        }
+        return cells_;
     }
 
     bool Grid::collapsed()
     {
-        for (auto& row : _cells) {
-            for (auto& cell : row) {
-                if (!cell.collapsed()) {
-                    return false;
-                }
+        for (auto& cell : cells_) {
+            if(!cell.collapsed()) {
+                return false;
             }
         }
         return true;
@@ -407,10 +489,8 @@ namespace wfc
 
     TilePriorityQueue::TilePriorityQueue(Grid& grid)
     {
-        for (auto& rows : grid.cells()) {
-            for (auto& cell : rows) {
-                _queue.push_back(&cell);
-            }
+        for (auto& cell : grid.cells()) {
+            _queue.push_back(&cell);
         }
         std::shuffle(_queue.begin(),_queue.end(),generator);
     }
@@ -733,7 +813,14 @@ namespace ecs
             if (ssheet->tex == nullptr) {
                 continue;
             }
-            ssheet->render(ec->frame,tc->pos, tc->scale);
+            ssheet->render(ec->frame,tc->pos, tc->scale, ec->invert_y);
+            if (ssheet->animated) {
+                ec->frame++;
+                auto f = ssheet->frame_dim;
+                if (ec->frame >= f[0] * f[1]) {
+                    ec->frame = 0;
+                }
+            }
         }
     }
 }
