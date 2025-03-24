@@ -106,10 +106,12 @@ public:
 Global gl;
 GLuint menuBackgroundTexture;
 GLuint planetTexture;
-GLuint planet2Texture;   
+GLuint planet2Texture;
+GLuint planet4Texture;   
 Image *menuImage = NULL;
 Image *planetImage;
-Image *planet2Image; 
+Image *planet2Image;
+Image *planet4Image; 
 
 class Game {
 public:
@@ -281,6 +283,9 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
 {
+	[[maybe_unused]]int* PlanetSeed;
+    // [[maybe_unused]]auto character = ecs::character_x(); 
+	PlanetSeed = PlanetSeedGenerator();
     // Initialize audio system
 	auto biome = selectBiome(30.0f,0.5f);
 	std::cout << biome.type << ' ' << biome.description << '\n';
@@ -401,6 +406,15 @@ void init_opengl(void)
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, planet2Image->width, planet2Image->height, 0,
 				GL_RGB, GL_UNSIGNED_BYTE, planet2Image->data.get());
 
+	glGenTextures(1, &planet4Texture);
+	planet4Image = new Image("./resources/textures/planet4.webp");	
+	//biship code 
+	glBindTexture(GL_TEXTURE_2D, planet4Texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, planet4Image->width, planet4Image->height, 0,
+				GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get());
+	
 	initialize_fonts();
 
 
@@ -542,7 +556,7 @@ void physics()
 }
 
 void render() {
-	//DrawPlanet(gl.planetAng[2], gl.planetPos[0], gl.planetPos[1], gl.planetPos[2], gl.lightPosition, planetTexture);
+	
 	DINFOF("rendering state: %d\n",gl.state);
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -568,13 +582,6 @@ void render() {
             glMatrixMode(GL_PROJECTION);
             glPopMatrix();
 
-			std::cout << "Light Position: (" 
-			<< gl.lightPosition[0] << ", " 
-			<< gl.lightPosition[1] << ", " 
-			<< gl.lightPosition[2] << ", " 
-			<< gl.lightPosition[3] << ")" << std::endl;
-
-
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
 			glLoadIdentity();
@@ -586,11 +593,19 @@ void render() {
 			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]-4.5, gl.planetPos[1]-3, gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1);
+			DrawPlanet(gl.planetAng[2], gl.planetPos[0]-4.5, gl.planetPos[1]-3, 
+				gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1);
 			glPopMatrix();
 
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+5.5, gl.planetPos[1], gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 0, 1);
+			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+5.5, gl.planetPos[1], 
+				gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0);
+			glPopMatrix();
+
+			glPushMatrix();
+			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+1.4, gl.planetPos[1]-7, 
+				gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 
+				1);
 			glPopMatrix();
 
 			glPopMatrix();
