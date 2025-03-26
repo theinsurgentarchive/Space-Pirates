@@ -136,3 +136,105 @@ void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
 
     EnableFor3D();
 };
+
+
+// bar
+
+void initializeEntity(ecs::Entity* spaceship)
+{
+
+ //   auto spaceship = ecs::ecs.entity().checkout(); // create 
+    auto health = ecs::ecs.component().assign<ecs::Health>(spaceship);
+    auto oxygen = ecs::ecs.component().assign<ecs::Oxygen>(spaceship);
+    auto fuel = ecs::ecs.component().assign<ecs::Fuel>(spaceship);
+    auto transform = ecs::ecs.component().assign<ecs::Transform>(spaceship);
+
+    if (health) {
+        health -> health = 50.0f; 
+        health -> max = 100.0f;
+      //  drawUIBar("Health", getHealth->health, getHealth->max, 20, 500, 0xFF0000);
+    }
+
+    if (transform) {
+        transform -> pos[0] = 40.0f;
+        transform -> pos[1] = 60.0f; 
+    }
+
+    if (fuel) {
+        fuel -> fuel = 150.0f; 
+        fuel -> max = 300.0f; 
+    }
+
+    if (oxygen) {
+        oxygen -> oxygen = 100.0f;
+        oxygen -> max = 200.0f;
+    }
+
+    auto getHealth = ecs::ecs.component().fetch<ecs::Health>(spaceship);
+    auto getOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(spaceship);
+    auto getFuel = ecs::ecs.component().fetch<ecs::Fuel>(spaceship);
+    auto getTransform = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+
+    cout << "Spaceship intialized with health, oxygen, fuel, and transform components." << endl;
+    if (getHealth) {
+        cout << "Health: " << getHealth -> health << " / " << getHealth -> max << endl;
+        float healthPercent = (getHealth -> health / getHealth -> max) * 100.0f;
+      cout << "Health Percentage: " << healthPercent << "%" << endl << endl;
+ 
+    } else {
+        cout << "Health component not found." << endl;
+    }
+
+    if (getOxygen) {
+        cout << "Oxygen: " << getOxygen -> oxygen << " / " << getOxygen -> max << endl;
+    } else {
+        cout << "Oxygen component not found." << endl;
+    }
+
+    if (getFuel) {
+        cout << "Fuel: " << getFuel -> fuel << " / " << getFuel -> max << endl;
+    } else {
+        cout << "Fuel component not found." << endl;
+    }
+
+    if (getTransform) {
+        cout << "Position: " << getTransform -> pos[0] << ", " << getTransform -> pos[1] << endl;
+    } else {
+        cout << "Transform component not found." << endl;
+    }
+    
+}
+
+
+//draw
+void drawUIBar (const char* label, float current, float max, float x, float y, unsigned int color) 
+{
+    float percentage = (current / max);  //used to dynamically display bar 
+    int barWidth = 150;
+    int barHeight = 8;
+
+    Rect r;
+        r.left = x + 60;   //spacing between bars
+        r.bot = y + barHeight + 5; //space between label and bar
+        ggprint13(&r, 16, color, "%s: %0.f/%0.f", label, current, max);
+
+    // background bar (dark grey)
+    glColor3f(0.1f, 0.1f, 0.1f);  // black bg for empty portion
+    glBegin(GL_QUADS); 
+        glVertex2f(x, y); // 2d vertex 
+        glVertex2f(x + barWidth, y); // 
+        glVertex2f(x + barWidth, y + barHeight); 
+        glVertex2f(x, y + barHeight);
+    glEnd();
+   
+    // forground bar (dynamic color fill)
+    glColor3f(0.5f,0.5f, 0.5f); 
+    glBegin(GL_QUADS); 
+        glVertex2f(x, y); //finish
+        glVertex2f(x + (barWidth * percentage), y);
+        glVertex2f(x + (barWidth * percentage), y + barHeight); 
+        glVertex2f(x, y + barHeight); 
+    glEnd(); 
+
+
+}

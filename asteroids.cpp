@@ -73,6 +73,7 @@ public:
 
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
+	ecs::Entity* spaceship;
 
 	Global() {
 		xres = 1280;
@@ -283,6 +284,9 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
 {
+	gl.spaceship = ecs::ecs.entity().checkout(); 
+	initializeEntity(gl.spaceship); 
+	DINFOF("spaceship initialized spaceship %s", "");
 	[[maybe_unused]]int* PlanetSeed;
     // [[maybe_unused]]auto character = ecs::character_x(); 
 	PlanetSeed = PlanetSeedGenerator();
@@ -298,7 +302,10 @@ int main()
     ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
 	
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-	Camera camera {tc->pos,{static_cast<u16>(gl.xres),static_cast<u16>(gl.yres)}};
+	Camera camera {
+		tc->pos,
+		{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
+	};
 	c = &camera;
 	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sc->ssheet = "player-front";
@@ -394,8 +401,11 @@ void init_opengl(void)
 	glBindTexture(GL_TEXTURE_2D, planetTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, planetImage->width, planetImage->height, 0,
-				GL_RGB, GL_UNSIGNED_BYTE, planetImage->data.get());
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 3, 
+		planetImage->width, planetImage->height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, planetImage->data.get()
+	);
 
 	glGenTextures(1, &planet2Texture);
 	planet2Image = new Image("./resources/textures/planet.gif");	
@@ -403,8 +413,23 @@ void init_opengl(void)
 	glBindTexture(GL_TEXTURE_2D, planet2Texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, planet2Image->width, planet2Image->height, 0,
-				GL_RGB, GL_UNSIGNED_BYTE, planet2Image->data.get());
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 3,
+		planet2Image->width, planet2Image->height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, planet2Image->data.get()
+	);
+
+	glGenTextures(1, &planet4Texture);
+	planet4Image = new Image("./resources/textures/planet4.webp");	
+	//biship code 
+	glBindTexture(GL_TEXTURE_2D, planet4Texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 3,
+		planet4Image->width, planet4Image->height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get()
+	);
 
 	glGenTextures(1, &planet4Texture);
 	planet4Image = new Image("./resources/textures/planet4.webp");	
@@ -514,8 +539,8 @@ int check_keys(XEvent *e)
 		auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
         if (e->type == KeyRelease) {
             if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-				sc->ssheet = "player-idle";
-				sc->invert_y = false;
+				        sc->ssheet = "player-idle";
+				        sc->invert_y = false;
                 pc->vel = {0,0};
             }
         } else if (e->type == KeyPress) {
@@ -556,7 +581,6 @@ void physics()
 }
 
 void render() {
-	
 	DINFOF("rendering state: %d\n",gl.state);
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -593,19 +617,24 @@ void render() {
 			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]-4.5, gl.planetPos[1]-3, 
-				gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1);
+			DrawPlanet(
+				gl.planetAng[2], gl.planetPos[0] - 4.5, gl.planetPos[1] - 3, 
+				gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1
+			);
 			glPopMatrix();
 
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+5.5, gl.planetPos[1], 
-				gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0);
+			DrawPlanet(
+				gl.planetAng[2], gl.planetPos[0] + 5.5, gl.planetPos[1], 
+				gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0
+			);
 			glPopMatrix();
 
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+1.4, gl.planetPos[1]-7, 
-				gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 
-				1);
+			DrawPlanet(
+				gl.planetAng[2], gl.planetPos[0] + 1.4, gl.planetPos[1] - 7, 
+				gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 1
+			);
 			glPopMatrix();
 
 			glPopMatrix();
@@ -617,12 +646,32 @@ void render() {
 			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
 			break;
 		case PLAYING:
-			DisableFor2D();
-			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
 			glPushMatrix();
 			c->update();
 			rs.update((float)1/10);
 			glPopMatrix();
+			
+			DisableFor2D();
+			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
+			
+			//bar
+			if (gl.spaceship) {
+				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+				auto spaceshipOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(gl.spaceship);
+				auto spaceshipFuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship);
+			
+				if (spaceshipHealth) {
+					drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.yres - 50, 0xF00FF00);
+				}
+			
+				if (spaceshipOxygen) {
+					drawUIBar("Oxygen", spaceshipOxygen->oxygen, spaceshipOxygen->max, 20, gl.yres - 90, 0x00FFFF);
+				}
+			
+				if (spaceshipFuel) {
+					drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
+				}
+			}
 			break;
 		case EXIT:
 			break;
