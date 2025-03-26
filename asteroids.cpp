@@ -108,11 +108,11 @@ Global gl;
 GLuint menuBackgroundTexture;
 GLuint planetTexture;
 GLuint planet2Texture;
-GLuint planet4Texture;
+GLuint planet4Texture;   
 Image *menuImage = NULL;
 Image *planetImage;
 Image *planet2Image;
-Image *planet4Image;
+Image *planet4Image; 
 
 class Game {
 public:
@@ -310,7 +310,6 @@ int main()
 	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sc->ssheet = "player-front";
 	sc->render_order = 15;
-
 	Vec2<uint16_t> v {50,50};
 	loadTextures(ssheets);
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
@@ -354,7 +353,6 @@ int main()
 		}
 		//clear screen just once at the beginning
         glClear(GL_COLOR_BUFFER_BIT); 
-
         // Update audio system each frame
         getAudioManager()->update();
         ps.update((float) 1/20);
@@ -433,6 +431,15 @@ void init_opengl(void)
 		GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get()
 	);
 
+	glGenTextures(1, &planet4Texture);
+	planet4Image = new Image("./resources/textures/planet4.webp");	
+	//biship code 
+	glBindTexture(GL_TEXTURE_2D, planet4Texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, planet4Image->width, planet4Image->height, 0,
+				GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get());
+	
 	initialize_fonts();
 
 
@@ -509,7 +516,6 @@ int check_keys(XEvent *e)
 		//not a keyboard event
 		return 0;
 	}
-
     // Not a keyboard event
     if (e->type != KeyRelease && e->type != KeyPress) {
         return exit_request;
@@ -533,12 +539,11 @@ int check_keys(XEvent *e)
 		auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
         if (e->type == KeyRelease) {
             if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-				sc->ssheet = "player-idle";
-				sc->invert_y = false;
-				pc->vel = {0,0};
+				        sc->ssheet = "player-idle";
+				        sc->invert_y = false;
+                pc->vel = {0,0};
             }
         } else if (e->type == KeyPress) {
-			
             static float movement_mag = 300.0;
             switch(key) {
                 case XK_Right:
