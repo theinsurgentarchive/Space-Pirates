@@ -345,7 +345,7 @@ int main()
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
-
+        //test`
 		auto current = std::chrono::high_resolution_clock::now();
 		auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - ps.lastSampled());
 		if (dur.count() >= ps.sample_delta) {
