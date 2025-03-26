@@ -23,24 +23,27 @@ struct fuel_resource
 	bool depleted;
 };
 
+//Can-Be-Displayed Check Function
+bool isDisplayable(ecs::Entity*);
+
 //A* Pathfinding Algorithm
-//(NEEDS TO BE UPDATED TO MATCH AND INTEGRATE WITH PROJECT)
+//(INTEGRATION IN PROCESS)
 class Node
 {
-    public:
-        //Node Conditionals
-        bool obstacle, visited;
-        
-        //Node Position
-        v2f pos;
-        
-        //Node Distance from Initial Node
-        float local_dist;
+    private:
+        //World Position
+        v2f world_pos;
 
-        //Node Distance from Goal Node
-        float global_dist;
-        
-        //Vector Matrix of Neighboring Nodes
+        //Local Position
+        v2u local_pos;
+
+        //Hitbox Scale
+        v2f scale;
+    public:
+
+        //Variables
+        bool obstacle, visited;
+        float local_dist, global_dist;
         std::vector<Node*> neighbors;
         
         //Node Directly Preceding Current Node
@@ -49,6 +52,12 @@ class Node
         //Constructor
         Node();
         Node(bool);
+
+        //Functions
+        v2f getWorld();
+        void setWorld(v2f);
+        v2u getLocal();
+        void setLocal(v2u);
 };
 
 //AStarGrid of Node Elements, Used in A* Search
@@ -59,14 +68,14 @@ class AStar
         v2u grid_size;
 
         //The Position in The World that The Grid is Generated From.
-        v2f world_origin_pos;
+        v2f origin_pos;
     public:
         //Dynamic Node Grid
         std::vector<std::vector<Node>> node_grid;
 
         //Constructor
         AStar();
-        AStar(World&, v2u);
+        AStar(World&, v2f, v2u);
         AStar(uint16_t, uint16_t);
 
         //Sets a Node to an Obstacle in A*

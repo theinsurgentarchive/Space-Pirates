@@ -2,8 +2,28 @@
 #include <cmath>
 #include <list>
 
+bool isDisplayable(ecs::Entity* ent)
+{
+    bool display = true;
+
+    //Check entity for Transform & Sprite Component
+    if (ecs::ecs.component().fetch<TRANSFORM>(ent) == nullptr) {
+        display = false;
+    }
+    if (ecs::ecs.component().fetch<SPRITE>(ent) == nullptr) {
+        display = false;
+    }
+    if (!display) {
+        DWARNF(
+            "Unrenderable Entity: ID(%d)\n", 
+            tiles[x][y]->id
+        );
+    }
+    return display;
+}
+
 //A* Pathfinding Algorithm
-//(NEEDS TO BE UPDATED TO MATCH AND INTEGRATE WITH PROJECT)
+//(INTEGRATION IN PROCESS)
 Node::Node()
 {
     //Initialize Variables
@@ -24,65 +44,117 @@ Node::Node(bool isObstacle)
     parent = nullptr;
 }
 
+v2f Node::getWorld()
+{
+    return world_pos;
+}
+
+void Node::setWorld(v2f world)
+{
+    world_pos = world;
+}
+
+v2u Node::getLocal()
+{
+    return local_pos;
+}
+
+void Node::setLocal(v2u local)
+{
+    local_pos = local;
+}
+
 AStar::AStar()
 {
     //Initialize Variables
     grid_size[0] = 10;
     grid_size[1] = 10;
-    world_origin_pos[0] = 0.0f;
-    world_origin_pos[1] = 0.0f;
+    origin_pos[0] = 0.0f;
+    origin_pos[1] = 0.0f;
 
     //Initialize Grid Nodes
     initGrid();
+    DINFO("Completed Default A* Node Generation\n");
 }
 
-AStar::AStar(World& grid, v2u tile_dim)
+AStar::AStar(World& grid, v2f origin, v2u tile_dim)
 {
     //Initialize Variables
     v2u grid_size;
-    grid_size[0] = grid.tiles().size();
-    grid_size[1] = grid.tiles()[0].size();
+    grid_size[0] = (grid.tiles().size() * 4);
+    grid_size[1] = (grid.tiles()[0].size() * 4);
     node_grid.resize(grid_size[0]);
     for (uint16_t i = 0; i < node_grid.size(); i++) {
         node_grid[0].resize(grid_size[1]);
     }
     auto tiles = grid.tiles();
-    v2u node_dim;
-    node_dim[0] = tile_dim[0] / 4;
-    node_dim[1] = tile_dim[1] / 4;
+    v2f gen_dist = {
+        tile_dim[0] / 4,
+        tile_dim[1] / 4
+    };
+    v2f gen_dim = {
+        tile_dim[0] / 2,
+        tile_dim[1] / 2
+    };
+    origin_pos = origin;
 
     //Initialize Grid Nodes
     initGrid();
 
     //Set Each Node to an Obstacle if there is either no Tile or
     //The Tile is a Water Tile in The Current Position
+    uint16_t x_iter = 0;
+    uint16_t y_iter = 0;
     for (uint16_t x = 0; x < grid_size[0]; x++) {
         for (uint16_t y = 0; y < grid_size[1]; y++) {
-            //Check if the Entity Has a Transform Component
-            auto t = ecs::ecs.component().fetch<TRANSFORM>(tiles[x][y]);
-            if (t == nullptr) {
-                DWARNF("")
-                continue;
-            }
-            
-            //Check if the Entity Has a Sprite Component
-            auto s = ecs::ecs.component().fetch<SPRITE>(tiles[x][y]);
-            if (s->ssheet.empty()) {
-                DWARNF(
-                    "animation key was empty for entity (%d)\n", 
-                    tiles[x][y]->id
-                );
+            //Check if the Entity Has Both a Transform & a Sprite Component
+            if (!isDisplayable(tiles[x][y])) {
                 node_grid[x][y].obstacle = true;
                 continue;
             }
             
             //Check If The Sprite Component Has a Water Texture
-            if (s->ssheet != "./resources/textures/water.webp") {
-                node_grid[x][y].obstacle = true;
+            //auto s = ecs::ecs.component().fetch<SPRITE>(tiles[x][y]);
+            //if (s->ssheet == "./resources/textures/water.webp") {
+            //    node_grid[x][y].obstacle = true;
+            //    continue;
+            //}
+
+            //Set The World Position of Each Node to The Center of 
+            //Each Quadrant of Each World Tile Using the Tile's World Position 
+            auto t = ecs::ecs.component().fetch<TRANSFORM>(tiles[x][y]);
+            v2f tile_world = t->pos;
+            
+            if (x_iter + 1 < grid_size[0] && y_iter + 1 < grid_size[1]){
+                //Top-Left Quadrant
+                v2f node_world = tile_world;
+                node_world[0] -= gen_dist[0];
+                node_world[1] -= gen_dist[1];
+                node_grid[x_iter][y_iter].setWorld(node_world);
+
+                //Top-Right Quadrant
+                node_world = tile_world;
+                node_world[0] += gen_dist[0];
+                node_world[1] -= gen_dist[1];
+                node_grid[x_iter + 1][y_iter].setWorld(node_world);
+
+                //Bottom-Right Quadrant
+                node_world = tile_world;
+                node_world[0] -= gen_dist[0];
+                node_world[1] += gen_dist[1];
+                node_grid[x_iter + 1][y_iter + 1].setWorld(node_world);
+
+                //Bottom-Left Quadrant
+                node_world = tile_world;
+                node_world[0] += gen_dist[0];
+                node_world[1] += gen_dist[1];
+                node_grid[x_iter][y_iter + 1].setWorld(node_world);
             }
+            x_iter += 2;
         }
-        
+        y_iter += 2;
     }
+    DINFO("Completed World Tiles A* Node Generation\n");
 }
 AStar::AStar(uint16_t x_size, uint16_t y_size)
 {
@@ -97,10 +169,14 @@ AStar::AStar(uint16_t x_size, uint16_t y_size)
 //Sets The Given Coordinate's Node to an Obstacle
 void AStar::toggleObstacle(uint16_t x, uint16_t y)
 {
+    char info[18] = {""};
     if (node_grid[x][y].obstacle) {
         node_grid[x][y].obstacle = false;
+        strcat(info, "Not an Obstacle.\n");
     }
     node_grid[x][y].obstacle = true;
+    strcat(info, "an Obstacle.\n")
+    DINFOF("Node of (%d,%d) is %s", x, y, info);
 }
 
 //Returns The Node Grid's Size
@@ -129,8 +205,8 @@ void AStar::initGrid()
     //Generate Nodes
     for (uint16_t x = 0; x < grid_size[0]; x++) {
         for (uint16_t y = 0; y < grid_size[1]; y++) {
-            node_grid[x][y].pos[0] = x;
-            node_grid[x][y].pos[1] = y;
+            node_grid[x][y].setLocal({x, y});
+            node_grid[x][y].setWorld({(float)x, (float)y});
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
             node_grid[x][y].parent = nullptr;
@@ -322,8 +398,17 @@ void AStar::resetNodes()
 float AStar::distance(Node* a, Node* b)
 {
     return sqrtf(
-        ((a->pos[0] - b->pos[0]) * (a->pos[0] - b->pos[0])) +
-        ((a->pos[1] - b->pos[1]) * (a->pos[1] - b->pos[1]))
+        (
+            (a->getLocal()[0] - b->getLocal()[0])
+            *
+            (a->getLocal()[0] - b->getLocal()[0])
+        ) 
+        +
+        (
+            (a->getLocal()[1] - b->getLocal()[1])
+            *
+            (a->getLocal()[1] - b->getLocal()[1])
+        )
     );
 }
 
