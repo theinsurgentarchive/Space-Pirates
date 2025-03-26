@@ -40,8 +40,8 @@ AStar::AStar(World& grid, v2u tile_dim)
 {
     //Initialize Variables
     v2u grid_size;
-    grid_size[0] = grid.tiles().size();
-    grid_size[1] = grid.tiles()[0].size();
+    grid_size[0] = grid.tiles().size() * 4;
+    grid_size[1] = grid.tiles()[0].size() * 4;
     node_grid.resize(grid_size[0]);
     for (uint16_t i = 0; i < node_grid.size(); i++) {
         node_grid[0].resize(grid_size[1]);
