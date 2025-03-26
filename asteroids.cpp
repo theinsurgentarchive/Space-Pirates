@@ -107,10 +107,12 @@ public:
 Global gl;
 GLuint menuBackgroundTexture;
 GLuint planetTexture;
-GLuint planet2Texture;   
+GLuint planet2Texture;
+GLuint planet4Texture;
 Image *menuImage = NULL;
 Image *planetImage;
-Image *planet2Image; 
+Image *planet2Image;
+Image *planet4Image;
 
 class Game {
 public:
@@ -285,9 +287,9 @@ int main()
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
-
+	[[maybe_unused]]int* PlanetSeed;
     // [[maybe_unused]]auto character = ecs::character_x(); 
-
+	PlanetSeed = PlanetSeedGenerator();
     // Initialize audio system
 	auto biome = selectBiome(30.0f,0.5f);
 	std::cout << biome.type << ' ' << biome.description << '\n';
@@ -300,44 +302,17 @@ int main()
     ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
 	
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-	Camera camera {tc->pos,{gl.xres,gl.yres}};
+	Camera camera {
+		tc->pos,
+		{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
+	};
 	c = &camera;
 	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
-	sc->ssheet = "skip";
+	sc->ssheet = "player-front";
 	sc->render_order = 15;
-	ssheets.insert({"skip",
-		std::make_shared<SpriteSheet>(
-			v2u {1,8},
-			v2u {32,32},
-			loadTexture("./resources/textures/skip.png", true)
-		)
-	});
-
-	ssheets.insert({"sand",
-		std::make_shared<SpriteSheet>(
-			v2u {1,1},
-			v2u {16,16},
-			loadTexture("./resources/textures/sand.webp",false)
-		)
-	});
-
-	ssheets.insert({"water",
-		std::make_shared<SpriteSheet>(
-			v2u {1,1},
-			v2u {16,16},
-			loadTexture("./resources/textures/water.webp",false)
-		)
-	});
-
-	ssheets.insert({"grass",
-		std::make_shared<SpriteSheet>(
-			v2u {1,1},
-			v2u {16,16},
-			loadTexture("./resources/textures/grass.webp",false)
-		)
-	});
 
 	Vec2<uint16_t> v {50,50};
+	loadTextures(ssheets);
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
     tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
     tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
@@ -373,10 +348,6 @@ int main()
         timeCopy(&timeStart, &timeCurrent);
 
 		auto current = std::chrono::high_resolution_clock::now();
-		// auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - rs.lastSampled());
-		// if (dur.count() >= rs.sample_delta) {
-		// 	rs.sample();
-		// }
 		auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - ps.lastSampled());
 		if (dur.count() >= ps.sample_delta) {
 			ps.sample();
@@ -406,19 +377,8 @@ void init_opengl(void)
 	
 	glClearDepth(1.0);
 	glDepthFunc(GL_LESS);
-	//wen enabled, buttons arent shown (glEnable)
 	glEnable(GL_DEPTH_TEST);
 	glShadeModel(GL_SMOOTH);
-	
-	// glMatrixMode(GL_PROJECTION);
-	
-			// glLoadIdentity();
-	//JC when gluPerspective enable screen breaks for menu 
-	//gluPerspective(45.0f,(GLfloat)gl.xres/(GLfloat)gl.yres,0.1f,100.0f);
-	// glMatrixMode(GL_MODELVIEW);
-					//glLoadIdentity();
-					//gluLookAt(0,5,10,  0,0,0,  0,1,0);
-					//Enable this so material colors are the same as vert colors.
 	glEnable(GL_COLOR_MATERIAL);
 	
 	glEnable( GL_LIGHTING );
@@ -443,8 +403,11 @@ void init_opengl(void)
 	glBindTexture(GL_TEXTURE_2D, planetTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, planetImage->width, planetImage->height, 0,
-				GL_RGB, GL_UNSIGNED_BYTE, planetImage->data.get());
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 3, 
+		planetImage->width, planetImage->height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, planetImage->data.get()
+	);
 
 	glGenTextures(1, &planet2Texture);
 	planet2Image = new Image("./resources/textures/planet.gif");	
@@ -452,8 +415,23 @@ void init_opengl(void)
 	glBindTexture(GL_TEXTURE_2D, planet2Texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, planet2Image->width, planet2Image->height, 0,
-				GL_RGB, GL_UNSIGNED_BYTE, planet2Image->data.get());
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 3,
+		planet2Image->width, planet2Image->height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, planet2Image->data.get()
+	);
+
+	glGenTextures(1, &planet4Texture);
+	planet4Image = new Image("./resources/textures/planet4.webp");	
+	//biship code 
+	glBindTexture(GL_TEXTURE_2D, planet4Texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 3,
+		planet4Image->width, planet4Image->height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get()
+	);
 
 	initialize_fonts();
 
@@ -531,9 +509,6 @@ int check_keys(XEvent *e)
 		//not a keyboard event
 		return 0;
 	}
-	// if (!ecs::ecs.component().has<ecs::Physics>(ptr)) {
-	// 	return 0;
-	// }
 
     // Not a keyboard event
     if (e->type != KeyRelease && e->type != KeyPress) {
@@ -542,8 +517,6 @@ int check_keys(XEvent *e)
 
     int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 
-    // handle key events - modified to add menu state handling, 
-    // cout for debugging
     if (e->type == KeyPress) {
       exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
 	  	if (exit_request) {
@@ -556,25 +529,33 @@ int check_keys(XEvent *e)
         if (!ecs::ecs.component().has<PHYSICS>(ptr)) {
             return 0;
         }
-        auto pc = ecs::ecs.component().fetch<ecs::Physics>(ptr);
+        auto pc = ecs::ecs.component().fetch<PHYSICS>(ptr);
+		auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
         if (e->type == KeyRelease) {
             if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-                pc->vel = {0,0};
+				sc->ssheet = "player-idle";
+				sc->invert_y = false;
+				pc->vel = {0,0};
             }
         } else if (e->type == KeyPress) {
 			
             static float movement_mag = 300.0;
             switch(key) {
                 case XK_Right:
+					sc->ssheet = "player-right";
                     pc->vel = {movement_mag,0};
                     break;
                 case XK_Left:
+					sc->invert_y = true;
+					sc->ssheet = "player-right";
                     pc->vel = {-movement_mag,0};
                     break;
                 case XK_Up:
+					sc->ssheet = "player-back";
                     pc->vel = {0,movement_mag};
                     break;
                 case XK_Down:
+					sc->ssheet = "player-front";
                     pc->vel = {0,-movement_mag};
                     break;
 				case XK_a:
@@ -595,7 +576,6 @@ void physics()
 }
 
 void render() {
-	//DrawPlanet(gl.planetAng[2], gl.planetPos[0], gl.planetPos[1], gl.planetPos[2], gl.lightPosition, planetTexture);
 	DINFOF("rendering state: %d\n",gl.state);
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -606,7 +586,6 @@ void render() {
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
-
 	switch(gl.state) {
 		case MENU:
 			glMatrixMode(GL_PROJECTION);
@@ -633,11 +612,24 @@ void render() {
 			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]-4.5, gl.planetPos[1]-3, gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1);
+			DrawPlanet(
+				gl.planetAng[2], gl.planetPos[0] - 4.5, gl.planetPos[1] - 3, 
+				gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1
+			);
 			glPopMatrix();
 
 			glPushMatrix();
-			DrawPlanet(gl.planetAng[2], gl.planetPos[0]+5.5, gl.planetPos[1], gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 0, 1);
+			DrawPlanet(
+				gl.planetAng[2], gl.planetPos[0] + 5.5, gl.planetPos[1], 
+				gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0
+			);
+			glPopMatrix();
+
+			glPushMatrix();
+			DrawPlanet(
+				gl.planetAng[2], gl.planetPos[0] + 1.4, gl.planetPos[1] - 7, 
+				gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 1
+			);
 			glPopMatrix();
 
 			glPopMatrix();
