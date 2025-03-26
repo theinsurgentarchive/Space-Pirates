@@ -21,7 +21,6 @@
 #include "log.h"
 #include "fonts.h"
 
-#include "dchu.h"
 #include "jlo.h"
 #include "balrowhany.h"
 #include "jsandoval.h"
@@ -242,7 +241,6 @@ ecs::Entity* ptr;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
-const AStar* a_star;
 const Camera* c;
 int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
@@ -314,9 +312,7 @@ int main()
 	wfc::WaveFunction wf {grid,tile_map};
 	wf.run();
 	auto w = World{{0,0},grid,tile_map};
-	auto as = AStar(w, {16,16});
 	world = &w;
-	a_star = &as;
 	rs.sample();
 	ps.sample();
 	init_opengl();
