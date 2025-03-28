@@ -88,13 +88,13 @@ AStar::AStar(World& grid, v2f origin, v2u tile_dim)
         node_grid[0].resize(grid_size[1]);
     }
     auto tiles = grid.tiles();
-    v2f gen_dist = {
-        tile_dim[0] / 4,
-        tile_dim[1] / 4
+    [[maybe_unused]] v2f gen_dist = {
+        tile_dim[0] / 4.0f,
+        tile_dim[1] / 4.0f
     };
-    v2f gen_dim = {
-        tile_dim[0] / 2,
-        tile_dim[1] / 2
+    [[maybe_unused]] v2f gen_dim = {
+        tile_dim[0] / 2.0f,
+        tile_dim[1] / 2.0f
     };
     origin_pos = origin;
 
