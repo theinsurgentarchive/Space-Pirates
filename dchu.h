@@ -1,6 +1,6 @@
 #pragma once
+#include <string>
 #include "jlo.h"
-#include "fonts.h"
 
 //Entity Components
 struct oxygen_resource
