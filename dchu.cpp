@@ -182,6 +182,7 @@ Node* AStar::getNode(uint16_t x, uint16_t y)
     if ((x <= grid_size[0]) && (y <= grid_size[1])) {
         return &node_grid[x][y];
     }
+    return nullptr;
 }
 
 //Set Node Positions & Conditionals
