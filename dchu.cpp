@@ -1,4 +1,5 @@
 #include "dchu.h"
+#include <string>
 #include <cmath>
 #include <list>
 
@@ -169,13 +170,13 @@ AStar::AStar(uint16_t x_size, uint16_t y_size)
 //Sets The Given Coordinate's Node to an Obstacle
 void AStar::toggleObstacle(uint16_t x, uint16_t y)
 {
-    char info[18] = {""};
+    string info = "";
     if (node_grid[x][y].obstacle) {
         node_grid[x][y].obstacle = false;
-        strcat(info, "Not an Obstacle.\n");
+        info += "Not an Obstacle.\n";
     }
     node_grid[x][y].obstacle = true;
-    strcat(info, "an Obstacle.\n")
+    info += "an Obstacle.\n";
     DINFOF("Node of (%d,%d) is %s", x, y, info);
 }
 
@@ -248,34 +249,6 @@ void AStar::genNeighbors()
             if (x < grid_size[0] - 1) {
                 node_grid[x][y].neighbors.push_back(
                     &node_grid[x + 1][y]
-                );
-            }
-            
-            //Bottom-Left Neighbor
-            if (x > 0 && y > 0) {
-                node_grid[x][y].neighbors.push_back(
-                    &node_grid[x - 1][y - 1]
-                );
-            }
-
-            //Top-Left Neighbor
-            if (x > 0 && y < grid_size[1] - 1) {
-                node_grid[x][y].neighbors.push_back(
-                    &node_grid[x - 1][y + 1]
-                );
-            }
-
-            //Bottom-Right Neighbor
-            if (x < grid_size[0] - 1 && y > 0) {
-                node_grid[x][y].neighbors.push_back(
-                    &node_grid[x + 1][y - 1]
-                );
-            }
-
-            //Top-Right Neighbor
-            if (x < grid_size[0] - 1 && y < grid_size[1] - 1) {
-                node_grid[x][y].neighbors.push_back(
-                    &node_grid[x + 1][y + 1]
                 );
             }
         }
