@@ -112,13 +112,6 @@ AStar::AStar(World& grid, v2f origin, v2u tile_dim)
                 node_grid[x][y].obstacle = true;
                 continue;
             }
-            
-            //Check If The Sprite Component Has a Water Texture
-            //auto s = ecs::ecs.component().fetch<SPRITE>(tiles[x][y]);
-            //if (s->ssheet == "./resources/textures/water.webp") {
-            //    node_grid[x][y].obstacle = true;
-            //    continue;
-            //}
 
             //Set The World Position of Each Node to The Center of 
             //Each Quadrant of Each World Tile Using the Tile's World Position 
@@ -169,14 +162,12 @@ AStar::AStar(uint16_t x_size, uint16_t y_size)
 //Sets The Given Coordinate's Node to an Obstacle
 void AStar::toggleObstacle(uint16_t x, uint16_t y)
 {
-    string info = "";
     if (node_grid[x][y].obstacle) {
         node_grid[x][y].obstacle = false;
-        info += "Not an Obstacle.\n";
+        DINFOF("Obstacle is Not an Obstacle");
     }
     node_grid[x][y].obstacle = true;
-    info += "an Obstacle.\n";
-    DINFOF("Node of (%d,%d) is %s", x, y, info);
+    DINFOF("Obstacle is an Obstacle");
 }
 
 //Returns The Node Grid's Size
