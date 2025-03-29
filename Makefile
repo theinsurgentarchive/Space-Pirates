@@ -1,5 +1,5 @@
-CFLAGS = -I ./include -g
-LFLAGS = -lrt -lX11 -lGLU -lGL -pthread -lm
+CFLAGS = -I ./include -DUSE_OPENAL_SOUND -g
+LFLAGS = -lrt -lX11 -lGL -lGLU -pthread -lm -lopenal -lalut
 # Target source files
 SRC = asteroids.cpp log.cpp timers.cpp jlo.cpp jsandoval.cpp dchu.cpp balrowhany.cpp mchitorog.cpp image.cpp
 # Compile each source file in 'SRC' to O, when 'OBJ' is used, the files are 
