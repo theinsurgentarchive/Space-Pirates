@@ -7,6 +7,13 @@
 #include "balrowhany.h"
 #include "jlo.h"
 
+// For OpenAL audio system
+#ifdef USE_OPENAL_SOUND
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alut.h>
+#endif
+
 // Sound effect types
 enum SoundType {
     MENU_CLICK,
@@ -22,16 +29,29 @@ enum SoundType {
 // Music types for different game states
 enum MusicType {
     MENU_MUSIC,
+    MENU_PAUSE_MUSIC,
     GAME_MUSIC,
     BOSS_MUSIC,
     VICTORY_MUSIC,
     GAME_OVER_MUSIC
 };
 
-// Simple fallback audio manager that doesn't actually play sounds
-// but tracks the sound state so the game can integrate sound logic
 class AudioManager {
 private:
+    #ifdef USE_OPENAL_SOUND
+    // OpenAL variables
+    ALCdevice* device;
+    ALCcontext* context;
+    
+    // Sound buffers and sources
+    std::unordered_map<SoundType, ALuint> soundBuffers;
+    std::unordered_map<SoundType, ALuint> soundSources;
+    
+    // Music buffers and sources
+    std::unordered_map<MusicType, ALuint> musicBuffers;
+    std::unordered_map<MusicType, ALuint> musicSources;
+    #endif
+    
     // Audio status
     bool audioInitialized;
     bool musicEnabled;
@@ -41,129 +61,55 @@ private:
     MusicType currentMusic;
     
     // Constructor is private for singleton pattern
-    AudioManager() 
-        : audioInitialized(false),
-          musicEnabled(true),
-          soundEnabled(true),
-          musicVolume(100),
-          soundVolume(100),
-          currentMusic(MENU_MUSIC) {
-    }
+    AudioManager();
+    
+    // Helper methods
+    bool loadSound(SoundType type, const std::string& filename);
+    bool loadMusic(MusicType type, const std::string& filename);
     
 public:
-    // Static instance pointer - moved to public for access
+    // Static instance pointer
     static AudioManager* instance;
     
     // Destructor
-    ~AudioManager() {
-        shutdown();
-    }
+    ~AudioManager();
     
     // Get singleton instance
-    static AudioManager* getInstance() {
-        if (instance == nullptr) {
-            instance = new AudioManager();
-        }
-        return instance;
-    }
+    static AudioManager* getInstance();
     
     // Initialize and shutdown audio system
-    bool initAudio() {
-        // Always succeed in fallback mode
-        audioInitialized = true;
-        return true;
-    }
+    bool initAudio();
+    void shutdown();
     
-    void shutdown() {
-        audioInitialized = false;
-    }
+    // Load resources
+    bool loadSoundEffects();
+    bool loadMusic();
     
-    // Load resources (no-op in fallback mode)
-    bool loadSoundEffects() {
-        return true;
-    }
+    // Sound effect controls
+    void playSound(SoundType sound);
+    void stopSound(SoundType sound);
+    void stopAllSounds();
     
-    // Sound effect controls (no-op but log the actions)
-    void playSound([[maybe_unused]]SoundType sound) {
-        if (!audioInitialized || !soundEnabled) return;
-        
-        DINFOF("playing sound: %hi",static_cast<int>(sound));
-    }
-    
-    void stopAllSounds() {
-        // No-op in fallback mode
-    }
-    
-    // Music controls (no-op but log the actions)
-    void playMusic(MusicType music) {
-        if (!audioInitialized || !musicEnabled) return;
-        
-        currentMusic = music;
-        
-        // Just log the music that would be played
-        #ifdef DEBUG
-        std::cout << "Playing music: " << static_cast<int>(music) << std::endl;
-        #endif
-    }
-    
-    void stopMusic() {
-        // No-op in fallback mode
-        #ifdef DEBUG
-        std::cout << "Stopping music" << std::endl;
-        #endif
-    }
+    // Music controls
+    void playMusic(MusicType music);
+    void pauseMusic();
+    void resumeMusic();
+    void stopMusic();
     
     // Volume controls
-    void setMusicVolume(int volume) {
-        // Clamp volume to valid range
-        if (volume < 0) volume = 0;
-        if (volume > 100) volume = 100;
-        
-        musicVolume = volume;
-    }
-    
-    void setSoundVolume(int volume) {
-        // Clamp volume to valid range
-        if (volume < 0) volume = 0;
-        if (volume > 100) volume = 100;
-        
-        soundVolume = volume;
-    }
-    
-    int getMusicVolume() const {
-        return musicVolume;
-    }
-    
-    int getSoundVolume() const {
-        return soundVolume;
-    }
+    void setMusicVolume(int volume);
+    void setSoundVolume(int volume);
+    int getMusicVolume() const;
+    int getSoundVolume() const;
     
     // Toggle audio
-    void toggleMusic() {
-        musicEnabled = !musicEnabled;
-        
-        if (!musicEnabled) {
-            stopMusic();
-        } else {
-            playMusic(currentMusic);
-        }
-    }
+    void toggleMusic();
+    void toggleSound();
+    bool isMusicEnabled() const;
+    bool isSoundEnabled() const;
     
-    void toggleSound() {
-        soundEnabled = !soundEnabled;
-    }
-    
-    bool isMusicEnabled() const {
-        return musicEnabled;
-    }
-    
-    bool isSoundEnabled() const {
-        return soundEnabled;
-    }
-    
-    // Update function to be called each frame (no-op in fallback mode)
-    void update() {
-    }
+    // Update function to be called each frame
+    void update();
 };
 
 // Global accessor function
@@ -175,3 +121,5 @@ void shutdownAudioSystem();
 void playGameSound(SoundType sound);
 void playGameMusic(MusicType music);
 void updateAudioState(GameState state);
+void render_credits_screen(int xres, int yres, GLuint menuBackgroundTexture);
+void resetGLState(int xres, int yres);
