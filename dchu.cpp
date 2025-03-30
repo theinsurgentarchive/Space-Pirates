@@ -105,12 +105,11 @@ AStar::AStar(World& grid, v2f origin, v2u tile_dim)
     //The Tile is a Water Tile in The Current Position
     uint16_t x_iter = 0;
     uint16_t y_iter = 0;
-    for (uint16_t x = 0; x < grid_size[0]; x++) {
-        for (uint16_t y = 0; y < grid_size[1]; y++) {
+    for (float x = 0; x < grid_size[0]; x + 1.0f) {
+        for (float y = 0; y < grid_size[1]; y + 1.0f) {
 
             //Set The World Position of Each Node to The Center of 
             //Each Quadrant of Each World Tile Using the Tile's World Position 
-            auto t = ecs::ecs.component().fetch<TRANSFORM>(tiles[x][y]);
             v2f tile_world = {x * gen_dim, y * gen_dim};
             
             if (x_iter + 1 < grid_size[0] && y_iter + 1 < grid_size[1]){
