@@ -110,7 +110,7 @@ AStar::AStar(World& grid, v2f origin, v2u tile_dim)
 
             //Set The World Position of Each Node to The Center of 
             //Each Quadrant of Each World Tile Using the Tile's World Position 
-            v2f tile_world = {x * gen_dim, y * gen_dim};
+            v2f tile_world = {x * gen_dim[0], y * gen_dim[1]};
             
             if (x_iter + 1 < grid_size[0] && y_iter + 1 < grid_size[1]){
                 //Top-Left Quadrant
