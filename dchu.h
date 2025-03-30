@@ -1,43 +1,68 @@
 #pragma once
 #include "jlo.h"
 
-//Entity Components
-struct oxygen_resource
+//Enemy Types Enumeration
+enum EnemyT 
 {
-	//Oxygen Level
-	float oxygen;
-	//Max O2 Level
-	float max;
-    //Is O2 Depleted?
-	bool depleted;
-};
+    DEFAULT,  //0
+    BANDIT,   //1
+    ALIEN,    //2
+}
 
-struct fuel_resource
-{
-	//Fuel Level
-	float fuel;
-	//Max Fuel Level
-	float max;
-    //Is Fuel Depleted?
-	bool depleted;
-};
-
-//Can-Be-Displayed Check Function
-bool isDisplayable(ecs::Entity*);
-
-//A* Pathfinding Algorithm
-//(INTEGRATION IN PROCESS)
-class Node
+//Enemy Class
+class Enemy
 {
     private:
+        //Store Entity
+        ecs::Entity* ent;
+        
         //World Position
         v2f world_pos;
 
-        //Local Position
-        v2u local_pos;
+        //Damage Modifier
+        float damage;
+    public:
+        //Wait for n Seconds of Time
+        u16 timer;
 
-        //Hitbox Scale
-        v2f scale;
+        //Constructor
+        Enemy();
+        Enemy(
+            v2f, 
+            u16 delay = 5,
+            float hp = 2.0f, float dmg = 1.0
+        );
+        Enemy(EnemyT);
+
+};
+
+//Entity Component Systems
+namespace ecs
+{
+    struct Pathfinding
+    {
+        v2u start, goal;
+        
+    };
+    //Entity Pathfinding System
+    class PathSystem
+    {
+        public:
+            PathSystem(ECS& ecs);
+            void update(float dt) override;
+    }
+}
+
+//Can The Given Entity be Rendered?
+bool canRender(ecs::Entity*);
+
+//A* Pathfinding Algorithm Class
+class Node
+{
+    private:
+        //Positional Variables
+        v2f world_pos;
+        v2u local_pos;
     public:
 
         //Variables
@@ -75,16 +100,17 @@ class AStar
         //Constructor
         AStar();
         AStar(v2f, v2u, v2f);
-        AStar(uint16_t, uint16_t);
+        AStar(v2u);
+        AStar(u16, u16);
 
         //Sets a Node to an Obstacle in A*
-        void toggleObstacle(uint16_t, uint16_t);
+        void toggleObstacle(u16, u16);
 
         //Get The Node Grid's Size
         v2u size();
 
         //Retrieves a Pointer to The Node
-        Node* getNode(uint16_t, uint16_t);
+        Node* getNode(u16, u16);
 
         //Initializes The Node Grid
         void initGrid(v2f tile_dim = {1.0f, 1.0f});
@@ -96,7 +122,7 @@ class AStar
         bool hasNeighbors(Node*);
 
         //A* Search Algorithm
-        Node* aStar(uint16_t[2], uint16_t[2]);
+        Node* aStar(v2u, v2u);
 
         //Node Refresh
         void resetNodes();

@@ -2,6 +2,9 @@
 #include <cmath>
 #include <list>
 
+
+
+//Renderability Check
 bool canRender(ecs::Entity* ent)
 {
     bool display = true;
@@ -23,7 +26,6 @@ bool canRender(ecs::Entity* ent)
 }
 
 //A* Pathfinding Algorithm
-//(INTEGRATION IN PROCESS)
 Node::Node()
 {
     //Initialize Variables
@@ -67,10 +69,8 @@ void Node::setLocal(v2u local)
 AStar::AStar()
 {
     //Initialize Variables
-    grid_size[0] = 10;
-    grid_size[1] = 10;
-    origin_pos[0] = 0.0f;
-    origin_pos[1] = 0.0f;
+    grid_size = {50, 50};
+    origin_pos = {0.0f, 0.0f};
 
     //Initialize Grid Nodes
     initGrid();
@@ -92,25 +92,38 @@ AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
     DINFO("Completed World A* Node Generation\n");
 }
 
-AStar::AStar(uint16_t x_size, uint16_t y_size)
+AStar::AStar(v2u size)
+{
+    //Initalize Variables
+    grid_size = size;
+    origin_pos = {0.0f, 0.0f};
+
+    //Initalize Grid Nodes
+    initGrid();
+    DINFO("Completed V2U A* Node Generation\n");
+}
+
+AStar::AStar(u16 x_size, u16 y_size)
 {
     //Initalize Variables
     grid_size[0] = x_size;
     grid_size[1] = y_size;
+    origin_pos = {0.0f, 0.0f};
 
     //Initalize Grid Nodes
     initGrid();
+    DINFO("Completed Coordinate A* Node Generation\n");
 }
 
 //Sets The Given Coordinate's Node to an Obstacle
-void AStar::toggleObstacle(uint16_t x, uint16_t y)
+void AStar::toggleObstacle(u16 x, u16 y)
 {
     if (node_grid[x][y].obstacle) {
         node_grid[x][y].obstacle = false;
-        DINFOF("Obstacle is Not an Obstacle");
+        DINFOF("Is Not an Obstacle");
     }
     node_grid[x][y].obstacle = true;
-    DINFOF("Obstacle is an Obstacle");
+    DINFOF("Is an Obstacle");
 }
 
 //Returns The Node Grid's Size
@@ -120,7 +133,7 @@ v2u AStar::size()
 }
 
 //Retrieves The Node requested in the AStar
-Node* AStar::getNode(uint16_t x, uint16_t y)
+Node* AStar::getNode(u16 x, u16 y)
 {
     if ((x <= grid_size[0]) && (y <= grid_size[1])) {
         return &node_grid[x][y];
@@ -137,13 +150,13 @@ void AStar::initGrid(v2f tile_dim)
     }
     //Resize The Node Grid
     node_grid.resize(grid_size[0]);
-    for (uint16_t i = 0; i < node_grid.size(); i++) {
+    for (u16 i = 0; i < node_grid.size(); i++) {
         node_grid[i].resize(grid_size[i]);
     }
 
     //Generate Nodes
-    for (uint16_t x = 0; x < grid_size[0]; x++) {
-        for (uint16_t y = 0; y < grid_size[1]; y++) {
+    for (u16 x = 0; x < grid_size[0]; x++) {
+        for (u16 y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].setLocal({x, y});
             node_grid[x][y].setWorld({
                 ((float)x * tile_dim[0]),
@@ -162,8 +175,8 @@ void AStar::initGrid(v2f tile_dim)
 void AStar::genNeighbors()
 {
     //Load Each Node's neighbors Vector with all Adjacent Nodes
-    for (uint16_t x = 0; x < grid_size[0]; x++) {
-        for (uint16_t y = 0; y < grid_size[1]; y++) {
+    for (u16 x = 0; x < grid_size[0]; x++) {
+        for (u16 y = 0; y < grid_size[1]; y++) {
             
             //Bottom Neighbor
             if (y > 0) {
@@ -201,7 +214,7 @@ bool AStar::hasNeighbors(Node* node)
     return (!node->neighbors.empty());
 }
 
-Node* AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
+Node* AStar::aStar(v2u begin_node[], v2u ending_node[])
 {
 
     //Pointer to Start Node
@@ -299,8 +312,8 @@ Node* AStar::aStar(uint16_t begin_node[], uint16_t ending_node[])
 
 void AStar::resetNodes()
 {
-    for (uint16_t x = 0; x < grid_size[0]; x++) {
-        for (uint16_t y = 0; y < grid_size[1]; y++) {
+    for (u16 x = 0; x < grid_size[0]; x++) {
+        for (u16 y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].visited = false;
             node_grid[x][y].global_dist = INFINITY;
             node_grid[x][y].local_dist = INFINITY;
