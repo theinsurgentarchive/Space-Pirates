@@ -39,11 +39,13 @@ class Enemy
 //Entity Component Systems
 namespace ecs
 {
+    //Pathing Data Container
     struct Pathfinding
     {
         v2u start, goal;
-        
+        Node* next_node;
     };
+
     //Entity Pathfinding System
     class PathSystem
     {

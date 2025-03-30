@@ -293,10 +293,10 @@ std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 int main()
 {
 	gl.spaceship = ecs::ecs.entity().checkout(); 
-	initializeEntity(gl.spaceship); 
+	initializeEntity(gl.spaceship);
 	DINFOF("spaceship initialized spaceship %s", "");
 	[[maybe_unused]]int* PlanetSeed;
-	// [[maybe_unused]]auto character = ecs::character_x(); 
+	// [[maybe_unused]]auto character = ecs::character_x();
 	PlanetSeed = PlanetSeedGenerator();
 	// Initialize audio system
 	auto biome = selectBiome(30.0f,0.5f);
