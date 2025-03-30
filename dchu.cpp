@@ -2,7 +2,7 @@
 #include <cmath>
 #include <list>
 
-bool isDisplayable(ecs::Entity* ent)
+bool canRender(ecs::Entity* ent)
 {
     bool display = true;
 
@@ -107,16 +107,11 @@ AStar::AStar(World& grid, v2f origin, v2u tile_dim)
     uint16_t y_iter = 0;
     for (uint16_t x = 0; x < grid_size[0]; x++) {
         for (uint16_t y = 0; y < grid_size[1]; y++) {
-            //Check if the Entity Has Both a Transform & a Sprite Component
-            if (!isDisplayable(tiles[x][y])) {
-                node_grid[x][y].obstacle = true;
-                continue;
-            }
 
             //Set The World Position of Each Node to The Center of 
             //Each Quadrant of Each World Tile Using the Tile's World Position 
             auto t = ecs::ecs.component().fetch<TRANSFORM>(tiles[x][y]);
-            v2f tile_world = t->pos;
+            v2f tile_world = {x * gen_dim, y * gen_dim};
             
             if (x_iter + 1 < grid_size[0] && y_iter + 1 < grid_size[1]){
                 //Top-Left Quadrant

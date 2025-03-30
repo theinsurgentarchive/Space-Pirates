@@ -284,6 +284,7 @@ ecs::Entity* ptr;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
+const AStar* astar;
 const Camera* c;
 int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
@@ -330,7 +331,9 @@ int main()
 	wfc::WaveFunction wf {grid,tile_map};
 	wf.run();
 	auto w = World{{0,0},grid,tile_map};
+	auto temp_astar = AStar{w, {0, 0}, }
 	world = &w;
+	astar
 	rs.sample();
 	ps.sample();
 	init_opengl();
