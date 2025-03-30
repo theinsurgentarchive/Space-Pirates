@@ -87,7 +87,7 @@ class AStar
         Node* getNode(uint16_t, uint16_t);
 
         //Initializes The Node Grid
-        void initGrid(v2u tile_dim = {1.0f, 1.0f});
+        void initGrid(v2f tile_dim = {1.0f, 1.0f});
 
         //Generate All Neighbors for Each Node
         void genNeighbors();
