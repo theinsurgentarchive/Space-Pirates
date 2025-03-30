@@ -331,7 +331,7 @@ int main()
 	wfc::WaveFunction wf {grid,tile_map};
 	wf.run();
 	auto w = World{{0,0},grid,tile_map};
-	auto temp_astar = AStar{w, {0, 0}, {16, 16}};
+	auto temp_astar = AStar{{0, 0}, {50, 50}, {16.0f, 16.0f}};
 	world = &w;
 	astar = &temp_astar;
 	rs.sample();
