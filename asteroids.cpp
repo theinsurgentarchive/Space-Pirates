@@ -283,6 +283,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 ecs::Entity* ptr;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
+const v2u wrd_size = {50, 50};
 const World* world;
 const AStar* astar;
 const Camera* c;
@@ -317,7 +318,6 @@ int main()
 	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sc->ssheet = "player-front";
 	sc->render_order = 15;
-	Vec2<uint16_t> v {50,50};
 	loadTextures(ssheets);
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
 	tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
@@ -327,11 +327,11 @@ int main()
 	for (auto& pair : tile_map) {
 		tiles.insert(pair.first);
 	}
-	wfc::Grid grid {v, tiles};
+	wfc::Grid grid {wrd_size, tiles};
 	wfc::WaveFunction wf {grid,tile_map};
 	wf.run();
 	auto w = World{{0,0},grid,tile_map};
-	auto temp_astar = AStar{{0, 0}, {50, 50}, {16.0f, 16.0f}};
+	auto temp_astar = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
 	world = &w;
 	astar = &temp_astar;
 	rs.sample();
