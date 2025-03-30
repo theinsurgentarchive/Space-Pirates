@@ -25,6 +25,7 @@
 #include "balrowhany.h"
 #include "jsandoval.h"
 #include "mchitorog.h"
+#include "dchu.h"
 #define GAME_TITLE "Space Pirates"
 #define _TEXTURES "./textures"
 using namespace std; 
