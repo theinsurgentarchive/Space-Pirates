@@ -74,7 +74,7 @@ class AStar
 
         //Constructor
         AStar();
-        AStar(World&, v2f, v2u);
+        AStar(v2f, v2u, v2f);
         AStar(uint16_t, uint16_t);
 
         //Sets a Node to an Obstacle in A*
@@ -87,7 +87,7 @@ class AStar
         Node* getNode(uint16_t, uint16_t);
 
         //Initializes The Node Grid
-        void initGrid();
+        void initGrid(v2u);
 
         //Generate All Neighbors for Each Node
         void genNeighbors();

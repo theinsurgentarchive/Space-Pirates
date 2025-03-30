@@ -77,72 +77,19 @@ AStar::AStar()
     DINFO("Completed Default A* Node Generation\n");
 }
 
-AStar::AStar(World& grid, v2f origin, v2u tile_dim)
+AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
 {
     //Initialize Variables
-    v2u grid_size;
-    grid_size[0] = (grid.tiles().size() * 4);
-    grid_size[1] = (grid.tiles()[0].size() * 4);
-    node_grid.resize(grid_size[0]);
-    for (uint16_t i = 0; i < node_grid.size(); i++) {
-        node_grid[0].resize(grid_size[1]);
-    }
-    auto tiles = grid.tiles();
-    [[maybe_unused]] v2f gen_dist = {
-        tile_dim[0] / 4.0f,
-        tile_dim[1] / 4.0f
-    };
-    [[maybe_unused]] v2f gen_dim = {
-        tile_dim[0] / 2.0f,
-        tile_dim[1] / 2.0f
-    };
-    origin_pos = origin;
+    grid_size[0] = grid_dim[0];
+    grid_size[1] = grid_dim[1];
+    origin_pos[0] = origin[0];
+    origin_pos[1] = origin[1];
 
     //Initialize Grid Nodes
-    initGrid();
-
-    //Set Each Node to an Obstacle if there is either no Tile or
-    //The Tile is a Water Tile in The Current Position
-    uint16_t x_iter = 0;
-    uint16_t y_iter = 0;
-    for (float x = 0; x < grid_size[0]; x + 1.0f) {
-        for (float y = 0; y < grid_size[1]; y + 1.0f) {
-
-            //Set The World Position of Each Node to The Center of 
-            //Each Quadrant of Each World Tile Using the Tile's World Position 
-            v2f tile_world = {x * gen_dim[0], y * gen_dim[1]};
-            
-            if (x_iter + 1 < grid_size[0] && y_iter + 1 < grid_size[1]){
-                //Top-Left Quadrant
-                v2f node_world = tile_world;
-                node_world[0] -= gen_dist[0];
-                node_world[1] -= gen_dist[1];
-                node_grid[x_iter][y_iter].setWorld(node_world);
-
-                //Top-Right Quadrant
-                node_world = tile_world;
-                node_world[0] += gen_dist[0];
-                node_world[1] -= gen_dist[1];
-                node_grid[x_iter + 1][y_iter].setWorld(node_world);
-
-                //Bottom-Right Quadrant
-                node_world = tile_world;
-                node_world[0] -= gen_dist[0];
-                node_world[1] += gen_dist[1];
-                node_grid[x_iter + 1][y_iter + 1].setWorld(node_world);
-
-                //Bottom-Left Quadrant
-                node_world = tile_world;
-                node_world[0] += gen_dist[0];
-                node_world[1] += gen_dist[1];
-                node_grid[x_iter][y_iter + 1].setWorld(node_world);
-            }
-            x_iter += 2;
-        }
-        y_iter += 2;
-    }
-    DINFO("Completed World Tiles A* Node Generation\n");
+    initGrid(tile_dim);
+    DINFO("Completed World A* Node Generation\n");
 }
+
 AStar::AStar(uint16_t x_size, uint16_t y_size)
 {
     //Initalize Variables
@@ -180,8 +127,12 @@ Node* AStar::getNode(uint16_t x, uint16_t y)
 }
 
 //Set Node Positions & Conditionals
-void AStar::initGrid()
+void AStar::initGrid(v2f tile_dim = {1.0f, 1.0f})
 {
+    if ((tile_dim[0] > 0) && (tile_dim[1] > 0)) {
+        DERRORF("Dimensions of Each World Position Cannot Be Zero.");
+        return;
+    }
     //Resize The Node Grid
     node_grid.resize(grid_size[0]);
     for (uint16_t i = 0; i < node_grid.size(); i++) {
@@ -192,7 +143,10 @@ void AStar::initGrid()
     for (uint16_t x = 0; x < grid_size[0]; x++) {
         for (uint16_t y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].setLocal({x, y});
-            node_grid[x][y].setWorld({(float)x, (float)y});
+            node_grid[x][y].setWorld({
+                ((float)x * tile_dim[0]),
+                ((float)y * tile_dim[1])
+            });
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
             node_grid[x][y].parent = nullptr;
