@@ -331,9 +331,9 @@ int main()
 	wfc::WaveFunction wf {grid,tile_map};
 	wf.run();
 	auto w = World{{0,0},grid,tile_map};
-	auto temp_astar = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
+	auto tstar = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
 	world = &w;
-	astar = &temp_astar;
+	astar = &tstar;
 	rs.sample();
 	ps.sample();
 	init_opengl();
@@ -598,6 +598,17 @@ int check_keys(XEvent *e)
 					break;
 				case XK_a:
 					done = 1;
+					break;
+				case XK_c:
+					v2f cn = astar->getNode(4, 4)->getWorld();
+					cout << cn[0] << ", " << cn[1] << "\n\n";
+					std::vector<std::vector<ecs::Entity*>> ct = world->tiles();
+					auto tct = _ecs.component().fetch<TRANSFORM>(ct[4][4]);
+					if (tct == nullptr) {
+						cout << "Error, Cannot Find Tile Transform\n";
+					} else {
+						cout << tct->pos[0] << ", " << tct->pos[1] << endl;
+					}
 					break;
 			}
 		}
