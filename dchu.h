@@ -1,60 +1,6 @@
 #pragma once
 #include "jlo.h"
 
-//Enemy Types Enumeration
-enum EnemyT 
-{
-    DEFAULT,  //0
-    BANDIT,   //1
-    ALIEN,    //2
-}
-
-//Enemy Class
-class Enemy
-{
-    private:
-        //Store Entity
-        ecs::Entity* ent;
-        
-        //World Position
-        v2f world_pos;
-
-        //Damage Modifier
-        float damage;
-    public:
-        //Wait for n Seconds of Time
-        u16 timer;
-
-        //Constructor
-        Enemy();
-        Enemy(
-            v2f, 
-            u16 delay = 5,
-            float hp = 2.0f, float dmg = 1.0
-        );
-        Enemy(EnemyT);
-
-};
-
-//Entity Component Systems
-namespace ecs
-{
-    //Pathing Data Container
-    struct Pathfinding
-    {
-        v2u start, goal;
-        Node* next_node;
-    };
-
-    //Entity Pathfinding System
-    class PathSystem
-    {
-        public:
-            PathSystem(ECS& ecs);
-            void update(float dt) override;
-    }
-}
-
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
@@ -135,3 +81,57 @@ class AStar
         //Generates Biased Data Based On Two Given Input Nodes
         float heuristics(Node*, Node*);
 };
+
+//Enemy Types Enumeration
+enum EnemyT 
+{
+    DEFAULT,  //0
+    BANDIT,   //1
+    ALIEN    //2
+}
+
+//Enemy Class
+class Enemy
+{
+    private:
+        //Store Entity
+        ecs::Entity* ent;
+        
+        //World Position
+        v2f world_pos;
+
+        //Damage Modifier
+        float damage;
+    public:
+        //Wait for n Seconds of Time
+        u16 timer;
+
+        //Constructor
+        Enemy();
+        Enemy(
+            v2f, 
+            u16 delay = 5,
+            float hp = 2.0f, float dmg = 1.0
+        );
+        Enemy(EnemyT);
+
+};
+
+//Entity Component Systems
+namespace ecs
+{
+    //Pathing Data Container
+    struct Pathfinding
+    {
+        v2u start, goal;
+        Node* next_node;
+    };
+
+    //Entity Pathfinding System
+    /*class PathSystem
+    {
+        public:
+            PathSystem(ECS& ecs);
+            void update(float dt) override;
+    }*/
+}
