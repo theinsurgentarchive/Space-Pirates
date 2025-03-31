@@ -447,7 +447,6 @@ void init_opengl(void)
 
 	initialize_fonts();
 	// Load game title texture
-	// Load game title texture
 	glGenTextures(1, &gl.titleTexture);
 	Image *titleImage = new Image("./resources/textures/title.png");
 	glBindTexture(GL_TEXTURE_2D, gl.titleTexture);
@@ -461,34 +460,33 @@ void init_opengl(void)
 
 std::unique_ptr<unsigned char[]> buildAlphaData(Image* img)
 {
-    auto img_size = img->width * img->height;
-    auto newdata = std::make_unique<unsigned char[]>(img_size * 4);
-    auto* data = img->data.get();
-    auto* ptr = newdata.get();
-    auto t0 = data[0], t1 = data[1], t2 = data[2];
-    for (int i = 0; i < img_size; ++i) {
-        // Copy RGB values
-        std::copy(data, data + 3, ptr);
-        
-        // Better alpha detection - look for nearly transparent pixels too
-        // This helps with anti-aliased edges
-        bool is_background = (data[0] == t0 && data[1] == t1 && data[2] == t2);
-        bool is_near_background = (abs(data[0] - t0) < 10 && 
-                                 abs(data[1] - t1) < 10 && 
-                                 abs(data[2] - t2) < 10);
-        
-        // Full transparency for background, semi-transparency for edges
-        if (is_background)
-            ptr[3] = 0;  // Fully transparent
-        else if (is_near_background)
-            ptr[3] = 128; // Semi-transparent for better edge blending
-        else
-            ptr[3] = 255; // Fully opaque
-        
-        data += 3;
-        ptr += 4;
-    }
-    return newdata;
+	auto img_size = img->width * img->height;
+	auto newdata = std::make_unique<unsigned char[]>(img_size * 4);
+	auto* data = img->data.get();
+	auto* ptr = newdata.get();
+	auto t0 = data[0], t1 = data[1], t2 = data[2];
+	for (int i = 0; i < img_size; ++i) {
+		// Copy RGB values
+		std::copy(data, data + 3, ptr);
+
+		// This helps with anti-aliased edges
+		bool is_background = (data[0] == t0 && data[1] == t1 && data[2] == t2);
+		bool is_near_background = (abs(data[0] - t0) < 10 && 
+				abs(data[1] - t1) < 10 && 
+				abs(data[2] - t2) < 10);
+
+		// Full transparency for background, semi-transparency for edges
+		if (is_background)
+			ptr[3] = 0;  // Fully transparent
+		else if (is_near_background)
+			ptr[3] = 128; // Semi-transparent for better edge blending
+		else
+			ptr[3] = 255; // Fully opaque
+
+		data += 3;
+		ptr += 4;
+	}
+	return newdata;
 }
 
 void normalize2d(Vec v)
@@ -540,11 +538,12 @@ void check_mouse(XEvent *e)
 int check_keys(XEvent *e)
 {
 	[[maybe_unused]]static int shift = 0;
-	[[maybe_unused]]static int exit_request = 0;  // Initialize to 0
+	[[maybe_unused]]static int exit_request = 0;
 	if (e->type != KeyRelease && e->type != KeyPress) {
 		//not a keyboard event
 		return 0;
 	}
+
 	// Not a keyboard event
 	if (e->type != KeyRelease && e->type != KeyPress) {
 		return exit_request;
@@ -556,6 +555,16 @@ int check_keys(XEvent *e)
 		exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
 		if (exit_request) {
 			return exit_request;
+		}
+		// Add handling for ESC key in PLAYING state
+		if (key == XK_Escape && gl.state == PLAYING) {
+			// Pause game music
+			getAudioManager()->pauseMusic();
+			// Play menu music
+			playGameMusic(MENU_MUSIC);
+			// Change state to MENU
+			gl.state = MENU;
+			return 0;
 		}
 	}
 
@@ -610,138 +619,138 @@ void physics()
 }
 
 void render() {
-    DINFOF("rendering state: %d\n", gl.state);
+	DINFOF("rendering state: %d\n", gl.state);
 
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-    Rect r;
-    r.left = 100;
-    r.bot = gl.yres - 20;
-    auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-    float cameraX = static_cast<float>(tc->pos[0]);
-    float cameraY = static_cast<float>(tc->pos[1]);
+	Rect r;
+	r.left = 100;
+	r.bot = gl.yres - 20;
+	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	float cameraX = static_cast<float>(tc->pos[0]);
+	float cameraY = static_cast<float>(tc->pos[1]);
 
-    switch(gl.state) {
-        case MENU:
-            // Setup for 2D rendering (menu interface)
-            glMatrixMode(GL_PROJECTION);
-            glPushMatrix(); // PUSH 1
-            glLoadIdentity();
-            glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+	switch(gl.state) {
+		case MENU:
+			// Setup for 2D rendering (menu interface)
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix(); // PUSH 1
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix(); // PUSH 2
-            glLoadIdentity();
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix(); // PUSH 2
+			glLoadIdentity();
 
-            render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.titleTexture, gl.selected_option);
+			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.titleTexture, gl.selected_option);
 
-            glPopMatrix(); // POP 2
-            glMatrixMode(GL_PROJECTION);
-            glPopMatrix(); // POP 1
+			glPopMatrix(); // POP 2
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix(); // POP 1
 
-            // Setup for 3D rendering (planets)
-            glMatrixMode(GL_PROJECTION);
-            glPushMatrix(); // PUSH 3
-            glLoadIdentity();
-            gluPerspective(45.0f, (GLfloat)gl.xres / (GLfloat)gl.yres, 0.1f, 100.0f);
+			// Setup for 3D rendering (planets)
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix(); // PUSH 3
+			glLoadIdentity();
+			gluPerspective(45.0f, (GLfloat)gl.xres / (GLfloat)gl.yres, 0.1f, 100.0f);
 
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix(); // PUSH 4
-            glLoadIdentity();
-            gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix(); // PUSH 4
+			glLoadIdentity();
+			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 
-            // Draw planets
-            glPushMatrix(); // PUSH 5
-            DrawPlanet(
-                gl.planetAng[2], gl.planetPos[0] - 4.5, gl.planetPos[1] - 3,
-                gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1
-            );
-            glPopMatrix(); // POP 5
+			// Draw planets
+			glPushMatrix(); // PUSH 5
+			DrawPlanet(
+					gl.planetAng[2], gl.planetPos[0] - 4.5, gl.planetPos[1] - 3,
+					gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1
+				  );
+			glPopMatrix(); // POP 5
 
-            glPushMatrix(); // PUSH 6
-            DrawPlanet(
-                gl.planetAng[2], gl.planetPos[0] + 5.5, gl.planetPos[1],
-                gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0
-            );
-            glPopMatrix(); // POP 6
+			glPushMatrix(); // PUSH 6
+			DrawPlanet(
+					gl.planetAng[2], gl.planetPos[0] + 5.5, gl.planetPos[1],
+					gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0
+				  );
+			glPopMatrix(); // POP 6
 
-            glPushMatrix(); // PUSH 7
-            DrawPlanet(
-                gl.planetAng[2], gl.planetPos[0] + 1.4, gl.planetPos[1] - 7,
-                gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 1
-            );
-            glPopMatrix(); // POP 7
+			glPushMatrix(); // PUSH 7
+			DrawPlanet(
+					gl.planetAng[2], gl.planetPos[0] + 1.4, gl.planetPos[1] - 7,
+					gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 1
+				  );
+			glPopMatrix(); // POP 7
 
-            glPopMatrix(); // POP 4
-            glMatrixMode(GL_PROJECTION);
-            glPopMatrix(); // POP 3
-            break;
+			glPopMatrix(); // POP 4
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix(); // POP 3
+			break;
 
-        case CONTROLS:
-            // Reset GL state completely for controls screen
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+		case CONTROLS:
+			// Reset GL state completely for controls screen
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
 
-            render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
-            break;
+			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			break;
 
-        case CREDITS:
-            // Reset GL state completely for credits screen
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+		case CREDITS:
+			// Reset GL state completely for credits screen
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
 
-            render_credits_screen(gl.xres, gl.yres, menuBackgroundTexture);
-            break;
+			render_credits_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			break;
 
-        case PLAYING:
-            // Reset for game state
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+		case PLAYING:
+			// Reset for game state
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
 
-            glPushMatrix();
-            c->update();
-            rs.update((float)1/10);
-            glPopMatrix();
+			glPushMatrix();
+			c->update();
+			rs.update((float)1/10);
+			glPopMatrix();
 
-            DisableFor2D();
-            ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
+			DisableFor2D();
+			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
 
-            // UI bars
-            if (gl.spaceship) {
-                auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
-                auto spaceshipOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(gl.spaceship);
-                auto spaceshipFuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship);
+			// UI bars
+			if (gl.spaceship) {
+				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+				auto spaceshipOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(gl.spaceship);
+				auto spaceshipFuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship);
 
-                if (spaceshipHealth) {
-                    drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.yres - 50, 0xF00FF00);
-                }
+				if (spaceshipHealth) {
+					drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.yres - 50, 0xF00FF00);
+				}
 
-                if (spaceshipOxygen) {
-                    drawUIBar("Oxygen", spaceshipOxygen->oxygen, spaceshipOxygen->max, 20, gl.yres - 90, 0x00FFFF);
-                }
+				if (spaceshipOxygen) {
+					drawUIBar("Oxygen", spaceshipOxygen->oxygen, spaceshipOxygen->max, 20, gl.yres - 90, 0x00FFFF);
+				}
 
-                if (spaceshipFuel) {
-                    drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
-                }
-            }
-            break;
+				if (spaceshipFuel) {
+					drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
+				}
+			}
+			break;
 
-        case EXIT:
-            break;
+		case EXIT:
+			break;
 
-        default:
-            break;
-    }
+		default:
+			break;
+	}
 }
