@@ -222,7 +222,7 @@ bool AudioManager::loadMusic() {
     success &= loadMusic(MENU_PAUSE_MUSIC, MUSIC_MENU_PATH + "menu_pause_music.wav");
     
     // Load gameplay music
-    // Add your gameplay music files here
+    success &= loadMusic(GAME_MUSIC, MUSIC_GAMEPLAY_PATH + "background_4.wav");
     
     return success;
 }
@@ -429,7 +429,6 @@ void updateAudioState(GameState state) {
             break;
         case CONTROLS:
         case CREDITS:
-            // Use the menu pause music for controls and credits screens
             playGameMusic(MENU_PAUSE_MUSIC);
             break;
         case EXIT:
@@ -442,13 +441,11 @@ void updateAudioState(GameState state) {
     }
 }
 
-// Add this function to mchitorog.cpp
 void render_credits_screen(int xres, int yres, GLuint menuBackgroundTexture)
 {
     DisableFor2D();
 
     glPushMatrix();
-    // Credits screen background
     glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
     glColor3f(1.0f, 1.0f, 1.0f);
     glBegin(GL_QUADS);
