@@ -166,13 +166,13 @@ void loadTextures(
         loadTexture(
             "./resources/textures/tiles/warm-water.webp",false),
         {1,3},{16,16},true)
-    .loadStatic("cool-water",
-        loadTexture(
-            "./resources/textures/tiles/cool-water.webp",false),
-        {1,3},{16,16},true)
     .loadStatic("cold-water",
         loadTexture(
             "./resources/textures/tiles/cold-water.webp",false),
+        {1,3},{16,16},true)
+    .loadStatic("chaos-water",
+        loadTexture(
+            "./resources/textures/tiles/chaos-water.webp",false),
         {1,3},{16,16},true);
 }
 
@@ -225,6 +225,8 @@ std::shared_ptr<Texture> loadTexture(
     return tex;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 Biome selectBiome(float temperature, float humidity) {
     std::vector<int> indices(13);
     std::iota(indices.begin(), indices.end(), 0);
@@ -255,29 +257,103 @@ Biome::Biome(
 {
 }
 
-Camera::Camera(v2f& pos, const v2u dim) : pos{pos},dim{dim}
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+    Camera of the game, center of the camera is bound to 'pos_'.
+*/
+
+Camera::Camera(v2f& pos, const v2u dim) : pos_{pos},dim_{dim}
 {
 }
 
 void Camera::move(v2f delta)
 {
-    pos += delta;
+    pos_ += delta;
 }
 
 void Camera::update() const
 {
-    glTranslatef((dim[0] >> 1) - pos[0], (dim[1] >> 1) - pos[1],0);
+    glTranslatef((dim_[0] >> 1) - pos_[0], (dim_[1] >> 1) - pos_[1],0);
 }
 
 bool Camera::visible(v2f curr) const
 {
-    float wh = dim[0] >> 1;
-    float hh = dim[1] >> 1;
-    v2f v1 {pos[0] - wh, pos[1] - hh};
-    v2f v2 {pos[0] + wh, pos[1] + hh};
+    float wh = dim_[0] >> 1;
+    float hh = dim_[1] >> 1;
+    v2f v1 {pos_[0] - wh, pos_[1] - hh};
+    v2f v2 {pos_[0] + wh, pos_[1] + hh};
     return curr[0] >= v1[0] && curr[0] <= v2[0] &&
     curr[1] >= v1[1] && curr[1] <= v2[1];
 }
+
+v2u Camera::dim() const
+{
+    return dim_;
+}
+
+void Camera::visibleHelper(
+    std::vector<const ecs::Entity*>& entities, 
+    AtomicVector<const ecs::Entity*>& visible_entities, 
+    const u32 start, 
+    const u32 end) const
+{
+    std::vector<const ecs::Entity*> thread_visible;
+    thread_visible.reserve(end - start);
+    for (u32 i {start}; i < end; ++i) {
+        TRANSFORM* transform = ecs::ecs.component().fetch<TRANSFORM>(entities[i]);
+        if (visible(transform->pos)) {
+            thread_visible.emplace_back(entities[i]);
+        }
+    }
+    std::cout << std::this_thread::get_id() << '\n' << std::flush;
+    visible_entities.add(thread_visible);
+}
+
+/*
+
+    Returns all entities that are currently visible to the camera
+
+    @return collection of entities
+
+*/
+
+void Camera::findVisible(
+    AtomicVector<const ecs::Entity*>& visible_entities,
+    std::vector<const ecs::Entity*>& entities,
+    ThreadPool& pool) const
+{
+    const u32 nthreads = pool.size(); 
+    const size_t entities_size = entities.size();
+    const u32 ethread = {entities_size / nthreads}; // entities per thread
+    std::mutex task_mutex;
+    std::condition_variable task_finished;
+    std::atomic<u32> worker_count {nthreads};
+    for (u32 i {0}; i < nthreads; ++i) { //static partitioning
+        u32 start {i * ethread};
+        u32 end {i == (nthreads - 1) ? entities_size : start + ethread };
+        pool.enqueue(
+            [this, 
+            &entities, 
+            &visible_entities, 
+            start, 
+            end, 
+            &task_mutex, 
+            &task_finished, 
+            &worker_count]() {
+                visibleHelper(entities, visible_entities, start, end);
+                if (--worker_count == 0) {
+                    std::lock_guard<std::mutex> lock(task_mutex);
+                    task_finished.notify_one();
+                }
+            });
+    }
+
+    std::unique_lock<std::mutex> lock(task_mutex);
+    task_finished.wait(lock,[&worker_count]() { return worker_count == 0; });
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 Texture::Texture(
         const Vec2<u16>& dim, 
@@ -287,6 +363,8 @@ Texture::Texture(
 {
     tex = std::make_shared<GLuint>();
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 SpriteSheetLoader::SpriteSheetLoader(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets) 
@@ -307,6 +385,8 @@ SpriteSheetLoader& SpriteSheetLoader::loadStatic(
         animated)});
     return *this;
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 SpriteSheet::SpriteSheet(
     const v2u& frame_dim,
@@ -370,6 +450,7 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale, bool invertY)
     glDisable(GL_ALPHA_TEST);
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
 std::vector<std::vector<ecs::Entity*>>& World::tiles()
 {
@@ -429,8 +510,13 @@ World::World(
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 namespace wfc
 {
+
+////////////////////////////////////////////////////////////////////////////////
+
     TileMeta::TileMeta(
         float weight, 
         std::string ssheet,
@@ -443,6 +529,8 @@ namespace wfc
         coefficients{coefficients} 
     {        
     }
+
+////////////////////////////////////////////////////////////////////////////////
 
     TileBuilder::TileBuilder(
         float weight, 
@@ -479,6 +567,8 @@ namespace wfc
         return {_weight,_ssheet,_rules,_coefficients};
     }
 
+////////////////////////////////////////////////////////////////////////////////
+
     Cell::Cell(
         const v2i& pos, 
         const std::unordered_set<std::string>& states) 
@@ -497,6 +587,8 @@ namespace wfc
     {
         return !state.empty();
     }
+
+////////////////////////////////////////////////////////////////////////////////
 
     Grid::Grid(
         Vec2<u16> size, 
@@ -542,6 +634,8 @@ namespace wfc
         }
         return true;
     }
+
+////////////////////////////////////////////////////////////////////////////////
 
     TilePriorityQueue::TilePriorityQueue(Grid& grid)
     {
@@ -612,6 +706,8 @@ namespace wfc
         _bubbleDown(0);
         return cell;
     }
+
+////////////////////////////////////////////////////////////////////////////////
 
     WaveFunction::WaveFunction(
         Grid& grid, 
@@ -737,6 +833,9 @@ namespace wfc
             _propagate(cell);
         }
     }
+
+////////////////////////////////////////////////////////////////////////////////
+
 }
 
 namespace ecs
@@ -861,7 +960,17 @@ namespace ecs
     void RenderSystem::sample()
     {
         _entities = _ecs.query<SPRITE,TRANSFORM>();
-        
+        std::sort(_entities.begin(), _entities.end(), [this](const Entity* a, const Entity* b) {
+            auto as = _ecs.component().fetch<SPRITE>(a);
+            auto bs = _ecs.component().fetch<SPRITE>(b);
+            if (as == nullptr && bs == nullptr)
+                return false;
+            if (as == nullptr)
+                return false;
+            if (bs == nullptr)
+                return true;
+            return as->render_order < bs->render_order;
+        });
     }
     
     struct CompareEntity
@@ -896,31 +1005,13 @@ namespace ecs
   
     void RenderSystem::update([[maybe_unused]]float dt)
     {
-        auto entities = ecs::ecs.query<Sprite,Transform>();
-        std::mutex mx;
-        const u32 nthreads = 4;
-        const u32 e_threads = entities.size() / nthreads;
-        std::priority_queue<const Entity*, std::vector<const Entity*>, CompareEntity> visible;
-        std::vector<std::thread> threads;
-        for (u32 i = 0; i < nthreads; ++i) {
-            u32 start = i * e_threads;
-            u32 end = (i == nthreads - 1) ? entities.size() : start + e_threads;
-            threads.push_back(std::thread(renderHelper,std::ref(entities),std::ref(visible), std::ref(mx), start,end));
-        }
-
-        for (auto& thread : threads) {
-            thread.join();
-        }
-
-        while (!visible.empty()) {
-            auto entity = visible.top();
-            visible.pop();
-            auto tc = getCachedComponent<Transform>(entity,transforms);
+        for (auto& entity :  _entities) {
+            auto tc = _ecs.component().fetch<TRANSFORM>(entity);
             if (!c->visible(tc->pos)) {
                 DINFO("entity was skipped");
                 continue;
             }
-            auto ec = getCachedComponent<Sprite>(entity,sprites);
+            auto ec = _ecs.component().fetch<SPRITE>(entity);
             if (ec->ssheet.empty()) {
                 DWARNF("animation key was empty for entity (%d)\n", 
                         entity->id);
@@ -945,14 +1036,12 @@ namespace ecs
                     ec->frame = 0;
                 }
             }
-
             if (_ecs.component().has<NAME>(entity)) {
                 auto nc = _ecs.component().fetch<NAME>(entity);
                 Rect r;
-                u32 ot = (nc->name.length() >> 1) * 2;
                 switch(nc->alignment) {
                     case 0:
-                        r.left = tc->pos[0] + ot;
+                        r.left = tc->pos[0];
                         r.bot = tc->pos[1];
                         break;
                     case 1:
@@ -962,9 +1051,6 @@ namespace ecs
                 r.left += nc->offset[0];
                 r.bot += nc->offset[1];
                 ggprint8b(&r,0,nc->cref,nc->name.c_str());
-            }
-            if (_ecs.component().has<COLLIDER>(entity)) {
-
             }
         }
     }
@@ -1072,25 +1158,7 @@ namespace ecs
     }
 }
 
-// void collisionHelper(
-//     const std::vector<const ecs::Entity*>& entities, 
-//     AtomicVector<const ecs::Entity*>& visible_entities, 
-//     const u32 start, 
-//     const u32 end)
-// {
-//     std::vector<const ecs::Entity*> thread_visible;
-//     thread_visible.reserve(end - start);
-//     for (u32 i {start}; i < end; i++) {
-//         auto e = entities[i];
-//         TRANSFORM* tc = ecs::ecs.component().fetch<TRANSFORM>(entities[i]);
-//         if ((c->visible(tc->pos))) {
-//             thread_visible.emplace_back(entities[i]);
-//         }
-//     }
-//     visible_entities.add(thread_visible);
-// }
-
-ThreadPool::ThreadPool(u32 nthreads) : stop_{false}
+ThreadPool::ThreadPool(u32 nthreads) : stop_{false}, size_{nthreads}
 {
     workers_.reserve(nthreads);
     for (u32 i {0}; i < nthreads; ++i) {
@@ -1142,6 +1210,11 @@ void ThreadPool::workerThread()
             current_task();
         }
     }
+}
+
+u32 ThreadPool::size() const
+{
+    return size_;
 }
 
 

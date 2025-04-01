@@ -141,37 +141,39 @@ namespace ecs
         return hasHelper(e_ptr,T()...);
     }      
 
-    template <typename... T>
-    void queryHelperThread(const std::vector<Entity>& entities, std::vector<const Entity*>& queried_entities, u32 start, u32 end, std::mutex& query_mutex)
-    {
-        std::vector<const Entity*> local_queried_entities;
-        local_queried_entities.reserve(end - start);
-        for (u32 i {start} ; i < end; ++i) {
-            const Entity& entity = entities[i];
-            if (ecs::ecs.component().has<T...>(&entity)) {
-                local_queried_entities.emplace_back(&entity);
-            }
-        }
+    // template <typename... T>
+    // void queryHelperThread(const std::vector<Entity>& entities, std::vector<const Entity*>& queried_entities, u32 start, u32 end, std::mutex& query_mutex)
+    // {
+    //     std::vector<const Entity*> local_queried_entities;
+    //     local_queried_entities.reserve(end - start);
+    //     for (u32 i {start} ; i < end; ++i) {
+    //         const Entity& entity = entities[i];
+    //         if (ecs::ecs.component().has<T...>(&entity)) {
+    //             local_queried_entities.emplace_back(&entity);
+    //         }
+    //     }
 
-        std::lock_guard<std::mutex> lock(query_mutex);
-        queried_entities.reserve(queried_entities.size() + local_queried_entities.size());
-        for (auto& ptr : local_queried_entities) {
-            queried_entities.emplace_back(ptr);
-        }
-    }
+    //     std::lock_guard<std::mutex> lock(query_mutex);
+    //     queried_entities.reserve(queried_entities.size() + local_queried_entities.size());
+    //     for (auto& ptr : local_queried_entities) {
+    //         queried_entities.emplace_back(ptr);
+    //     }
+    // }
 
     template <typename... T>
     std::vector<const Entity*> ECS::query()
     {
         std::vector<const Entity*> entities;
+        std::lock_guard<std::mutex> lock(_entity_manager_mutex);  // Assuming you have a mutex
         for (auto& ptr : _entity_manager.entities) {
             if (_component_manager.has<T...>(&ptr)) {
-                DINFOF("entity (%d) matched query\n",ptr.id);
+                DINFOF("entity (%d) matched query\n", ptr.id);
                 entities.push_back(&ptr);
             }
         }
         return entities;
-    }   
+    }
+
     
     template <typename... T>
     void System<T...>::update([[maybe_unused]] float dt)
@@ -250,8 +252,15 @@ size_t AtomicVector<T>::size() const
 }
 
 template <typename T>
-T AtomicVector<T>::operator[] (int idx)
+T AtomicVector<T>::operator[] (int idx) const
 {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     return objs_[idx];
+}
+
+template <typename T>
+void AtomicVector<T>::set (const T& obj, int idx)
+{
+    std::lock_guard<std::shared_mutex> lock(mutex_);
+    objs_[idx] = obj;
 }

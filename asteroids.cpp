@@ -290,51 +290,12 @@ std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<ecs::Collision> cols;
 atomic<bool> done = false;
 
-void collisionHelper(
-    const std::vector<const ecs::Entity*>& entities, 
-    AtomicVector<const ecs::Entity*>& visible_entities, 
-    const u32 start, 
-    const u32 end)
-{
-    std::vector<const ecs::Entity*> thread_visible;
-    thread_visible.reserve(end - start);
-	for (auto& entity : entities) {
-		std::cout << entity << '\n';
-	}
-    for (int i {start}; i < end; ++i) {
-        auto e = entities[i];
-        TRANSFORM* tc = ecs::ecs.component().fetch<TRANSFORM>(entities[i]);
-        if ((c->visible(tc->pos))) {
-            thread_visible.emplace_back(entities[i]);
-        }
-    }
-    visible_entities.add(thread_visible);
-}
-
-void detectCollisions(std::vector<const ecs::Entity*>& entities, ThreadPool& pool)
-{
-	std::mutex mx;
-	const u32 nthreads = 4;
-	const u32 ethreads = entities.size() / nthreads;
-	AtomicVector<const ecs::Entity*> visible_entities;
-	for (u32 i = 0; i < 4; ++i) {
-		u32 start = i * ethreads;
-		u32 end = (i == 4 - 1) ? entities.size() : start + ethreads;
-		if (start >= entities.size()) {
-			std::cerr << "Invalid start index: " << start << std::endl;
-			continue;  // Skip this iteration if the start is invalid
-		}
-		pool.enqueue([&entities, &visible_entities, start, end]() {
-			collisionHelper(entities, visible_entities, start, end);
-		});
-	}
-}
-
 void collisions(ThreadPool& pool)
 {
+	AtomicVector<const ecs::Entity*> visible_entities;
 	while (!done.load(std::memory_order_acquire)) {
-		auto query = ecs::ecs.query<COLLIDER,TRANSFORM>();
-		detectCollisions(query,pool);
+		auto entities = ecs::ecs.query<COLLIDER,TRANSFORM>();
+		c->findVisible(visible_entities,entities,pool);
 		usleep(1000);
 	}
 }
@@ -360,7 +321,6 @@ int main()
 	PlanetSeed = PlanetSeedGenerator();
     // Initialize audio system
 	auto biome = selectBiome(30.0f,0.5f);
-	std::cout << biome.type << ' ' << biome.description << '\n';
     initAudioSystem();
     
     // Set initial music according to game state (starting in MENU state)
@@ -384,7 +344,7 @@ int main()
 	sc->render_order = 15;
 	collider->dim = v2u {5,5};
 	collider->offset = {0.0f,-16.0f};
-	Vec2<uint16_t> v {250,250};
+	Vec2<uint16_t> v {50,50};
 	loadTextures(ssheets);
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
     tile_map.insert({"A",wfc::TileBuilder{0.6,"sand-002"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
@@ -422,10 +382,6 @@ int main()
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
-        //test`
-		//clear screen just once at the beginning
-        glClear(GL_COLOR_BUFFER_BIT);
-        // Update audio system each frame
         getAudioManager()->update();
 		physics();
 		render();
@@ -554,7 +510,6 @@ void check_mouse(XEvent *e)
 	[[maybe_unused]] static int savey = 0;
 	//
 	[[maybe_unused]] static int ct=0;
-	//std::cout << "m" << std::endl << std::flush;
 	if (e->type == ButtonRelease) {
 		return;
 	}

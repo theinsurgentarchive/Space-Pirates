@@ -83,7 +83,7 @@ enum Direction
 
 struct Biome;
 struct SpriteSheet;
-struct Camera;
+class Camera;
 class World;
 struct Texture;
 template <typename T>
@@ -170,14 +170,37 @@ struct Biome
         const std::string& description);
 };
 
-struct Camera
+/*
+    Camera of the game, center of the camera is bound to 'pos_'.
+*/
+class Camera
 {
-    v2f& pos;
-    const v2u dim;
-    Camera(v2f& pos, const v2u dim);
-    void move(v2f delta);
-    bool visible(v2f curr) const;
-    void update() const;
+    public:
+        void move(v2f delta);
+        bool visible(v2f curr) const;
+        void update() const;
+        v2u dim() const;
+       
+        /*
+
+                Finds entities that are currently visible to the camera
+            and places them in 'visible_entities'
+        
+            @return collection of entities        
+        */
+        void findVisible(
+            AtomicVector<const ecs::Entity*>& visible_entities,
+            std::vector<const ecs::Entity*>& entities,
+            ThreadPool& pool) const;
+        Camera(v2f& pos, const v2u dim);
+    private:
+        v2f& pos_;
+        const v2u dim_;
+        void visibleHelper(
+            std::vector<const ecs::Entity*>& entities, 
+            AtomicVector<const ecs::Entity*>& visible_entities, 
+            const u32 start, 
+            const u32 end) const;
 };
 
 
@@ -508,6 +531,7 @@ namespace ecs
             template <typename... T>
             std::vector<const Entity*> query();
         private:
+            std::mutex _entity_manager_mutex;
             EntityManager _entity_manager;
             ComponentManager _component_manager;
     };
@@ -551,6 +575,23 @@ namespace ecs
     };
 }
 
+/*
+        Thread-safe wrapper for std::vector, the usage is generally the same. 
+    All write operations are thread-safe and have synchronization primitives to 
+    prevent multiple writers, but permit concurrent readers 
+    using std::shared_mutex. This is an implementation detail.
+
+    e.x: AtomicVector<int> intAtomicVector;
+
+    intAtomicVector.add(1); //adding an integer
+    intAtomicVector.add({1,1}); //adding a vector list
+
+        This wrapper also supports a range-based for loop e.x:
+
+    for (auto& obj : intAtomicVector)
+        std::cout << obj << '\n';
+*/
+
 template <typename T>
 class AtomicVector {
     public:
@@ -560,12 +601,22 @@ class AtomicVector {
         auto begin();
         auto end();
         size_t size() const;
-        T operator[] (int idx);
+        T operator[] (int idx) const;
+        void set(const T& obj, int idx);
     private:
         std::shared_mutex mutex_;
         std::vector<T> objs_;
 };
 
+/*
+        A basic thread pool that allows for concurrent task scheduling with 
+    'nthreads' worker threads. This limits the overhead of creating multiple
+    new threads for each task.
+    
+    e.x: ThreadPool pool {4}; //spawns a pool with 4 threads
+
+    pool.enqueue([](){ * your task * });
+*/
 
 class ThreadPool
 {
@@ -573,12 +624,14 @@ class ThreadPool
         ThreadPool(u32 nthreads);
         ~ThreadPool();
         void enqueue(std::function<void()> task);
+        u32 size() const;
     private:
         std::mutex queue_mutex_;
         std::vector<std::thread> workers_;
         std::atomic<bool> stop_;
         std::queue<std::function<void()>> task_queue_;
         std::condition_variable task_available_;
+        u32 size_;
         void workerThread();
 };
 #include "jlo.tpp"
