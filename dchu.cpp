@@ -87,7 +87,7 @@ AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
     origin_pos = origin;
     //origin_pos[0] = origin[0];
     //origin_pos[1] = origin[1];
-    cout << tile_dim[0] << tile_dim[1];
+    std::cout << tile_dim[0] << tile_dim[1];
     //Initialize Grid Nodes
     initGrid(tile_dim);
     DINFO("Completed World A* Node Generation\n");
@@ -136,14 +136,14 @@ v2u AStar::size()
 //Retrieves The Node requested in the AStar
 Node* AStar::getNode(u16 x, u16 y)
 {
-    if ((x >= grid_size[0] && y >= grid_size[1]) && (x < 0 && y < 0)) {
+    if ((x >= grid_size[0] && y >= grid_size[1]) || (x < 0 && y < 0)) {
         return nullptr;
     }
     return &node_grid[x][y];
 }
 
 //Set Node Positions & Conditionals
-void AStar::initGrid(v2f tile_dim = {1.0f, 1.0f})
+void AStar::initGrid(v2f tile_dim)
 {
     if ((tile_dim[0] > 0) && (tile_dim[1] > 0)) {
         DERRORF("Dimensions of World Position Cannot Be Zero.");
