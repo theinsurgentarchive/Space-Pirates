@@ -606,7 +606,7 @@ int check_keys(XEvent *e, World *w)
 					if (as.getNode(4, 4) == nullptr) {
 						cout << "Error, Cannot Find Node\n";
 					} else {
-						auto cn = as.get(4, 4)->getWorld();
+						auto cn = as.getNode(4, 4)->getWorld();
 						cout << cn[0] << ", " << cn[1] << "\n\n";
 						auto ct = w->tiles();
 						auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[1][1]);
