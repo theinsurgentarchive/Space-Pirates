@@ -349,7 +349,7 @@ int main()
 			XEvent e = x11.getXNextEvent();
 			x11.check_resize(&e);
 			check_mouse(&e);
-			done = check_keys(&e);
+			done = check_keys(&e, &w);
 		}
 		clock_gettime(CLOCK_REALTIME, &timeCurrent);
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
@@ -541,7 +541,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e)
+int check_keys(XEvent *e, World *w)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;  // Initialize to 0
@@ -600,10 +600,9 @@ int check_keys(XEvent *e)
 					done = 1;
 					break;
 				case XK_c:
-					AStar* as = astar;
+					auto as = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
 					auto cn = as->getNode(4, 4)->getWorld();
 					cout << cn[0] << ", " << cn[1] << "\n\n";
-					World* w = world;
 					auto ct = w->tiles();
 					auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[1][1]);
 					if (tct == nullptr) {
