@@ -88,7 +88,7 @@ enum EnemyT
     DEFAULT,  //0
     BANDIT,   //1
     ALIEN    //2
-}
+};
 
 //Enemy Class
 class Enemy
@@ -111,7 +111,7 @@ class Enemy
         Enemy(
             v2f, 
             u16 delay = 5,
-            float hp = 2.0f, float dmg = 1.0
+            float hp = 2.0f, float dmg = 1.0f
         );
         Enemy(EnemyT);
 
