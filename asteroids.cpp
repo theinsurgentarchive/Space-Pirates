@@ -601,8 +601,9 @@ int check_keys(XEvent *e, World *w)
 					break;
 				case XK_c:
 					auto as = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
-					auto cn = as.getNode(4, 4)->getWorld();
-					cout << cn[0] << ", " << cn[1] << "\n\n";
+					cout << as.size(); << endl;
+					//auto cn = as.getNode(4, 4)->getWorld();
+					//cout << cn[0] << ", " << cn[1] << "\n\n";
 					auto ct = w->tiles();
 					auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[1][1]);
 					if (tct == nullptr) {
