@@ -214,7 +214,7 @@ bool AStar::hasNeighbors(Node* node)
     return (!node->neighbors.empty());
 }
 
-Node* AStar::aStar(v2u begin_node[], v2u ending_node[])
+Node* AStar::aStar(v2u begin_node, v2u ending_node)
 {
 
     //Pointer to Start Node
