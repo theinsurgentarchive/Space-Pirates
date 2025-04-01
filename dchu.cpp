@@ -85,9 +85,6 @@ AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
     grid_size[0] = grid_dim[0] * 4;
     grid_size[1] = grid_dim[1] * 4;
     origin_pos = origin;
-    //origin_pos[0] = origin[0];
-    //origin_pos[1] = origin[1];
-    std::cout << tile_dim[0] << tile_dim[1];
     //Initialize Grid Nodes
     initGrid(tile_dim);
     DINFO("Completed World A* Node Generation\n");
