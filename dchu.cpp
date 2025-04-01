@@ -135,7 +135,7 @@ v2u AStar::size()
 //Retrieves The Node requested in the AStar
 Node* AStar::getNode(u16 x, u16 y)
 {
-    if ((x <= grid_size[0]) && (y <= grid_size[1])) {
+    if ((x < grid_size[0] && y < grid_size[1]) && (x >= 0 && y >= 0)) {
         return &node_grid[x][y];
     }
     return nullptr;
