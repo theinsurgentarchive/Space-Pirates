@@ -600,9 +600,9 @@ int check_keys(XEvent *e)
 					done = 1;
 					break;
 				case XK_c:
-					v2f cn = astar->getNode(4, 4)->getWorld();
+					auto cn = astar->getNode(4, 4)->getWorld();
 					cout << cn[0] << ", " << cn[1] << "\n\n";
-					std::vector<std::vector<ecs::Entity*>> ct = world->tiles();
+					auto ct = world->tiles();
 					auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[1][1]);
 					if (tct == nullptr) {
 						cout << "Error, Cannot Find Tile Transform\n";
