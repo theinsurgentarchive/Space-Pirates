@@ -149,7 +149,7 @@ void AStar::initGrid(v2f tile_dim)
     //Resize The Node Grid
     node_grid.resize(grid_size[0]);
     for (u16 i = 0; i < node_grid.size(); i++) {
-        node_grid[i].resize(grid_size[i]);
+        node_grid[i].resize(grid_size[1]);
     }
 
     //Generate Nodes
