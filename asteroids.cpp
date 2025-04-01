@@ -16,6 +16,9 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+#include <csignal>
+#include <thread>
+#include <future>
 
 #include "image.h"
 #include "log.h"
@@ -76,8 +79,8 @@ public:
 	ecs::Entity* spaceship;
 
 	Global() {
-		xres = 1280;
-		yres = 960;
+		xres = 720;
+		yres = 480;
 		memset(keys, 0, 65536);
 		// mouse value 1 = true = mouse is a regular mouse.
 		state = MENU; // default 
@@ -216,6 +219,8 @@ public:
 		glMatrixMode(GL_PROJECTION); glLoadIdentity();
 		glMatrixMode(GL_MODELVIEW); glLoadIdentity();
 		glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+		gl.xres = width;
+		gl.yres = height;
 		set_title();
 	}
 	void setup_screen_res(const int w, const int h) {
@@ -277,13 +282,76 @@ void render();
 ecs::Entity* ptr;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
+ecs::CollisionSystem cs {ecs::ecs,5};
 const World* world;
 const Camera* c;
-int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
+std::vector<ecs::Collision> cols;
+atomic<bool> done = false;
+
+void collisionHelper(
+    const std::vector<const ecs::Entity*>& entities, 
+    AtomicVector<const ecs::Entity*>& visible_entities, 
+    const u32 start, 
+    const u32 end)
+{
+    std::vector<const ecs::Entity*> thread_visible;
+    thread_visible.reserve(end - start);
+	for (auto& entity : entities) {
+		std::cout << entity << '\n';
+	}
+    for (int i {start}; i < end; ++i) {
+        auto e = entities[i];
+        TRANSFORM* tc = ecs::ecs.component().fetch<TRANSFORM>(entities[i]);
+        if ((c->visible(tc->pos))) {
+            thread_visible.emplace_back(entities[i]);
+        }
+    }
+    visible_entities.add(thread_visible);
+}
+
+void detectCollisions(std::vector<const ecs::Entity*>& entities, ThreadPool& pool)
+{
+	std::mutex mx;
+	const u32 nthreads = 4;
+	const u32 ethreads = entities.size() / nthreads;
+	AtomicVector<const ecs::Entity*> visible_entities;
+	for (u32 i = 0; i < 4; ++i) {
+		u32 start = i * ethreads;
+		u32 end = (i == 4 - 1) ? entities.size() : start + ethreads;
+		if (start >= entities.size()) {
+			std::cerr << "Invalid start index: " << start << std::endl;
+			continue;  // Skip this iteration if the start is invalid
+		}
+		pool.enqueue([&entities, &visible_entities, start, end]() {
+			collisionHelper(entities, visible_entities, start, end);
+		});
+	}
+}
+
+void collisions(ThreadPool& pool)
+{
+	while (!done.load(std::memory_order_acquire)) {
+		auto query = ecs::ecs.query<COLLIDER,TRANSFORM>();
+		detectCollisions(query,pool);
+		usleep(1000);
+	}
+}
+
+void sig_handle(int sig)
+{
+	done = true;
+	std::exit(0);
+}
+
 int main()
 {
+    
+	ThreadPool tp(10);
+	
+	std::signal(SIGINT,sig_handle);
+	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
@@ -299,23 +367,29 @@ int main()
     updateAudioState(gl.state);
 
     ptr = ecs::ecs.entity().checkout();
-    ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
+    ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
 	
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-	Camera camera {
+	Camera camera = {
 		tc->pos,
 		{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
 	};
 	c = &camera;
 	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
+	auto nc = ecs::ecs.component().fetch<NAME>(ptr);
+	auto collider = ecs::ecs.component().fetch<COLLIDER>(ptr);
+	nc->name = "Simon Santos";
+	nc->offset = v2i {0,-25};
 	sc->ssheet = "player-front";
 	sc->render_order = 15;
-	Vec2<uint16_t> v {50,50};
+	collider->dim = v2u {5,5};
+	collider->offset = {0.0f,-16.0f};
+	Vec2<uint16_t> v {250,250};
 	loadTextures(ssheets);
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
-    tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
-    tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
-	tile_map.insert({"C",wfc::TileBuilder{0.3,"sand"}.omni("_").coefficient("C",3).omni("C").omni("A").build()});
+    tile_map.insert({"A",wfc::TileBuilder{0.6,"sand-002"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
+    tile_map.insert({"_",wfc::TileBuilder{0.6,"warm-water"}.omni("C").omni("_").coefficient("_",5).build()});
+	tile_map.insert({"C",wfc::TileBuilder{0.3,"sand-003"}.omni("_").coefficient("C",3).omni("C").omni("A").build()});
 	std::unordered_set<std::string> tiles;
 	for (auto& pair : tile_map) {
 		tiles.insert(pair.first);
@@ -327,6 +401,7 @@ int main()
 	world = &w;
 	rs.sample();
 	ps.sample();
+	cs.sample();
 	init_opengl();
 	logOpen();
 	srand(time(NULL));
@@ -334,7 +409,9 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	done = 0;
+	tp.enqueue([&tp](){
+		collisions(tp);
+	});
     while (!done) {
         while (x11.getXPending()) {
             XEvent e = x11.getXNextEvent();
@@ -346,20 +423,14 @@ int main()
         timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         //test`
-		auto current = std::chrono::high_resolution_clock::now();
-		auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - ps.lastSampled());
-		if (dur.count() >= ps.sample_delta) {
-			ps.sample();
-		}
 		//clear screen just once at the beginning
-        glClear(GL_COLOR_BUFFER_BIT); 
+        glClear(GL_COLOR_BUFFER_BIT);
         // Update audio system each frame
         getAudioManager()->update();
-        ps.update((float) 1/20);
-        render();
-		physics(); 
+		physics();
+		render();
         x11.swapBuffers();
-        usleep(10000);
+        usleep(1000);
     }
     shutdownAudioSystem();
     cleanup_fonts();
@@ -563,8 +634,8 @@ int check_keys(XEvent *e)
 					sc->ssheet = "player-front";
                     pc->vel = {0,-movement_mag};
                     break;
-				case XK_a:
-					done = 1;
+				case XK_Escape:
+					return 1;
 					break;
             }
         }
@@ -575,9 +646,8 @@ int check_keys(XEvent *e)
 
 void physics()
 {
-	ps.update(1/20);
-	gl.planetAng[2] += 1.0;
-
+		ps.update((float) 1/20);
+		gl.planetAng[2] += 1.0;
 }
 
 void render() {

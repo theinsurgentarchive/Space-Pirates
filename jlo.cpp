@@ -10,6 +10,11 @@
 #include <fstream>
 #include <sstream>
 #include <climits>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+#include <atomic>
+#include <queue>
 
 #include <GL/glx.h>
 #include <dirent.h>
@@ -53,7 +58,7 @@ void show_jlo(Rect* r)
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
 }
 
-std::vector<std::string> img_extensions {".webp",".png",".jpeg",".jpg",".gif"};
+// ----- Globals ----- 
 std::random_device rd;
 std::mt19937 generator(rd());
 v2i dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
@@ -66,6 +71,9 @@ extern std::unordered_map<
     std::shared_ptr<Texture>> textures;
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 extern const Camera* c;
+extern std::vector<ecs::Collision> cols;
+extern std::atomic<bool> done;
+extern ThreadPool* pool;
 
 void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
@@ -87,63 +95,93 @@ void loadTextures(
     .loadStatic("chestnut-003", 
         loadTexture(
             "./resources/textures/decorations/chestnut-003.webp", true))
-    .loadStatic("pine000", 
+    .loadStatic("pine-001", 
         loadTexture(
-            "./resources/textures/decorations/pine000.webp", true))
-    .loadStatic("pine001", 
+            "./resources/textures/decorations/pine-001.webp", true))
+    .loadStatic("pine-002", 
         loadTexture(
-            "./resources/textures/decorations/pine001.webp", true))
-    .loadStatic("pine002", 
+            "./resources/textures/decorations/pine-002.webp", true))
+    .loadStatic("pine-003", 
         loadTexture(
-            "./resources/textures/decorations/pine002.webp", true))
-    .loadStatic("pine003", 
+            "./resources/textures/decorations/pine-003.webp", true))
+    .loadStatic("pine-004", 
         loadTexture(
-            "./resources/textures/decorations/pine003.webp", true))
-    .loadStatic("pine004", 
+            "./resources/textures/decorations/pine-004.webp", true))
+    .loadStatic("pine-005", 
         loadTexture(
-            "./resources/textures/decorations/pine004.webp", true))
-    .loadStatic("pine000snow", 
+            "./resources/textures/decorations/pine-005.webp", true))
+    .loadStatic("pine-001snow", 
         loadTexture(
-            "./resources/textures/decorations/pine000snow.webp", true))
-    .loadStatic("pine001snow", 
+            "./resources/textures/decorations/pine-001snow.webp", true))
+    .loadStatic("pine-002snow", 
         loadTexture(
-            "./resources/textures/decorations/pine001snow.webp", true))
-    .loadStatic("pine002snow", 
+            "./resources/textures/decorations/pine-002snow.webp", true))
+    .loadStatic("pine-003snow", 
         loadTexture(
-            "./resources/textures/decorations/pine002snow.webp", true))
-    .loadStatic("pine003snow", 
+            "./resources/textures/decorations/pine-003snow.webp", true))
+    .loadStatic("pine-004snow", 
         loadTexture(
-            "./resources/textures/decorations/pine003snow.webp", true))
-    .loadStatic("pine004snow", 
+            "./resources/textures/decorations/pine-004snow.webp", true))
+    .loadStatic("pine-005snow", 
         loadTexture(
-            "./resources/textures/decorations/pine004snow.webp", true))
+            "./resources/textures/decorations/pine-005snow.webp", true))
     .loadStatic("player-idle",
         loadTexture(
-            "./resources/textures/player/idle.webp",true),{1,1},{18,32})
+            "./resources/textures/player/idle.webp",true),
+        {1,1},{18,32})
     .loadStatic("player-front",
         loadTexture(
-            "./resources/textures/player/front.webp",true),{1,3},{24,32},true)
+            "./resources/textures/player/front.webp",true),
+        {1,3},{26,32},true)
     .loadStatic("player-back",
         loadTexture(
-            "./resources/textures/player/back.webp",true),{1,3},{24,32},true)
+            "./resources/textures/player/back.webp",true),
+        {1,3},{26,32},true)
     .loadStatic("player-right",
         loadTexture(
-            "./resources/textures/player/right.webp",true),{1,3},{24,32},true)
-    .loadStatic("sand",
+            "./resources/textures/player/right.webp",true),
+        {1,3},{26,32},true)
+    .loadStatic("sand-001",
         loadTexture(
-            "./resources/textures/tiles/sand.webp",false))
-    .loadStatic("grass",
+            "./resources/textures/tiles/sand-001.webp",false))
+    .loadStatic("sand-002",
         loadTexture(
-            "./resources/textures/tiles/grass.webp",false))
-    .loadStatic("water",
+            "./resources/textures/tiles/sand-002.webp",false))
+    .loadStatic("sand-003",
         loadTexture(
-            "./resources/textures/tiles/warmwater.webp",false),{1,3},{16,16},true);
+            "./resources/textures/tiles/sand-003.webp",false))
+    .loadStatic("grass-001",
+        loadTexture(
+            "./resources/textures/tiles/grass-001.webp",false))
+    .loadStatic("grass-002",
+        loadTexture(
+            "./resources/textures/tiles/grass-002.webp",false))
+    .loadStatic("dirt-001",
+        loadTexture(
+            "./resources/textures/tiles/dirt-001.webp",false))
+    .loadStatic("dirt-002",
+        loadTexture(
+            "./resources/textures/tiles/dirt-002.webp",false))
+    .loadStatic("warm-water",
+        loadTexture(
+            "./resources/textures/tiles/warm-water.webp",false),
+        {1,3},{16,16},true)
+    .loadStatic("cool-water",
+        loadTexture(
+            "./resources/textures/tiles/cool-water.webp",false),
+        {1,3},{16,16},true)
+    .loadStatic("cold-water",
+        loadTexture(
+            "./resources/textures/tiles/cold-water.webp",false),
+        {1,3},{16,16},true);
 }
 
 std::shared_ptr<Texture> loadTexture(
     const std::string& file_name, 
     bool alpha)
 {
+    static std::vector<std::string> img_extensions 
+    {".webp",".png",".jpeg",".jpg",".gif"};
     std::ifstream file (file_name);
     if (!file.is_open()) {
         DERRORF("file does not exist: %s\n",file_name.c_str());
@@ -294,29 +332,39 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale, bool invertY)
         static_cast<u16>(frame % frame_dim[1]), 
         static_cast<u16>(frame / frame_dim[1])
     };
-    u16 sw {static_cast<u16>(sprite_dim[0] * scale[0])};
-    u16 sh {static_cast<u16>(sprite_dim[1] * scale[1])};
-    u16 rows {frame_dim[0]};
-    u16 cols {frame_dim[1]};
-    float fx {(float) f[0] / cols};
-    float fy {(float) f[1] / rows};
-    float xo {(float) 1 / cols};
-    float xy {(float) 1 / rows};
+    const u16 sw {static_cast<u16>(sprite_dim[0] * scale[0])};
+    const u16 sh {static_cast<u16>(sprite_dim[1] * scale[1])};
+    const u16 swhalf {sw >> 1};
+    const u16 shhalf {sh >> 1};
+    const u16 rows {frame_dim[0]};
+    const u16 cols {frame_dim[1]};
+    const float fx {(float) f[0] / cols};
+    const float fy {(float) f[1] / rows};
+    const float xo {(float) 1 / cols};
+    const float xy {(float) 1 / rows};
     glBindTexture(GL_TEXTURE_2D,*tex->tex);
     glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_GREATER, 0.0f);
     glColor4ub(255,255,255,255);
     glBegin(GL_QUADS);
         if (invertY) {
-            glTexCoord2f(fx + xo, fy + xy);     glVertex2i(pos[0] - sw, pos[1] - sh);
-            glTexCoord2f(fx + xo, fy);          glVertex2i(pos[0] - sw, pos[1] + sh);
-            glTexCoord2f(fx, fy);     glVertex2i(pos[0] + sw, pos[1] + sh);
-            glTexCoord2f(fx, fy + xy);glVertex2i(pos[0] + sw, pos[1] - sh);
+            glTexCoord2f(fx + xo, fy + xy);     
+            glVertex2i(pos[0] - swhalf, pos[1] - shhalf);
+            glTexCoord2f(fx + xo, fy);          
+            glVertex2i(pos[0] - swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx, fy);     
+            glVertex2i(pos[0] + swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx, fy + xy);
+            glVertex2i(pos[0] + swhalf, pos[1] - shhalf);
         } else {
-            glTexCoord2f(fx, fy + xy);     glVertex2i(pos[0] - sw, pos[1] - sh);
-            glTexCoord2f(fx, fy);          glVertex2i(pos[0] - sw, pos[1] + sh);
-            glTexCoord2f(fx + xo, fy);     glVertex2i(pos[0] + sw, pos[1] + sh);
-            glTexCoord2f(fx + xo, fy + xy);glVertex2i(pos[0] + sw, pos[1] - sh);
+            glTexCoord2f(fx, fy + xy);     
+            glVertex2i(pos[0] - swhalf, pos[1] - shhalf);
+            glTexCoord2f(fx, fy);          
+            glVertex2i(pos[0] - swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx + xo, fy);     
+            glVertex2i(pos[0] + swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx + xo, fy + xy);
+            glVertex2i(pos[0] + swhalf,pos[1] - shhalf);
         }
     glEnd();
     glDisable(GL_ALPHA_TEST);
@@ -343,9 +391,10 @@ World::World(
     std::unordered_map<std::string,wfc::TileMeta>& tiles)
 {
     const auto grid_size = grid.size();
-    _grid.resize(grid_size[0]);
-    for (int32_t i {0}; i < grid_size[0]; i++) {
-        for (int32_t j {0}; j < grid_size[1]; j++) {
+    _grid.resize(grid_size[1]);
+    for (i32 i {0}; i < grid_size[1]; i++) {
+        _grid.resize(grid_size[0]);
+        for (i32 j {0}; j < grid_size[0]; j++) {
             auto cell = grid.get({i,j});
             if (cell == nullptr || cell->state.empty())
                 continue;
@@ -363,13 +412,18 @@ World::World(
                 continue;
             }
             auto tc = ecs::ecs.component().assign<TRANSFORM>(e);
-            tc->scale = {4,4};
+            tc->scale = {3,3};
             tc->pos = origin + v2f {
                 static_cast<float>(sd[0] * p[0] * tc->scale[0]),
                 static_cast<float>(sd[1] * p[1] * tc->scale[1])
             };
             auto sc = ecs::ecs.component().assign<SPRITE>(e);
             sc->ssheet = tile->second.ssheet;
+            
+            if (sc->ssheet == "warm-water") {
+                auto collider = ecs::ecs.component().assign<COLLIDER>(e);
+                collider->dim = v2u {16 * 3,16 * 3};
+            }
             _grid[i].push_back(e);
         }
     }
@@ -412,7 +466,9 @@ namespace wfc
         return *this;
     }
 
-    TileBuilder& TileBuilder::coefficient(const std::string& tile, float weight)
+    TileBuilder& TileBuilder::coefficient(
+            const std::string& tile, 
+            float weight)
     {
         _coefficients[tile] = weight;
         return *this;
@@ -644,15 +700,15 @@ namespace wfc
                     auto t1 = _tiles.find(*it);
                     auto t1_rules = t1->second.rules[j];
                     
-                    auto s1 = std::find(
+                    auto s1 = std::count(
                         t2_rules.begin(),
                         t2_rules.end(),
-                        *it) != t2_rules.end();
+                        *it);
 
-                    auto s2 = std::find(
+                    auto s2 = std::count(
                         t1_rules.begin(),
                         t1_rules.end(),
-                        c2->state) != t1_rules.end();
+                        c2->state);
 
                     bool compatible = s1 && s2;
 
@@ -741,11 +797,41 @@ namespace ecs
     {
         return _entity_manager;
     }
+    
+    bool EntityManager::isFree(const Entity* e_ptr)
+    {
+        return std::count(_free.begin(),_free.end(),e_ptr->id);
+    }
 
     ComponentManager &ECS::component()
     {
         return _component_manager;
     }
+
+    std::unordered_map<u32,Transform*> transforms;
+    std::unordered_map<u32,Sprite*> sprites;
+    std::unordered_map<u32,Physics*> physics;
+    std::unordered_map<u32,Collider*> colliders;
+    
+    template <typename T>
+    T* getCachedComponent(const Entity* e_ptr, std::unordered_map<u32,T*>& components)
+    {
+        const u32 id = e_ptr->id;
+        static std::mutex component_mutex;
+
+        std::lock_guard<std::mutex> lock(component_mutex);
+        if (ecs::ecs.entity().isFree(e_ptr)) {
+            return nullptr;
+        }
+        if (components.count(id) == 0) {
+            auto component = ecs::ecs.component().fetch<T>(e_ptr);
+            components[id] = component;
+            return component;
+        }
+
+        return components[id];
+    }
+
 
     PhysicsSystem::PhysicsSystem(ECS& ecs, float sample_delta) 
     :
@@ -757,8 +843,8 @@ namespace ecs
     {
         for (auto& entity : _entities) {
             DINFOF("applying physics to entity (%d)\n",entity->id);
-            auto tc = ecs.component().fetch<TRANSFORM>(entity);
-            auto pc = ecs.component().fetch<PHYSICS>(entity);
+            auto tc = _ecs.component().fetch<Transform>(entity);
+            auto pc = _ecs.component().fetch<Physics>(entity);
             if (pc->enabled) {
                 pc->vel += pc->acc * dt;
                 tc->pos += pc->vel * dt;
@@ -775,28 +861,66 @@ namespace ecs
     void RenderSystem::sample()
     {
         _entities = _ecs.query<SPRITE,TRANSFORM>();
-        std::sort(_entities.begin(), _entities.end(), [this](const Entity* a, const Entity* b) {
-            auto as = _ecs.component().fetch<SPRITE>(a);
-            auto bs = _ecs.component().fetch<SPRITE>(b);
-            if (as == nullptr && bs == nullptr)
-                return false;
-            if (as == nullptr)
-                return false;
-            if (bs == nullptr)
-                return true;
-            return as->render_order < bs->render_order;
-        });
+        
     }
+    
+    struct CompareEntity
+    {
+        bool operator()(const Entity* e1, const Entity* e2)
+        {
+            auto s1 = getCachedComponent<Sprite>(e1, sprites);
+            auto s2 = getCachedComponent<Sprite>(e2, sprites);
+            return s1->render_order > s2->render_order;
+        }
+    };
 
+    void renderHelper(std::vector<const Entity*>& entities, 
+        std::priority_queue<const Entity*, std::vector<const Entity*>, CompareEntity>& visible, 
+        std::mutex& mutex, u32 start, u32 end)
+    {
+        std::vector<const Entity*> local_visible;
+        local_visible.reserve(end - start);
+        for (int i {start}; i < end; ++i) {
+            auto e = entities[i];
+            Transform* tc = ecs::ecs.component().fetch<Transform>(e);
+            if ((c->visible(tc->pos))) {
+                local_visible.emplace_back(e);
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(mutex);
+        for (auto& entity : local_visible) {
+            visible.push(entity);
+        }
+    }
+  
     void RenderSystem::update([[maybe_unused]]float dt)
     {
-        for (auto& entity : _entities) {
-            auto tc = _ecs.component().fetch<TRANSFORM>(entity);
+        auto entities = ecs::ecs.query<Sprite,Transform>();
+        std::mutex mx;
+        const u32 nthreads = 4;
+        const u32 e_threads = entities.size() / nthreads;
+        std::priority_queue<const Entity*, std::vector<const Entity*>, CompareEntity> visible;
+        std::vector<std::thread> threads;
+        for (u32 i = 0; i < nthreads; ++i) {
+            u32 start = i * e_threads;
+            u32 end = (i == nthreads - 1) ? entities.size() : start + e_threads;
+            threads.push_back(std::thread(renderHelper,std::ref(entities),std::ref(visible), std::ref(mx), start,end));
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        while (!visible.empty()) {
+            auto entity = visible.top();
+            visible.pop();
+            auto tc = getCachedComponent<Transform>(entity,transforms);
             if (!c->visible(tc->pos)) {
                 DINFO("entity was skipped");
                 continue;
             }
-            auto ec = _ecs.component().fetch<SPRITE>(entity);
+            auto ec = getCachedComponent<Sprite>(entity,sprites);
             if (ec->ssheet.empty()) {
                 DWARNF("animation key was empty for entity (%d)\n", 
                         entity->id);
@@ -821,6 +945,204 @@ namespace ecs
                     ec->frame = 0;
                 }
             }
+
+            if (_ecs.component().has<NAME>(entity)) {
+                auto nc = _ecs.component().fetch<NAME>(entity);
+                Rect r;
+                u32 ot = (nc->name.length() >> 1) * 2;
+                switch(nc->alignment) {
+                    case 0:
+                        r.left = tc->pos[0] + ot;
+                        r.bot = tc->pos[1];
+                        break;
+                    case 1:
+                    case 2:
+                        break;
+                }
+                r.left += nc->offset[0];
+                r.bot += nc->offset[1];
+                ggprint8b(&r,0,nc->cref,nc->name.c_str());
+            }
+            if (_ecs.component().has<COLLIDER>(entity)) {
+
+            }
+        }
+    }
+
+    bool checkCollision(
+        const Transform* ta, 
+        const Transform* tb, 
+        const Collider* ca, 
+        const Collider* cb)
+    {
+        const v2f a = ta->pos + ca->offset;  // Box A position
+        const v2f b = tb->pos + cb->offset;  // Box B position
+
+        return 
+            (a[0] - ca->dim[0] * 0.5f < b[0] + cb->dim[0] * 0.5f) &&
+            (a[0] + ca->dim[0] * 0.5f > b[0] - cb->dim[0] * 0.5f) &&
+            (a[1] + ca->dim[1] * 0.5f > b[1] - cb->dim[1] * 0.5f) &&
+            (a[1] - ca->dim[1] * 0.5f < b[1] + cb->dim[1] * 0.5f);
+
+    }
+    
+    
+    
+
+    CollisionSystem::CollisionSystem(ECS& ecs, float sample_delta) 
+    :
+    System<Transform,Collider>(ecs,sample_delta)
+    {
+
+    }
+
+    // void collisionHelper(std::vector<const Entity*>& entities, 
+    //     std::vector<const Entity*>& visible, 
+    //     std::mutex& mutex, u32 start, u32 end)
+    // {
+    //     std::vector<const Entity*> local_visible;
+    //     local_visible.reserve(end - start);
+    //     for (int i {start}; i < end; ++i) {
+    //         Transform* tc = ecs::ecs.component().fetch<Transform>(entities[i]);
+    //         if ((c->visible(tc->pos))) {
+    //             local_visible.emplace_back(entities[i]);
+    //         }
+    //     }
+
+    //     std::lock_guard<std::mutex> lock(mutex);
+    //     for (auto& entity : local_visible) {
+    //         visible.push_back(entity);
+    //     }
+    // }
+    void CollisionSystem::update([[maybe_unused]] float dt)
+    {   
+    //     const auto entities = ecs::ecs.query<Collider, Transform>(); //query should be thread-safe?
+    //     std::mutex mx;
+    //     const u32 e_threads = entities.size() / 4;
+    //     AtomicVector<const Entity*> visible_entities;
+    //     for (u32 i = 0; i < 4; ++i) {
+    //         u32 start = i * e_threads;
+    //         u32 end = (i == 4 - 1) ? entities.size() : start + e_threads;
+    //         if (start >= entities.size()) {
+    //             std::cerr << "Invalid start index: " << start << std::endl;
+    //             continue;  // Skip this iteration if the start is invalid
+    //         }
+    //         std::vector<const Entity*> local_entities(entities.begin() + start, entities.begin() + end);
+    //         pool.enqueue([&local_entities, &visible_entities]() {
+    //             collisionHelper(local_entities, visible_entities, 0, local_entities.size());
+    //         });
+    //     }
+
+
+    //     std::unordered_map<u32,Transform*> transforms;
+    //     std::unordered_map<u32,Collider*> colliders;
+    //     std::unordered_set<u64> checked;
+    //     for (auto& a : visible_entities) {
+    //         for (auto& b : visible_entities) {
+    //             if (done) {
+    //                 return;
+    //             }
+
+    //             if (a->id == b->id) {
+    //                 continue;
+    //             }
+
+    //             u64 hash = a->id * 54 + b->id * 23 + 33;
+    //             if (checked.count(hash)) {
+    //                 continue;
+    //             }
+    //             checked.insert(hash);
+
+    //             Transform* ta = getCachedComponent<Transform>(a, transforms);
+    //             Transform* tb = getCachedComponent<Transform>(b, transforms);
+
+    //             if (!(c->visible(ta->pos) || c->visible(tb->pos))) {
+    //                 continue;
+    //             }
+
+    //             Collider* ca = getCachedComponent<Collider>(a, colliders);
+    //             Collider* cb = getCachedComponent<Collider>(b, colliders);
+
+    //             if (checkCollision(ta, tb, ca, cb)) {
+    //                 std::cout << "here" << '\n';
+    //             }
+    //         }
+    //     }
+    // }
+    }
+}
+
+// void collisionHelper(
+//     const std::vector<const ecs::Entity*>& entities, 
+//     AtomicVector<const ecs::Entity*>& visible_entities, 
+//     const u32 start, 
+//     const u32 end)
+// {
+//     std::vector<const ecs::Entity*> thread_visible;
+//     thread_visible.reserve(end - start);
+//     for (u32 i {start}; i < end; i++) {
+//         auto e = entities[i];
+//         TRANSFORM* tc = ecs::ecs.component().fetch<TRANSFORM>(entities[i]);
+//         if ((c->visible(tc->pos))) {
+//             thread_visible.emplace_back(entities[i]);
+//         }
+//     }
+//     visible_entities.add(thread_visible);
+// }
+
+ThreadPool::ThreadPool(u32 nthreads) : stop_{false}
+{
+    workers_.reserve(nthreads);
+    for (u32 i {0}; i < nthreads; ++i) {
+        workers_.emplace_back(&ThreadPool::workerThread, this);
+    }
+}
+
+ThreadPool::~ThreadPool()
+{
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        stop_ = true;
+    }
+
+    task_available_.notify_all();
+
+    for (auto& worker : workers_) {
+        worker.join();
+    }
+}
+
+void ThreadPool::enqueue(std::function<void()> task)
+{
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        task_queue_.push(task);
+    }
+
+    task_available_.notify_one();
+}
+
+void ThreadPool::workerThread()
+{
+    while (1) {
+        std::function<void()> current_task = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex_);
+            task_available_.wait(lock, [this] { return stop_ || !task_queue_.empty(); });
+            
+            if (stop_ && task_queue_.empty()) {
+                return;
+            }
+
+            current_task = std::move(task_queue_.front());
+            task_queue_.pop();
+        }
+
+        if (current_task) {
+            current_task();
         }
     }
 }
+
+
+    

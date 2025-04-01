@@ -1,6 +1,9 @@
 #pragma once
 #include <iostream>
 #include <chrono>
+#include <thread>
+#include <mutex>
+#include <shared_mutex>
 #include "jlo.h"
 
 template <typename T>
@@ -139,7 +142,26 @@ namespace ecs
     }      
 
     template <typename... T>
-    std::vector<const Entity*> ECS::query() const
+    void queryHelperThread(const std::vector<Entity>& entities, std::vector<const Entity*>& queried_entities, u32 start, u32 end, std::mutex& query_mutex)
+    {
+        std::vector<const Entity*> local_queried_entities;
+        local_queried_entities.reserve(end - start);
+        for (u32 i {start} ; i < end; ++i) {
+            const Entity& entity = entities[i];
+            if (ecs::ecs.component().has<T...>(&entity)) {
+                local_queried_entities.emplace_back(&entity);
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(query_mutex);
+        queried_entities.reserve(queried_entities.size() + local_queried_entities.size());
+        for (auto& ptr : local_queried_entities) {
+            queried_entities.emplace_back(ptr);
+        }
+    }
+
+    template <typename... T>
+    std::vector<const Entity*> ECS::query()
     {
         std::vector<const Entity*> entities;
         for (auto& ptr : _entity_manager.entities) {
@@ -180,6 +202,56 @@ namespace ecs
         _entities = _ecs.query<T...>();
         _last_sampled = std::chrono::high_resolution_clock::now();
     }
+}
 
+template <typename T>
+void AtomicVector<T>::add(const T& obj)
+{
+    std::lock_guard<std::shared_mutex> lock(mutex_);
+    objs_.emplace_back(obj);
+}
 
+template <typename T>
+void AtomicVector<T>::add(const std::vector<T>& objs)
+{
+    std::lock_guard<std::shared_mutex> lock(mutex_);
+    objs_.reserve(objs_.size() + objs.size());
+    for (auto& obj : objs) {
+        objs_.emplace_back(obj);
+    }
+}
+
+template <typename T>
+void AtomicVector<T>::clear()
+{
+    std::lock_guard<std::shared_mutex> lock(mutex_);
+    objs_.clear();
+}
+
+template <typename T>
+auto AtomicVector<T>::begin()
+{
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    return objs_.begin();
+}
+
+template <typename T>
+auto AtomicVector<T>::end()
+{
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    return objs_.end();
+}
+
+template <typename T>
+size_t AtomicVector<T>::size() const
+{
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    return objs_.size();
+}
+
+template <typename T>
+T AtomicVector<T>::operator[] (int idx)
+{
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+    return objs_[idx];
 }

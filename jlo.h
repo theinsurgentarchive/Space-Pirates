@@ -4,8 +4,15 @@
 #include <bitset>
 #include <memory>
 #include <vector>
+#include <queue>
 #include <deque>
 #include <array>
+#include <shared_mutex>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <atomic>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <GL/glx.h>
@@ -18,8 +25,10 @@
 
 #define TRANSFORM ecs::Transform
 #define SPRITE ecs::Sprite
+#define NAME ecs::Name
 #define PHYSICS ecs::Physics
 #define HEALTH ecs::Health
+#define COLLIDER ecs::Collider
 
 #define _RESET "\033[0m"
 #define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
@@ -77,6 +86,9 @@ struct SpriteSheet;
 struct Camera;
 class World;
 struct Texture;
+template <typename T>
+class AtomicVector;
+class ThreadPool;
 
 namespace wfc
 {
@@ -91,6 +103,7 @@ namespace wfc
 namespace ecs
 {
     struct Planet;
+    struct Nameable;
     struct Physics;
     struct Transform;
     struct Health;
@@ -123,6 +136,7 @@ class Vec2
 
 using u16 = uint16_t;
 using u32 = uint32_t;
+using u64 = uint64_t;
 using i32 = int32_t;
 using v2u = Vec2<u16>;
 using v2i = Vec2<i32>;
@@ -136,7 +150,6 @@ extern void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets);
 extern std::shared_ptr<Texture> loadTexture(const std::string&, bool);
 extern Biome selectBiome(float temperature, float humidity);
-
 template <class T>
 u16 getId()
 {
@@ -319,6 +332,30 @@ namespace ecs
     class ECS;
     extern ECS ecs;
 
+    struct Name
+    {
+        int alignment {0};
+        u32 cref {0x00ffffff};
+        v2i offset {0,0};
+        std::string name;
+    };
+
+    struct Interactable
+    {
+        //std::function<void()> handle;        
+    };
+
+    struct Collider
+    {
+        v2u dim;
+        v2f offset;
+    };
+
+    struct Collision
+    {
+        u32 a, b;
+    };
+
     struct Planet
     {
         float temperature;
@@ -378,7 +415,7 @@ namespace ecs
         private:
             std::vector<std::unique_ptr<ComponentPool>> _pools;
         public:
-
+            std::mutex pp;
             /*
                 Assigns component <T> to the entity,
                 if the entity has already been assigned <T>, then
@@ -458,20 +495,21 @@ namespace ecs
             */
             void ret(Entity* e_ptr);
             u32 maxEntities() const;
+            bool isFree(const Entity* e_ptr);
             
     };
 
     class ECS
     {
-        private:
-            EntityManager _entity_manager;
-            ComponentManager _component_manager;
         public:
             ECS();
             EntityManager& entity();
             ComponentManager& component();
             template <typename... T>
-            std::vector<const Entity*> query() const;
+            std::vector<const Entity*> query();
+        private:
+            EntityManager _entity_manager;
+            ComponentManager _component_manager;
     };
 
     template <typename... T>
@@ -504,5 +542,43 @@ namespace ecs
             void update(float dt) override;
             void sample() override;
     };
+
+    class CollisionSystem : public System<Transform,Collider>
+    {
+        public:
+            CollisionSystem(ECS& ecs, float sample_delta);
+            void update(float dt) override;
+    };
 }
+
+template <typename T>
+class AtomicVector {
+    public:
+        void add(const T& obj);
+        void add(const std::vector<T>& objs);
+        void clear();
+        auto begin();
+        auto end();
+        size_t size() const;
+        T operator[] (int idx);
+    private:
+        std::shared_mutex mutex_;
+        std::vector<T> objs_;
+};
+
+
+class ThreadPool
+{
+    public:
+        ThreadPool(u32 nthreads);
+        ~ThreadPool();
+        void enqueue(std::function<void()> task);
+    private:
+        std::mutex queue_mutex_;
+        std::vector<std::thread> workers_;
+        std::atomic<bool> stop_;
+        std::queue<std::function<void()>> task_queue_;
+        std::condition_variable task_available_;
+        void workerThread();
+};
 #include "jlo.tpp"
