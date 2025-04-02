@@ -143,24 +143,34 @@ Node* AStar::getNode(u16 x, u16 y)
 //Set Node Positions & Conditionals
 void AStar::initGrid(v2f dim)
 {
-    float offset = 0.0f;
+    //Initialize Variables
+    [[maybe_unused]] float offset = 0.0f;
+    
+    //Error & Halt Initialization if Any Dimension is 0 
     if ((dim[0] <= 0.0f) && (dim[1] <= 0.0f)) {
-        DERRORF("Dimensions of World Position Cannot Be Zero.");
+        DERROR("Dimensions of World Position Cannot Be Zero.");
         return;
     }
+    
+    /*Warn for Predictable Pathing if Dimensions Low
+    if (size_x < 3 || size_y < 3) {
+        DWARN("Pathing May Be Limited Due to Low Tile Dimensions");
+    }
+    */
+
     //Resize The Node Grid
     node_grid.resize(grid_size[0]);
     for (u16 i = 0; i < node_grid.size(); i++) {
         node_grid[i].resize(grid_size[1]);
     }
 
-    //Generate Nodes
+    //Generate Nodes    
     for (u16 x = 0; x < grid_size[0]; x++) {
         for (u16 y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].setLocal({x, y});
             node_grid[x][y].setWorld({
-                ((float)x * dim[0] + offset),
-                ((float)y * dim[1] + offset)
+                ((float)x * dim[0]),
+                ((float)y * dim[1])
             });
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
@@ -170,6 +180,7 @@ void AStar::initGrid(v2f dim)
 
     //Fill Each Node's Neighbors Vector Matrix
     genNeighbors();
+}
 }
 
 void AStar::genNeighbors()
