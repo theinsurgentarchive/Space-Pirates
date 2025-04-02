@@ -270,7 +270,7 @@ class X11_wrapper {
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent *e, World *w);
+int check_keys(XEvent *e, World *w, AStar *as);
 void physics();
 void render();
 // For transparent title.png background
@@ -349,7 +349,7 @@ int main()
 			XEvent e = x11.getXNextEvent();
 			x11.check_resize(&e);
 			check_mouse(&e);
-			done = check_keys(&e, &w);
+			done = check_keys(&e, &w, &tstar);
 		}
 		clock_gettime(CLOCK_REALTIME, &timeCurrent);
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
@@ -541,7 +541,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e, World *w)
+int check_keys(XEvent *e, World *w, AStar *as)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;  // Initialize to 0
@@ -600,13 +600,12 @@ int check_keys(XEvent *e, World *w)
 					done = 1;
 					break;
 				case XK_c:
-					auto as = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
 					v2u grid_size = as.size();
-					cout << grid_size[0] << ", " << grid_size[1] << endl;
-					if (as.getNode(2, 3) == nullptr) {
+					cout << grid_size[0] << ", " << grid_size[1] << "\n\n";
+					if (as.getNode(0, 0) == nullptr) {
 						cout << "Error, Cannot Find Node\n";
 					} else {
-						auto cn = as.getNode(2, 3)->getWorld();
+						auto cn = as.getNode(0, 0)->getWorld();
 						cout << cn[0] << ", " << cn[1] << "\n\n";
 						auto ct = w->tiles();
 						auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[0][0]);
