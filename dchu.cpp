@@ -85,8 +85,9 @@ AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
     grid_size[0] = grid_dim[0] * 4;
     grid_size[1] = grid_dim[1] * 4;
     origin_pos = origin;
+    v2f node_dim = {tile_dim[0] / 4.0f, tile_dim[1] / 4.0f};
     //Initialize Grid Nodes
-    initGrid(tile_dim / 4);
+    initGrid(node_dim);
     DINFO("Completed World A* Node Generation\n");
 }
 
@@ -133,17 +134,17 @@ v2u AStar::size()
 //Retrieves The Node requested in the AStar
 Node* AStar::getNode(u16 x, u16 y)
 {
-    if ((x >= grid_size[0] && y >= grid_size[1]) || (x < 0 && y < 0)) {
+    if (x >= grid_size[0] && y >= grid_size[1]) {
         return nullptr;
     }
     return &node_grid[x][y];
 }
 
 //Set Node Positions & Conditionals
-void AStar::initGrid(v2f tile_dim)
+void AStar::initGrid(v2f dim)
 {
     float offset = ;
-    if ((tile_dim[0] <= 0.0f) && (tile_dim[1] <= 0.0f)) {
+    if ((dim[0] <= 0.0f) && (dim[1] <= 0.0f)) {
         DERRORF("Dimensions of World Position Cannot Be Zero.");
         return;
     }
@@ -158,8 +159,8 @@ void AStar::initGrid(v2f tile_dim)
         for (u16 y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].setLocal({x, y});
             node_grid[x][y].setWorld({
-                ((float)x * tile_dim[0] + offset),
-                ((float)y * tile_dim[1] + offset)
+                ((float)x * dim[0] + offset),
+                ((float)y * dim[1] + offset)
             });
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
