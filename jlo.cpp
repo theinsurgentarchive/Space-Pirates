@@ -18,6 +18,7 @@
 
 #include <GL/glx.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #include "image.h"
 #include "jlo.h"
@@ -306,7 +307,6 @@ void Camera::visibleHelper(
             thread_visible.emplace_back(entities[i]);
         }
     }
-    std::cout << std::this_thread::get_id() << '\n' << std::flush;
     visible_entities.add(thread_visible);
 }
 
@@ -318,39 +318,41 @@ void Camera::visibleHelper(
 
 */
 
-void Camera::findVisible(
-    AtomicVector<const ecs::Entity*>& visible_entities,
+std::unique_ptr<AtomicVector<const ecs::Entity*>> Camera::findVisible(
     std::vector<const ecs::Entity*>& entities,
     ThreadPool& pool) const
 {
     const u32 nthreads = pool.size(); 
-    const size_t entities_size = entities.size();
+    const u32 entities_size = static_cast<u32>(entities.size());
     const u32 ethread = {entities_size / nthreads}; // entities per thread
     std::mutex task_mutex;
-    std::condition_variable task_finished;
+    std::condition_variable tasks_finished;
     std::atomic<u32> worker_count {nthreads};
+    std::unique_ptr<AtomicVector<const ecs::Entity*>> visible_entities = std::make_unique<AtomicVector<const ecs::Entity*>>();
     for (u32 i {0}; i < nthreads; ++i) { //static partitioning
         u32 start {i * ethread};
         u32 end {i == (nthreads - 1) ? entities_size : start + ethread };
-        pool.enqueue(
-            [this, 
+        pool.enqueue([
+            this, 
             &entities, 
             &visible_entities, 
             start, 
             end, 
             &task_mutex, 
-            &task_finished, 
-            &worker_count]() {
-                visibleHelper(entities, visible_entities, start, end);
-                if (--worker_count == 0) {
-                    std::lock_guard<std::mutex> lock(task_mutex);
-                    task_finished.notify_one();
-                }
-            });
+            &tasks_finished, 
+            &worker_count
+        ]() {
+            visibleHelper(entities, *visible_entities, start, end);
+            if (--worker_count == 0) {
+                std::lock_guard<std::mutex> lock(task_mutex);
+                tasks_finished.notify_all();
+            }
+        });
     }
 
     std::unique_lock<std::mutex> lock(task_mutex);
-    task_finished.wait(lock,[&worker_count]() { return worker_count == 0; });
+    tasks_finished.wait(lock,[&worker_count]() { return worker_count == 0; });
+    return visible_entities;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1054,108 +1056,6 @@ namespace ecs
             }
         }
     }
-
-    bool checkCollision(
-        const Transform* ta, 
-        const Transform* tb, 
-        const Collider* ca, 
-        const Collider* cb)
-    {
-        const v2f a = ta->pos + ca->offset;  // Box A position
-        const v2f b = tb->pos + cb->offset;  // Box B position
-
-        return 
-            (a[0] - ca->dim[0] * 0.5f < b[0] + cb->dim[0] * 0.5f) &&
-            (a[0] + ca->dim[0] * 0.5f > b[0] - cb->dim[0] * 0.5f) &&
-            (a[1] + ca->dim[1] * 0.5f > b[1] - cb->dim[1] * 0.5f) &&
-            (a[1] - ca->dim[1] * 0.5f < b[1] + cb->dim[1] * 0.5f);
-
-    }
-    
-    
-    
-
-    CollisionSystem::CollisionSystem(ECS& ecs, float sample_delta) 
-    :
-    System<Transform,Collider>(ecs,sample_delta)
-    {
-
-    }
-
-    // void collisionHelper(std::vector<const Entity*>& entities, 
-    //     std::vector<const Entity*>& visible, 
-    //     std::mutex& mutex, u32 start, u32 end)
-    // {
-    //     std::vector<const Entity*> local_visible;
-    //     local_visible.reserve(end - start);
-    //     for (int i {start}; i < end; ++i) {
-    //         Transform* tc = ecs::ecs.component().fetch<Transform>(entities[i]);
-    //         if ((c->visible(tc->pos))) {
-    //             local_visible.emplace_back(entities[i]);
-    //         }
-    //     }
-
-    //     std::lock_guard<std::mutex> lock(mutex);
-    //     for (auto& entity : local_visible) {
-    //         visible.push_back(entity);
-    //     }
-    // }
-    void CollisionSystem::update([[maybe_unused]] float dt)
-    {   
-    //     const auto entities = ecs::ecs.query<Collider, Transform>(); //query should be thread-safe?
-    //     std::mutex mx;
-    //     const u32 e_threads = entities.size() / 4;
-    //     AtomicVector<const Entity*> visible_entities;
-    //     for (u32 i = 0; i < 4; ++i) {
-    //         u32 start = i * e_threads;
-    //         u32 end = (i == 4 - 1) ? entities.size() : start + e_threads;
-    //         if (start >= entities.size()) {
-    //             std::cerr << "Invalid start index: " << start << std::endl;
-    //             continue;  // Skip this iteration if the start is invalid
-    //         }
-    //         std::vector<const Entity*> local_entities(entities.begin() + start, entities.begin() + end);
-    //         pool.enqueue([&local_entities, &visible_entities]() {
-    //             collisionHelper(local_entities, visible_entities, 0, local_entities.size());
-    //         });
-    //     }
-
-
-    //     std::unordered_map<u32,Transform*> transforms;
-    //     std::unordered_map<u32,Collider*> colliders;
-    //     std::unordered_set<u64> checked;
-    //     for (auto& a : visible_entities) {
-    //         for (auto& b : visible_entities) {
-    //             if (done) {
-    //                 return;
-    //             }
-
-    //             if (a->id == b->id) {
-    //                 continue;
-    //             }
-
-    //             u64 hash = a->id * 54 + b->id * 23 + 33;
-    //             if (checked.count(hash)) {
-    //                 continue;
-    //             }
-    //             checked.insert(hash);
-
-    //             Transform* ta = getCachedComponent<Transform>(a, transforms);
-    //             Transform* tb = getCachedComponent<Transform>(b, transforms);
-
-    //             if (!(c->visible(ta->pos) || c->visible(tb->pos))) {
-    //                 continue;
-    //             }
-
-    //             Collider* ca = getCachedComponent<Collider>(a, colliders);
-    //             Collider* cb = getCachedComponent<Collider>(b, colliders);
-
-    //             if (checkCollision(ta, tb, ca, cb)) {
-    //                 std::cout << "here" << '\n';
-    //             }
-    //         }
-    //     }
-    // }
-    }
 }
 
 ThreadPool::ThreadPool(u32 nthreads) : stop_{false}, size_{nthreads}
@@ -1216,6 +1116,83 @@ u32 ThreadPool::size() const
 {
     return size_;
 }
+
+//https://singlelunch.com/2018/09/26/programming-trick-cantor-pairing-perfect-hashing-of-two-integers/
+u64 cantor_hash(u32 a, u32 b) 
+{
+	return ((a + b) * (a + b + 1) >> 1) + b; 
+}
+
+bool collided(TRANSFORM* ta, TRANSFORM* tb, COLLIDER* ca, COLLIDER* cb)
+{
+	const v2f pa = ta->pos + ca->offset;
+	const v2f pb = tb->pos + cb->offset;
+
+	return (pa[0] - ca->dim[0] * 0.5f < pb[0] + cb->dim[0] * 0.5f) &&
+	(pa[0] + ca->dim[0] * 0.5f > pb[0] - cb->dim[0] * 0.5f) &&
+	(pa[1] + ca->dim[1] * 0.5f > pb[1] - cb->dim[1] * 0.5f) &&
+	(pa[1] - ca->dim[1] * 0.5f < pb[1] + cb->dim[1] * 0.5f);
+}
+
+void findCollisions(
+	AtomicVector<const ecs::Entity*>& visible_entities, 
+	AtomicVector<ecs::Collision>& collisions) 
+{
+	std::unordered_set<u64> seen;
+	std::vector<ecs::Collision> thread_collisions;
+	for (auto& a : visible_entities) {
+		for (auto& b : visible_entities) {
+			if (a->id == b->id)
+				continue;
+			u64 hash { cantor_hash(a->id,b->id) };
+			if (seen.count(hash))
+				continue;
+			seen.insert(hash);
+			TRANSFORM* ta = ecs::ecs.component().fetch<TRANSFORM>(a);
+			TRANSFORM* tb = ecs::ecs.component().fetch<TRANSFORM>(b);
+			COLLIDER* ca = ecs::ecs.component().fetch<COLLIDER>(a);
+			COLLIDER* cb = ecs::ecs.component().fetch<COLLIDER>(b);
+			if (collided(ta,tb,ca,cb)) {
+				thread_collisions.push_back({a->id,b->id});
+			}
+		}
+	}
+	collisions.add(thread_collisions);
+}
+
+void collisions(const Camera& camera, ThreadPool& pool)
+{
+	AtomicVector<ecs::Collision> collisions;
+	std::mutex task_mutex;
+	std::condition_variable tasks_finished;
+	std::atomic<u32> worker_count {1};
+	while (!done) {
+		std::vector<const ecs::Entity*> entities = 
+            ecs::ecs.query<COLLIDER,TRANSFORM>();
+		std::unique_ptr<AtomicVector<const ecs::Entity*>> visible_entities = 
+            camera.findVisible(entities,pool);
+		pool.enqueue([
+			&visible_entities,
+			&collisions,
+			&task_mutex,
+			&tasks_finished,
+			&worker_count
+		]() {
+			findCollisions(*visible_entities,collisions);
+			if (--worker_count == 0) {
+				std::lock_guard<std::mutex> lock(task_mutex);
+				tasks_finished.notify_all();
+			}
+		});
+		std::unique_lock<std::mutex> lock(task_mutex);
+		tasks_finished.wait(lock,[&worker_count]() { 
+            return worker_count == 0; 
+        });
+		usleep(1000);
+        worker_count = 1;
+	}
+}
+
 
 
     

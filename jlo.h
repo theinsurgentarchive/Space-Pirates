@@ -150,6 +150,7 @@ extern void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets);
 extern std::shared_ptr<Texture> loadTexture(const std::string&, bool);
 extern Biome selectBiome(float temperature, float humidity);
+extern void collisions(const Camera& camera, ThreadPool& pool);
 template <class T>
 u16 getId()
 {
@@ -188,8 +189,7 @@ class Camera
         
             @return collection of entities        
         */
-        void findVisible(
-            AtomicVector<const ecs::Entity*>& visible_entities,
+        std::unique_ptr<AtomicVector<const ecs::Entity*>> findVisible(
             std::vector<const ecs::Entity*>& entities,
             ThreadPool& pool) const;
         Camera(v2f& pos, const v2u dim);
@@ -565,13 +565,6 @@ namespace ecs
             RenderSystem(ECS& ecs, float sample_delta);
             void update(float dt) override;
             void sample() override;
-    };
-
-    class CollisionSystem : public System<Transform,Collider>
-    {
-        public:
-            CollisionSystem(ECS& ecs, float sample_delta);
-            void update(float dt) override;
     };
 }
 

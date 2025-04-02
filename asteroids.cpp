@@ -282,24 +282,12 @@ void render();
 ecs::Entity* ptr;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
-ecs::CollisionSystem cs {ecs::ecs,5};
 const World* world;
 const Camera* c;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<ecs::Collision> cols;
 atomic<bool> done = false;
-
-void collisions(ThreadPool& pool)
-{
-	AtomicVector<const ecs::Entity*> visible_entities;
-	while (!done.load(std::memory_order_acquire)) {
-		auto entities = ecs::ecs.query<COLLIDER,TRANSFORM>();
-		c->findVisible(visible_entities,entities,pool);
-		usleep(1000);
-	}
-}
-
 void sig_handle(int sig)
 {
 	done = true;
@@ -361,7 +349,6 @@ int main()
 	world = &w;
 	rs.sample();
 	ps.sample();
-	cs.sample();
 	init_opengl();
 	logOpen();
 	srand(time(NULL));
@@ -369,9 +356,7 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	tp.enqueue([&tp](){
-		collisions(tp);
-	});
+	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
     while (!done) {
         while (x11.getXPending()) {
             XEvent e = x11.getXNextEvent();
@@ -601,8 +586,8 @@ int check_keys(XEvent *e)
 
 void physics()
 {
-		ps.update((float) 1/20);
-		gl.planetAng[2] += 1.0;
+	ps.update((float) 1/20);
+	gl.planetAng[2] += 1.0;
 }
 
 void render() {

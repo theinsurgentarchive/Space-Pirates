@@ -104,6 +104,11 @@ namespace ecs
     template <typename T>
     T* ComponentManager::fetch(const Entity *e_ptr)
     {
+        // static unordered_map<u32,T*> components;
+        // const u32 entity_id {e_ptr->id};
+        // if (components.count(entity_id)) {
+        //     return components[entity_id];
+        // }
         if (e_ptr == nullptr) {
             DWARN("entity pointer was null\n");
             return nullptr;
