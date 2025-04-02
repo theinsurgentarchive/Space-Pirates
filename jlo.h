@@ -450,7 +450,7 @@ namespace ecs
             T* assign(const Entity* e_ptr);
             
             template <typename... T>
-            void bulkAssign(const Entity* e_ptr);
+            auto bulkAssign(const Entity* e_ptr);
 
             /*
                 Retrieves a component <T> assigned to the entity;
@@ -626,5 +626,14 @@ class ThreadPool
         std::condition_variable task_available_;
         u32 size_;
         void workerThread();
+};
+
+class PlayerFactory
+{
+    public:
+        const ecs::Entity* createPlayer();
+        Player(Camera& camera);
+    private:
+        
 };
 #include "jlo.tpp"

@@ -280,6 +280,7 @@ void render();
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
+
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
@@ -314,8 +315,9 @@ int main()
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
 
-    ptr = ecs::ecs.entity().checkout();
-    ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
+	const ecs::Entity* player = createPlayer();
+    // ptr = ecs::ecs.entity().checkout();
+    // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
 	
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
 	Camera camera = {
@@ -323,15 +325,6 @@ int main()
 		{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
 	};
 	c = &camera;
-	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
-	auto nc = ecs::ecs.component().fetch<NAME>(ptr);
-	auto collider = ecs::ecs.component().fetch<COLLIDER>(ptr);
-	nc->name = "Simon Santos";
-	nc->offset = v2i {0,-25};
-	sc->ssheet = "player-front";
-	sc->render_order = 15;
-	collider->dim = v2u {5,5};
-	collider->offset = {0.0f,-16.0f};
 	Vec2<uint16_t> v {50,50};
 	loadTextures(ssheets);
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;

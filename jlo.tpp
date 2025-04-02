@@ -80,25 +80,27 @@ namespace ecs
     }
 
     template <typename T>
-    void bulkAssignHelper(const Entity* e_ptr, T)
+    std::tuple<T*> bulkAssignHelper(const Entity* e_ptr, T)
     {
         if (e_ptr == nullptr) {
             DWARN("entity pointer was null\n");
-            return;
+            return std::tuple<T*>(nullptr);
         }
-        ecs::ecs.component().assign<T>(e_ptr);
+        return std::tuple<T*>(ecs::ecs.component().assign<T>(e_ptr));
     }
     template <typename T, typename... Ts>
-    void bulkAssignHelper(const Entity* e_ptr, T, Ts... ts)
+    auto bulkAssignHelper(const Entity* e_ptr, T, Ts... ts)
     {
-        bulkAssignHelper(e_ptr,T());
-        bulkAssignHelper(e_ptr,ts...);
+        return std::tuple_cat(
+            std::tuple<T*>(bulkAssignHelper(e_ptr,T())),
+            bulkAssignHelper(e_ptr,ts...)
+        );
     }
 
     template <typename... T>
-    void ComponentManager::bulkAssign(const Entity* e_ptr)
+    auto ComponentManager::bulkAssign(const Entity* e_ptr)
     {
-        bulkAssignHelper(e_ptr,T()...);
+        return bulkAssignHelper(e_ptr,T()...);
     }
 
     template <typename T>

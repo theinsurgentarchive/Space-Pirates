@@ -75,6 +75,7 @@ extern const Camera* c;
 extern std::vector<ecs::Collision> cols;
 extern std::atomic<bool> done;
 extern ThreadPool* pool;
+extern ecs::Entity* player;
 
 void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
@@ -1134,14 +1135,13 @@ bool collided(TRANSFORM* ta, TRANSFORM* tb, COLLIDER* ca, COLLIDER* cb)
 	(pa[1] - ca->dim[1] * 0.5f < pb[1] + cb->dim[1] * 0.5f);
 }
 
-void findCollisions(
-	AtomicVector<const ecs::Entity*>& visible_entities, 
-	AtomicVector<ecs::Collision>& collisions) 
+std::vector<ecs::Collision> findCollisions(
+	AtomicVector<const ecs::Entity*>& visible_entities) 
 {
 	std::unordered_set<u64> seen;
-	std::vector<ecs::Collision> thread_collisions;
-	for (auto& a : visible_entities) {
-		for (auto& b : visible_entities) {
+	std::vector<ecs::Collision> collisions;
+	for (const auto& a : visible_entities) {
+		for (const auto& b : visible_entities) {
 			if (a->id == b->id)
 				continue;
 			u64 hash { cantor_hash(a->id,b->id) };
@@ -1153,44 +1153,47 @@ void findCollisions(
 			COLLIDER* ca = ecs::ecs.component().fetch<COLLIDER>(a);
 			COLLIDER* cb = ecs::ecs.component().fetch<COLLIDER>(b);
 			if (collided(ta,tb,ca,cb)) {
-				thread_collisions.push_back({a->id,b->id});
+                std::cout << a->id << " collided " << b->id << '\n';
+				collisions.push_back({a->id,b->id});
 			}
 		}
 	}
-	collisions.add(thread_collisions);
+    return std::move(collisions);
+}
+
+void handleCollisions(std::vector<ecs::Collision>& collisions)
+{
+    for (auto& collision : collisions) {
+        
+    }
 }
 
 void collisions(const Camera& camera, ThreadPool& pool)
 {
-	AtomicVector<ecs::Collision> collisions;
-	std::mutex task_mutex;
-	std::condition_variable tasks_finished;
-	std::atomic<u32> worker_count {1};
 	while (!done) {
 		std::vector<const ecs::Entity*> entities = 
             ecs::ecs.query<COLLIDER,TRANSFORM>();
 		std::unique_ptr<AtomicVector<const ecs::Entity*>> visible_entities = 
             camera.findVisible(entities,pool);
-		pool.enqueue([
-			&visible_entities,
-			&collisions,
-			&task_mutex,
-			&tasks_finished,
-			&worker_count
-		]() {
-			findCollisions(*visible_entities,collisions);
-			if (--worker_count == 0) {
-				std::lock_guard<std::mutex> lock(task_mutex);
-				tasks_finished.notify_all();
-			}
-		});
-		std::unique_lock<std::mutex> lock(task_mutex);
-		tasks_finished.wait(lock,[&worker_count]() { 
-            return worker_count == 0; 
-        });
+        std::vector<ecs::Collision> collisions = 
+            findCollisions(*visible_entities);
+        handleCollisions(collisions);
 		usleep(1000);
-        worker_count = 1;
 	}
+}
+
+const ecs::Entity* createPlayer()
+{
+    const ecs::Entity* player = ecs::ecs.entity().checkout();
+    auto [sprite,name,collider] = ecs::ecs.component().bulkAssign<SPRITE,NAME,COLLIDER>(player);
+    sprite->ssheet = "player-idle";
+    sprite->render_order = 15;
+    name->name = "Simon Santos";
+    name->offset = {0,-25};
+    collider->dim = v2u {9,8};
+    collider->offset = {0.0f,-8.0f};
+    ecs::ecs.component().bulkAssign<PHYSICS,TRANSFORM,HEALTH>(player);
+    return player;
 }
 
 
