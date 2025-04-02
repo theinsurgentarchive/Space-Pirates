@@ -143,7 +143,7 @@ Node* AStar::getNode(u16 x, u16 y)
 //Set Node Positions & Conditionals
 void AStar::initGrid(v2f dim)
 {
-    float offset = ;
+    float offset = 0.0f;
     if ((dim[0] <= 0.0f) && (dim[1] <= 0.0f)) {
         DERRORF("Dimensions of World Position Cannot Be Zero.");
         return;
