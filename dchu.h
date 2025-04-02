@@ -91,29 +91,32 @@ enum EnemyT
 };
 
 //Enemy Class
-class Enemy
+class Enemies
 {
     private:
         //Store Entity
-        ecs::Entity* ent;
-        
-        //World Position
-        v2f world_pos;
+        std::vector<ecs::Entity*> entities;
 
         //Damage Modifier
         float damage;
-    public:
+
+        //Health Modifier
+        float hp;
+
         //Wait for n Seconds of Time
         u16 timer;
+    public:
+        u16 getTimer();
+        void setTimer(u16);
 
         //Constructor
-        Enemy();
-        Enemy(
+        Enemies();
+        Enemies(
             v2f, 
             u16 delay = 5,
             float hp = 2.0f, float dmg = 1.0f
         );
-        Enemy(EnemyT);
+        Enemies(EnemyT);
 
 };
 
