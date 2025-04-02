@@ -600,12 +600,12 @@ int check_keys(XEvent *e, World *w, AStar *as)
 					done = 1;
 					break;
 				case XK_c:
-					v2u grid_size = as.size();
+					v2u grid_size = as->size();
 					cout << grid_size[0] << ", " << grid_size[1] << "\n\n";
-					if (as.getNode(0, 0) == nullptr) {
+					if (as->getNode(0, 0) == nullptr) {
 						cout << "Error, Cannot Find Node\n";
 					} else {
-						auto cn = as.getNode(0, 0)->getWorld();
+						auto cn = as->getNode(0, 0)->getWorld();
 						cout << cn[0] << ", " << cn[1] << "\n\n";
 						auto ct = w->tiles();
 						auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[0][0]);
