@@ -114,7 +114,8 @@ class Enemies
         Enemies(
             v2f, 
             u16 delay = 5,
-            float hp = 2.0f, float dmg = 1.0f
+            float hp = 2.0f, float dmg = 1.0f,
+            string sprite_sheet = "player-front";
         );
         Enemies(EnemyT);
 
