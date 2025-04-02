@@ -603,13 +603,13 @@ int check_keys(XEvent *e, World *w)
 					auto as = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
 					v2u grid_size = as.size();
 					cout << grid_size[0] << ", " << grid_size[1] << endl;
-					if (as.getNode(3, 3) == nullptr) {
+					if (as.getNode(2, 3) == nullptr) {
 						cout << "Error, Cannot Find Node\n";
 					} else {
-						auto cn = as.getNode(3, 3)->getWorld();
+						auto cn = as.getNode(2, 3)->getWorld();
 						cout << cn[0] << ", " << cn[1] << "\n\n";
 						auto ct = w->tiles();
-						auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[1][1]);
+						auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[0][0]);
 						if (tct == nullptr) {
 							cout << "Error, Cannot Find Tile Transform\n";
 						} else {

@@ -142,6 +142,7 @@ Node* AStar::getNode(u16 x, u16 y)
 //Set Node Positions & Conditionals
 void AStar::initGrid(v2f tile_dim)
 {
+    float offset = 0.0f;
     if ((tile_dim[0] <= 0.0f) && (tile_dim[1] <= 0.0f)) {
         DERRORF("Dimensions of World Position Cannot Be Zero.");
         return;
@@ -157,8 +158,8 @@ void AStar::initGrid(v2f tile_dim)
         for (u16 y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].setLocal({x, y});
             node_grid[x][y].setWorld({
-                ((float)x * tile_dim[0]),
-                ((float)y * tile_dim[1])
+                ((float)x * tile_dim[0] + offset),
+                ((float)y * tile_dim[1] + offset)
             });
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
