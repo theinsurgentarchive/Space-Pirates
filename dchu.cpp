@@ -4,6 +4,33 @@
 #include <cstdlib>
 #include <ctime>
 
+namespace ecs
+{
+    HP_DMGSystem::HP_DMGSystem(ECS& ecs, float sample_delta)
+    :
+    System<Transform,Health,Damage>(ecs,sample_delta)
+    {
+        DINFO("Health/Damage System Initialized");
+    }
+    
+    void HP_DMGSystem::update(float dt)
+    {
+        //To-Be-Done
+    }
+
+    PathSystem::PathSystem(ECS& ecs, float sample_delta)
+    :
+    System<Transform,Navigate>(ecs, sample_delta)
+    {
+        DINFO("Path System Initialized");
+    }
+
+    void PathSystem::update(float dt)
+    {
+        //To-Be-Done
+    }
+}
+
 //Renderability Check
 bool canRender(ecs::Entity* ent)
 {
@@ -172,12 +199,6 @@ void AStar::initGrid(v2f dim)
         DERROR("Dimensions of World Position Cannot Be Zero.");
         return;
     }
-    
-    /*Warn for Predictable Pathing if Dimensions Low
-    if (size_x < 3 || size_y < 3) {
-        DWARN("Pathing May Be Limited Due to Low Tile Dimensions.");
-    }
-    */
 
     //Resize The Node Grid
     node_grid.resize(grid_size[0]);
@@ -376,7 +397,7 @@ float AStar::heuristics(Node* a, Node* b)
     return distance(a, b);
 }
 
-//Enemy Generation and Handler
+//Enemy Generation
 Enemies::Enemies()
 {
     //Initialize Variables
@@ -390,37 +411,43 @@ Enemies::Enemies()
     //Resize The Entity Vector
     entities.resize(amount);
 
-    //Add All Attributes to Each Entity
-    for (uint16_t i = 0; i < amount; i++) {
-        //Initialize All Attributes
-        entities[i] = ecs::ecs.entity().checkout();
-        auto health = (
-            ecs::ecs.component().assign<ecs::Health>(entities[i])
-        );
-        auto transform = (
-            ecs::ecs.component().assign<ecs::Transform>(entities[i])
-        );
-        auto sprite = (
-            ecs::ecs.component().assign<ecs::Sprite>(entities[i])
-        );
-        auto combat = (
-            ecs::ecs.component().assign<ecs::Combat>(entities[i])
-        );
+    //Initialize All Attributes
+    entities[0] = ecs::ecs.entity().checkout();
+    auto health = (
+        ecs::ecs.component().assign<ecs::Health>(entities[0])
+    );
+    auto transform = (
+        ecs::ecs.component().assign<ecs::Transform>(entities[0])
+    );
+    auto sprite = (
+        ecs::ecs.component().assign<ecs::Sprite>(entities[0])
+    );
+    auto combat = (
+        ecs::ecs.component().assign<ecs::Combat>(entities[0])
+    );
+    auto navigate = (
+        ecs::ecs.component().assign<ecs::Navigate>(entities[0])
+    );
 
-        //Set All Attributes
-        health->max = (50.0f * health);
-        health->hp = health->max;
+    //Set All Attributes
+    health->max = (50.0f * health);
+    health->hp = health->max;
+    
+    transform->pos = {
+        0.0f + floatRand(10, 0),
+        0.0f + floatRand(10, 0)
+    };
+    //Placeholder Values !!
+
+    transform->rotation = 0.0f;
         
-        transform->pos = {0.0f + floatRand(10, 0), 0.0f + floatRand(10, 0)};
-        //Placeholder Values !!
+    sprite->ssheet = sprite_sheet;
+    sprite->render_order = 0; //Placeholder Value !!
 
-        transform->rotation = 0.0f;
-        
-        sprite->ssheet = sprite_sheet;
-        sprite->render_order = 0; //Placeholder Value !!
+    combat->damage = (1.0f * this.damage);
 
-        combat->damage = (1.0f * this.damage);
-    }
+    navigate->start = transform->pos;
+    navigate->goal = {0.0f, 0.0f};
 }
 
 Enemies::Enemies(EnemyT type)
@@ -448,37 +475,43 @@ Enemies::Enemies(EnemyT type)
     //Resize The Entity Vector
     entities.resize(amount);
 
-    //Add All Attributes to Each Entity
-    for (uint16_t i = 0; i < amount; i++) {
-        //Initialize All Attributes
-        entities[i] = ecs::ecs.entity().checkout();
-        auto health = (
-            ecs::ecs.component().assign<ecs::Health>(entities[i])
-        );
-        auto transform = (
-            ecs::ecs.component().assign<ecs::Transform>(entities[i])
-        );
-        auto sprite = (
-            ecs::ecs.component().assign<ecs::Sprite>(entities[i])
-        );
-        auto combat = (
-            ecs::ecs.component().assign<ecs::Combat>(entities[i])
-        );
+    //Initialize All Attributes
+    entities[0] = ecs::ecs.entity().checkout();
+    auto health = (
+        ecs::ecs.component().assign<ecs::Health>(entities[0])
+    );
+    auto transform = (
+        ecs::ecs.component().assign<ecs::Transform>(entities[0])
+    );
+    auto sprite = (
+        ecs::ecs.component().assign<ecs::Sprite>(entities[0])
+    );
+    auto combat = (
+        ecs::ecs.component().assign<ecs::Combat>(entities[0])
+    );
+    auto navigate = (
+        ecs::ecs.component().assign<ecs::Navigate>(entities[0])
+    );
 
-        //Set All Attributes
-        health->max = (50.0f * health);
-        health->hp = health->max;
-        
-        transform->pos = {0.0f + floatRand(10, 0), 0.0f + floatRand(10, 0)};
-        //Placeholder Values !!
+    //Set All Attributes
+    health->max = (50.0f * health);
+    health->hp = health->max;
+    
+    transform->pos = {
+        0.0f + floatRand(10, 0),
+        0.0f + floatRand(10, 0)
+    };
+    //Placeholder Values !!
 
-        transform->rotation = 0.0f;
-        
-        sprite->ssheet = sprite_sheet;
-        sprite->render_order = 0; //Placeholder Value !!
+    transform->rotation = 0.0f;
+    
+    sprite->ssheet = sprite_sheet;
+    sprite->render_order = 0; //Placeholder Value !!
 
-        combat->damage = (1.0f * this.damage);
-    }
+    combat->damage = (1.0f * this.damage);
+
+    navigate->start = transform->pos;
+    navigate->goal = {0.0f, 0.0f};
 }
 
 Enemies::Enemies(
@@ -501,6 +534,7 @@ Enemies::Enemies(
     //Check if Amount is 0
     if (amount <= 0) {
         DERROR("Amount of Enemies Generated Cannot be Zero.");
+        return;
     }
 
     //Resize The Entity Vector
@@ -508,8 +542,8 @@ Enemies::Enemies(
 
     //Add All Attributes to Each Entity
     for (uint16_t i = 0; i < amount; i++) {
-        //Initialize All Attributes
         entities[i] = ecs::ecs.entity().checkout();
+        //Initialize All Attributes
         auto health = (
             ecs::ecs.component().assign<ecs::Health>(entities[i])
         );
@@ -522,12 +556,18 @@ Enemies::Enemies(
         auto combat = (
             ecs::ecs.component().assign<ecs::Combat>(entities[i])
         );
+        auto navigate = (
+            ecs::ecs.component().assign<ecs::Navigate>(entities[i])
+        );
 
         //Set All Attributes
         health->max = (2.0f * this->health);
         health->hp = health->max;
 
-        transform->pos = {0.0f + floatRand(10, 0), 0.0f + floatRand(10, 0)}; 
+        transform->pos = {
+            0.0f + floatRand(10, 0),
+            0.0f + floatRand(10, 0)
+        }; 
         //Placeholder Values !!
         
         transform->rotation = 0.0f;
@@ -536,5 +576,17 @@ Enemies::Enemies(
         sprite->render_order = 0; //Placeholder Value !!
 
         combat->damage = (1.0f * this.damage);
+
+        navigate->start = transform->pos;
+        navigate->goal = {0.0f, 0.0f};
     }
+}
+
+Enemies::~Enemies()
+{
+    for (uint16_t i = 0; i < amount; i++)
+    {
+        ecs::ecs.entity().ret(entities[i]);
+    }
+    
 }

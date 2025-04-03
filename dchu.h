@@ -131,6 +131,9 @@ class Enemies
         );
         Enemies(EnemyT);
 
+        //Destructor
+        ~Enemies();
+
 };
 
 //Entity Component Systems
@@ -143,18 +146,26 @@ namespace ecs
         bool allow {true};
     }
 
-    //Pathing Data Container
-    struct Pathfinding
+    //Pathing Component
+    struct Navigate
     {
         v2u start, goal;
-        Node* next_node;
+        Node* next_node {nullptr};
     };
 
-    //Entity Pathfinding System
-    /*class PathSystem
+    //Health / Damage System
+    class HP_DMGSystem : public System<Transform,Health,Damage>
     {
         public:
-            PathSystem(ECS& ecs);
+            HP_DMGSystem(ECS& ecs, float sample_delta);
             void update(float dt) override;
-    }*/
+    }
+
+    //Entity Pathfinding System
+    class PathSystem : public System<Transform,Navigate>
+    {
+        public:
+            PathSystem(ECS& ecs, float sample_delta);
+            void update(float dt) override;
+    }
 }
