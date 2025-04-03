@@ -8,26 +8,50 @@ namespace ecs
 {
     HP_DMGSystem::HP_DMGSystem(ECS& ecs, float sample_delta)
     :
-    System<Transform,Health,Damage>(ecs,sample_delta)
+    System<Transform,Health,Combat>(ecs,sample_delta)
     {
         DINFO("Health/Damage System Initialized");
     }
     
     void HP_DMGSystem::update([[maybe_unused]]float dt)
     {
-        //To-Be-Done
+        for (auto& entity : _entities) {
+            DINFOF(
+                "Calculating Damage Dealt by/Afflicted to Entity (%d)\n",
+                entity->id
+            );
+            auto tc = ecs.component().fetch<TRANSFORM>(entity);
+            auto nc = ecs.component().fetch<HEALTH>(entity);
+            auto dc = ecs.component().fetch<COMBAT>(entity);
+            
+            //To-Be-Done
+        }
     }
 
     PathSystem::PathSystem(ECS& ecs, float sample_delta)
     :
-    System<Transform,Navigate>(ecs, sample_delta)
+    System<Transform,Physics,Navigate>(ecs, sample_delta)
     {
         DINFO("Path System Initialized");
     }
 
     void PathSystem::update([[maybe_unused]]float dt)
     {
-        //To-Be-Done
+        for (auto& entity : _entities) {
+            
+            DINFOF("Generating Forces for Entity (%d)\n",entity->id);
+            auto tc = ecs.component().fetch<TRANSFORM>(entity);
+            auto pc = ecs.component().fetch<PHYSICS>(entity);
+            auto nc = ecs.component().fetch<NAVIGATE>(entity);
+            
+            if (pc->enabled) {
+                //To-Be-Done
+
+                //pc->vel += pc->acc * dt;
+                //tc->pos += pc->vel * dt;
+            }
+        }
+        
     }
 }
 
@@ -414,19 +438,19 @@ Enemies::Enemies()
     //Initialize All Attributes
     entities[0] = ecs::ecs.entity().checkout();
     auto health = (
-        ecs::ecs.component().assign<ecs::Health>(entities[0])
+        ecs::ecs.component().assign<HEALTH>(entities[0])
     );
     auto transform = (
-        ecs::ecs.component().assign<ecs::Transform>(entities[0])
+        ecs::ecs.component().assign<TRANSFORM>(entities[0])
     );
     auto sprite = (
-        ecs::ecs.component().assign<ecs::Sprite>(entities[0])
+        ecs::ecs.component().assign<SPRITE>(entities[0])
     );
     auto combat = (
-        ecs::ecs.component().assign<ecs::Combat>(entities[0])
+        ecs::ecs.component().assign<COMBAT>(entities[0])
     );
     auto navigate = (
-        ecs::ecs.component().assign<ecs::Navigate>(entities[0])
+        ecs::ecs.component().assign<NAVIGATE>(entities[0])
     );
 
     //Set All Attributes
@@ -478,19 +502,19 @@ Enemies::Enemies(EnemyT type)
     //Initialize All Attributes
     entities[0] = ecs::ecs.entity().checkout();
     auto health = (
-        ecs::ecs.component().assign<ecs::Health>(entities[0])
+        ecs::ecs.component().assign<HEALTH>(entities[0])
     );
     auto transform = (
-        ecs::ecs.component().assign<ecs::Transform>(entities[0])
+        ecs::ecs.component().assign<TRANSFORM>(entities[0])
     );
     auto sprite = (
-        ecs::ecs.component().assign<ecs::Sprite>(entities[0])
+        ecs::ecs.component().assign<SPRITE>(entities[0])
     );
     auto combat = (
-        ecs::ecs.component().assign<ecs::Combat>(entities[0])
+        ecs::ecs.component().assign<COMBAT>(entities[0])
     );
     auto navigate = (
-        ecs::ecs.component().assign<ecs::Navigate>(entities[0])
+        ecs::ecs.component().assign<NAVIGATE>(entities[0])
     );
 
     //Set All Attributes
@@ -545,19 +569,19 @@ Enemies::Enemies(
         entities[i] = ecs::ecs.entity().checkout();
         //Initialize All Attributes
         auto health = (
-            ecs::ecs.component().assign<ecs::Health>(entities[i])
+            ecs::ecs.component().assign<HEALTH>(entities[i])
         );
         auto transform = (
-            ecs::ecs.component().assign<ecs::Transform>(entities[i])
+            ecs::ecs.component().assign<TRANSFORM>(entities[i])
         );
         auto sprite = (
-            ecs::ecs.component().assign<ecs::Sprite>(entities[i])
+            ecs::ecs.component().assign<SPRITE>(entities[i])
         );
         auto combat = (
-            ecs::ecs.component().assign<ecs::Combat>(entities[i])
+            ecs::ecs.component().assign<COMBAT>(entities[i])
         );
         auto navigate = (
-            ecs::ecs.component().assign<ecs::Navigate>(entities[i])
+            ecs::ecs.component().assign<NAVIGATE>(entities[i])
         );
 
         //Set All Attributes

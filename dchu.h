@@ -1,6 +1,10 @@
 #pragma once
 #include "jlo.h"
 
+//Define Alias for ecs Components
+#define COMBAT ecs::Combat
+#define NAVIGATE ecs::Navigate
+
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
@@ -154,7 +158,7 @@ namespace ecs
     };
 
     //Health / Damage System
-    class HP_DMGSystem : public System<Transform,Health,Damage>
+    class HP_DMGSystem : public System<Transform,Health,Combat>
     {
         public:
             HP_DMGSystem(ECS& ecs, float sample_delta);
