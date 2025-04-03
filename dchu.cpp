@@ -13,7 +13,7 @@ namespace ecs
         DINFO("Health/Damage System Initialized");
     }
     
-    void HP_DMGSystem::update(float dt)
+    void HP_DMGSystem::update([[maybe_unused]]float dt)
     {
         //To-Be-Done
     }
@@ -25,7 +25,7 @@ namespace ecs
         DINFO("Path System Initialized");
     }
 
-    void PathSystem::update(float dt)
+    void PathSystem::update([[maybe_unused]]float dt)
     {
         //To-Be-Done
     }
