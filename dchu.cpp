@@ -1,8 +1,8 @@
 #include "dchu.h"
 #include <cmath>
 #include <list>
-
-
+#include <cstdlib>
+#include <ctime>
 
 //Renderability Check
 bool canRender(ecs::Entity* ent)
@@ -23,6 +23,27 @@ bool canRender(ecs::Entity* ent)
         );
     }
     return display;
+}
+
+float floatRand(uint16_t max, uint16_t min)
+{
+    //Initialize Variables
+    uint16_t d_max = 99;
+    uint16_t d_min = 0;
+    float random = 0.0f;
+
+    //Generate Whole Number
+    uint16_t whole = (rand() % (max - min + 1) - min);
+    if (whole >= max) {
+        return (float)whole;
+    }
+
+    //Generate Decimal
+    uint16_t decimal = (rand() % (d_max - d_min + 1) - d_min);
+    
+    //Generate & Return Float Number Using whole & decimal
+    random += ((float)whole + (((float)decimal) / 100.0f));
+    return random;
 }
 
 //A* Pathfinding Algorithm
@@ -154,7 +175,7 @@ void AStar::initGrid(v2f dim)
     
     /*Warn for Predictable Pathing if Dimensions Low
     if (size_x < 3 || size_y < 3) {
-        DWARN("Pathing May Be Limited Due to Low Tile Dimensions");
+        DWARN("Pathing May Be Limited Due to Low Tile Dimensions.");
     }
     */
 
@@ -353,4 +374,167 @@ float AStar::distance(Node* a, Node* b)
 float AStar::heuristics(Node* a, Node* b)
 {
     return distance(a, b);
+}
+
+//Enemy Generation and Handler
+Enemies::Enemies()
+{
+    //Initialize Variables
+    origin = {0.0f, 0.0f};
+    amount = 1;
+    timer = 5;
+    health = 2.0f;
+    damage = 1.0f;
+    sprite_sheet = "player-front"; //Placeholder Texture !!
+
+    //Resize The Entity Vector
+    entities.resize(amount);
+
+    //Add All Attributes to Each Entity
+    for (uint16_t i = 0; i < amount; i++) {
+        //Initialize All Attributes
+        entities[i] = ecs::ecs.entity().checkout();
+        auto health = (
+            ecs::ecs.component().assign<ecs::Health>(entities[i])
+        );
+        auto transform = (
+            ecs::ecs.component().assign<ecs::Transform>(entities[i])
+        );
+        auto sprite = (
+            ecs::ecs.component().assign<ecs::Sprite>(entities[i])
+        );
+        auto combat = (
+            ecs::ecs.component().assign<ecs::Combat>(entities[i])
+        );
+
+        //Set All Attributes
+        health->max = (50.0f * health);
+        health->hp = health->max;
+        
+        transform->pos = {0.0f + floatRand(10, 0), 0.0f + floatRand(10, 0)};
+        //Placeholder Values !!
+
+        transform->rotation = 0.0f;
+        
+        sprite->ssheet = sprite_sheet;
+        sprite->render_order = 0; //Placeholder Value !!
+
+        combat->damage = (1.0f * this.damage);
+    }
+}
+
+Enemies::Enemies(EnemyT type)
+{
+    //Initialize Variables
+    switch (type)
+    {
+        case BANDIT:
+            sprite_sheet = "player-front"; //Placeholder Texture !!
+            break;
+        case ALIEN:
+            sprite_sheet = "player-front"; //Placeholder Texture !!
+            break;
+        case DEFAULT:
+        default:
+            sprite_sheet = "player-front"; //Placeholder Texture !!
+            break;
+    }
+    origin = {0.0f, 0.0f};
+    amount = 1;
+    timer = 5;
+    health = 2.0f;
+    damage = 1.0f;
+
+    //Resize The Entity Vector
+    entities.resize(amount);
+
+    //Add All Attributes to Each Entity
+    for (uint16_t i = 0; i < amount; i++) {
+        //Initialize All Attributes
+        entities[i] = ecs::ecs.entity().checkout();
+        auto health = (
+            ecs::ecs.component().assign<ecs::Health>(entities[i])
+        );
+        auto transform = (
+            ecs::ecs.component().assign<ecs::Transform>(entities[i])
+        );
+        auto sprite = (
+            ecs::ecs.component().assign<ecs::Sprite>(entities[i])
+        );
+        auto combat = (
+            ecs::ecs.component().assign<ecs::Combat>(entities[i])
+        );
+
+        //Set All Attributes
+        health->max = (50.0f * health);
+        health->hp = health->max;
+        
+        transform->pos = {0.0f + floatRand(10, 0), 0.0f + floatRand(10, 0)};
+        //Placeholder Values !!
+
+        transform->rotation = 0.0f;
+        
+        sprite->ssheet = sprite_sheet;
+        sprite->render_order = 0; //Placeholder Value !!
+
+        combat->damage = (1.0f * this.damage);
+    }
+}
+
+Enemies::Enemies(
+    v2f origin,
+    u16 number,
+    u16 delay,
+    float hp,
+    float dmg,
+    string ssheet
+)
+{
+    //Initialize Variables
+    this->origin = origin;
+    amount = number;
+    timer = delay;
+    health = hp;
+    damage = dmg;
+    sprite_sheet = ssheet;
+
+    //Check if Amount is 0
+    if (amount <= 0) {
+        DERROR("Amount of Enemies Generated Cannot be Zero.");
+    }
+
+    //Resize The Entity Vector
+    entities.resize(amount);
+
+    //Add All Attributes to Each Entity
+    for (uint16_t i = 0; i < amount; i++) {
+        //Initialize All Attributes
+        entities[i] = ecs::ecs.entity().checkout();
+        auto health = (
+            ecs::ecs.component().assign<ecs::Health>(entities[i])
+        );
+        auto transform = (
+            ecs::ecs.component().assign<ecs::Transform>(entities[i])
+        );
+        auto sprite = (
+            ecs::ecs.component().assign<ecs::Sprite>(entities[i])
+        );
+        auto combat = (
+            ecs::ecs.component().assign<ecs::Combat>(entities[i])
+        );
+
+        //Set All Attributes
+        health->max = (2.0f * this->health);
+        health->hp = health->max;
+
+        transform->pos = {0.0f + floatRand(10, 0), 0.0f + floatRand(10, 0)}; 
+        //Placeholder Values !!
+        
+        transform->rotation = 0.0f;
+        
+        sprite->ssheet = sprite_sheet;
+        sprite->render_order = 0; //Placeholder Value !!
+
+        combat->damage = (1.0f * this.damage);
+    }
 }

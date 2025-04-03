@@ -4,6 +4,9 @@
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
+//Generate a Randomized Float Number Between 2 Integers
+float floatRand(uint16_t, uint16_t);
+
 //A* Pathfinding Algorithm Class
 class Node
 {
@@ -97,11 +100,20 @@ class Enemies
         //Store Entity
         std::vector<ecs::Entity*> entities;
 
+        //Sprite Sheet for Set of Enemies
+        string sprite_sheet;
+
+        //Origin Spawning Position of Grouping
+        v2f origin;
+
+        //Amount of Entities Spawned
+        u16 amount;
+
         //Damage Modifier
         float damage;
 
         //Health Modifier
-        float hp;
+        float health;
 
         //Wait for n Seconds of Time
         u16 timer;
@@ -113,9 +125,9 @@ class Enemies
         Enemies();
         Enemies(
             v2f, 
-            u16 delay = 5,
-            float hp = 2.0f, float dmg = 1.0f,
-            string sprite_sheet = "player-front"
+            u16 number = 1, u16 delay = 5,
+            float hp = 1.0f, float dmg = 1.0f,
+            string ssheet = "player-front"
         );
         Enemies(EnemyT);
 
@@ -124,6 +136,13 @@ class Enemies
 //Entity Component Systems
 namespace ecs
 {
+    //Damage Component
+    struct Combat
+    {
+        float damage;
+        bool allow {true};
+    }
+
     //Pathing Data Container
     struct Pathfinding
     {
