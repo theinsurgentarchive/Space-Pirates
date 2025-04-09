@@ -481,8 +481,9 @@ namespace ecs
             time_point _last_sampled;
         protected:
             ECS& _ecs;
-            std::vector<const Entity*> _entities;
+            //std::vector<const Entity*> _entities; //billie for custom sample
         public:
+            std::vector<const Entity*> _entities;  
             const float sample_delta;
             System(ECS& ecs, float sample_delta);
             virtual void update(float dt);

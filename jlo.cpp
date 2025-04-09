@@ -759,6 +759,8 @@ namespace ecs
             DINFOF("applying physics to entity (%d)\n",entity->id);
             auto tc = ecs.component().fetch<TRANSFORM>(entity);
             auto pc = ecs.component().fetch<PHYSICS>(entity);
+            if (!pc || !tc)
+                continue; // b
             if (pc->enabled) {
                 pc->vel += pc->acc * dt;
                 tc->pos += pc->vel * dt;

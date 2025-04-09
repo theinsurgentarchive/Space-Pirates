@@ -287,6 +287,14 @@ const Camera* c;
 int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
+
+// load space sheets
+std::unordered_map<std::string, std::shared_ptr<SpriteSheet>> shipAndAsteroidsSheets;
+void loadShipAndAsteroids(std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
+ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
+
+
+
 int main()
 {
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -316,7 +324,10 @@ int main()
 	sc->ssheet = "player-front";
 	sc->render_order = 15;
 	Vec2<uint16_t> v {50,50};
-	loadTextures(ssheets);
+
+	loadTextures(ssheets);  //load planet textures
+	loadShipAndAsteroids(shipAndAsteroidsSheets); // load ship and asteroids
+
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
 	tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
 	tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
@@ -566,6 +577,16 @@ int check_keys(XEvent *e)
 			gl.state = MENU;
 			return 0;
 		}
+
+		if (key == XK_Escape && gl.state == SPACE) {  // TEMP FOR EASE
+			gl.state = MENU; 
+			return 0;
+		}
+
+		if (key == XK_Escape && gl.state == CREDITS) {
+			gl.state = MENU; 
+			return 0;
+		}
 	}
 
 	// Playing state handling
@@ -608,8 +629,45 @@ int check_keys(XEvent *e)
 		}
 	}
 
-	return exit_request;
-}
+	if (gl.state == SPACE) {
+		[[maybe_unused]] auto transform = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+		auto sprite = ecs::ecs.component().fetch<SPRITE>(gl.spaceship);
+		auto physics = ecs::ecs.component().fetch<PHYSICS>(gl.spaceship);
+		if (e->type == KeyPress) {
+			static float movement_mag = 300.0;
+			switch(key) {
+				case XK_Right:
+					sprite->ssheet = "ship-right";
+					physics->vel = {movement_mag,0};
+					break;
+				case XK_Left:
+					sprite->invert_y = true;
+					sprite->ssheet = "ship-right";
+					physics->vel = {-movement_mag,0};
+					break;
+				case XK_Up:
+					sprite->ssheet = "ship-front-back";
+					physics->vel = {0,movement_mag};
+					break;
+				case XK_Down:
+					sprite->ssheet = "ship-front-back";
+					physics->vel = {0,-movement_mag};
+					break;
+				case XK_a:
+					done = 1;
+					break;
+				}
+
+			} else if (e->type == KeyRelease) {
+				sprite->ssheet = "ship-right"; 
+				sprite ->invert_y = false;
+				physics->vel = {0,0};
+			}
+
+		} return exit_request;
+	} //bracket fix
+
+
 
 void physics()
 {
@@ -617,6 +675,16 @@ void physics()
 	gl.planetAng[2] += 1.0;
 
 }
+
+ void SampleSpaceEntities() //chatgpt 
+ { // sample space entities, made jlo renderSystem > ._entities public for access
+ 	auto spaceEntities = ecs::ecs.query<ASTEROID>(); 
+	if (gl.spaceship) {
+		spaceEntities.push_back(gl.spaceship); // add spaceship to entity list
+	}
+	spaceRenderer._entities = spaceEntities; //render only these (filtered)
+ }
+
 
 void render() {
 	DINFOF("rendering state: %d\n", gl.state);
@@ -642,7 +710,7 @@ void render() {
 			glPushMatrix(); // PUSH 2
 			glLoadIdentity();
 
-			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.titleTexture, gl.selected_option);
+			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.titleTexture, gl.selected_option); 
 
 			glPopMatrix(); // POP 2
 			glMatrixMode(GL_PROJECTION);
@@ -725,32 +793,74 @@ void render() {
 			glPopMatrix();
 
 			DisableFor2D();
-			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
+			if (ptr) {   //player health bar
+				auto playerHealth = ecs::ecs.component().fetch<ecs::Health>(ptr);
+				playerHealth->health = 100.0f; 
+				playerHealth -> max = 100.0f;
+				if (playerHealth) 
+					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.yres - 50, 0xF00FF00);
+			}
 
-			// UI bars
-			if (gl.spaceship) {
+			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
+			break; 
+
+		case SPACE:
+		{
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+
+			if (gl.spaceship) { //draw ui space bars
 				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
 				auto spaceshipOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(gl.spaceship);
 				auto spaceshipFuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship);
-
+			
 				if (spaceshipHealth) {
 					drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.yres - 50, 0xF00FF00);
 				}
-
+			
 				if (spaceshipOxygen) {
 					drawUIBar("Oxygen", spaceshipOxygen->oxygen, spaceshipOxygen->max, 20, gl.yres - 90, 0x00FFFF);
 				}
-
+			
 				if (spaceshipFuel) {
 					drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
 				}
 			}
-			break;
+			// merge into ssheets global in space mode
+			static bool spaceSheetsLoaded = false;
+			if (!spaceSheetsLoaded) {
+    			ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
+   				spaceSheetsLoaded = true; 
+				
+			}
+		
+			spawnAsteroids(gl.spaceship, gl.xres, gl.yres); 
+			c->update(); // update camera
+			//spaceRenderer.sample(); // sample space entities
+			SampleSpaceEntities(); //chat: update entity list w/ asteroids
+			spaceRenderer.update((float)1/10); // update space render system
+			//cout << "SpaceRenderer updated" << endl;
+			
 
-		case EXIT:
+			
+	
+			DisableFor2D();
+			ggprint8b(&r, 0, 0xFFFFFF, "Welcome to SPACE mode 🚀");
 			break;
+			
+		}
 
-		default:
-			break;
+		case EXIT: 
+			break; 
+
+
+		default: 
+			break; 
+
 	}
+
 }
+			
