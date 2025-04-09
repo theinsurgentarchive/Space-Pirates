@@ -4,6 +4,7 @@
 
 #define OXYGEN ecs::Oxygen
 #define FUEL ecs::Fuel
+#define ASTEROID ecs::Asteroid
 
 // Game States for Menu Logic
 enum GameState {
@@ -11,7 +12,8 @@ enum GameState {
     PLAYING,    // 1
     CONTROLS,   // 2 
     CREDITS,    // 3
-    EXIT        // 4
+    SPACE,      // 4
+    EXIT        // 5
 };
 
 //ecs Components
@@ -25,13 +27,30 @@ namespace ecs {
         float fuel;
         float max;
     };
+
+     struct Asteroid {
+        float size; 
+        float rotationSpeed; 
+        float health; 
+        float movementSpeed;
+        bool exploding = false;
+    };
 }
 
 //Menu
 int handle_menu_keys(int key, GameState &state, int &selected_option);
-void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,GLuint titleTexture, int selected_option);
+void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, GLuint titleTexture, int selected_option);
 void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture);
 
 //Bar
 void initializeEntity(ecs::Entity* entity);
 void drawUIBar(const char* label, float current, float max, float x, float y, unsigned int color);
+
+//Asteroids
+void SampleSpaceEntities();
+ecs::Entity* createAsteroid(float x, float y);
+void generateAsteroids(int count, int xres, int yres);
+bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* asteroid); 
+void moveAsteroids(ecs::Entity* spaceship);
+void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres);
+
