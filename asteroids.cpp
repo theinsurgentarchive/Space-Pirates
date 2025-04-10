@@ -280,6 +280,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
+ecs::Entity* planetPtr;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
@@ -302,7 +303,7 @@ int main()
 	DINFOF("spaceship initialized spaceship %s", "");
 	[[maybe_unused]]int* PlanetSeed;
 	// [[maybe_unused]]auto character = ecs::character_x(); 
-	PlanetSeed = PlanetSeedGenerator();
+
 	// Initialize audio system
 	auto biome = selectBiome(30.0f,0.5f);
 	std::cout << biome.type << ' ' << biome.description << '\n';
@@ -310,7 +311,8 @@ int main()
 
 	// Set initial music according to game state (starting in MENU state)
 	updateAudioState(gl.state);
-
+	//JC planet Generator 
+	planetPtr = ecs::GeneratePlanet();
 	ptr = ecs::ecs.entity().checkout();
 	ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
 
@@ -673,6 +675,8 @@ void physics()
 {
 	ps.update(1/20);
 	gl.planetAng[2] += 1.0;
+	auto traits = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr);
+	traits-> AngY += 1.0f;
 
 }
 
@@ -695,6 +699,7 @@ void render() {
 	r.left = 100;
 	r.bot = gl.yres - 20;
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	auto traits = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
 
@@ -729,21 +734,21 @@ void render() {
 
 			// Draw planets
 			glPushMatrix(); // PUSH 5
-			DrawPlanet(
+			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] - 4.5, gl.planetPos[1] - 3,
 					gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1
 				  );
 			glPopMatrix(); // POP 5
 
 			glPushMatrix(); // PUSH 6
-			DrawPlanet(
+			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] + 5.5, gl.planetPos[1],
 					gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0
 				  );
 			glPopMatrix(); // POP 6
 
 			glPushMatrix(); // PUSH 7
-			DrawPlanet(
+			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] + 1.4, gl.planetPos[1] - 7,
 					gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 1
 				  );
@@ -807,6 +812,22 @@ void render() {
 		case SPACE:
 		{
 			glMatrixMode(GL_PROJECTION);
+			glPushMatrix(); // PUSH 3
+			glLoadIdentity();
+			gluPerspective(45.0f, (GLfloat)gl.xres / (GLfloat)gl.yres, 0.1f, 100.0f);
+
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix(); // PUSH 4
+			glLoadIdentity();
+			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+			EnableFor3D();
+			glPushMatrix();
+			DrawPlanet(traits-> AngY, traits-> PosX, traits-> PosY, traits-> 
+				PosZ, gl.lightPosition, traits->size, traits->rotationX, 
+				traits->rotationY, traits->smooth, traits->temperature);
+			glPopMatrix();
+
+			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 			glMatrixMode(GL_MODELVIEW);
@@ -843,9 +864,7 @@ void render() {
 			SampleSpaceEntities(); //chat: update entity list w/ asteroids
 			spaceRenderer.update((float)1/10); // update space render system
 			//cout << "SpaceRenderer updated" << endl;
-			
 
-			
 	
 			DisableFor2D();
 			ggprint8b(&r, 0, 0xFFFFFF, "Welcome to SPACE mode 🚀");
