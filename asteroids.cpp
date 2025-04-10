@@ -301,18 +301,20 @@ int main()
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
-	[[maybe_unused]]int* PlanetSeed;
+	//[[maybe_unused]]int* PlanetSeed;
 	// [[maybe_unused]]auto character = ecs::character_x(); 
+	
+	//Initiate Planet
+	planetPtr = ecs::GeneratePlanet();
+	auto planetAttr = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr);
+	auto biome = selectBiome(planetAttr-> temperature, planetAttr-> humidity);
+	std::cout << biome.type << ' ' << biome.description << '\n';
 
 	// Initialize audio system
-	auto biome = selectBiome(30.0f,0.5f);
-	std::cout << biome.type << ' ' << biome.description << '\n';
-	initAudioSystem();
-
 	// Set initial music according to game state (starting in MENU state)
+	initAudioSystem();
 	updateAudioState(gl.state);
-	//JC planet Generator 
-	planetPtr = ecs::GeneratePlanet();
+
 	ptr = ecs::ecs.entity().checkout();
 	ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
 
@@ -674,9 +676,13 @@ int check_keys(XEvent *e)
 void physics()
 {
 	ps.update(1/20);
-	gl.planetAng[2] += 1.0;
-	auto traits = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr);
-	traits-> AngY += 1.0f;
+	if (gl.state == MENU){
+		gl.planetAng[2] += 1.0;
+	}
+	else if (gl.state == SPACE) {
+		auto traits = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr);
+		traits-> AngY += 1.0f;
+	}
 
 }
 

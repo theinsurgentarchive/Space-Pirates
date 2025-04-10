@@ -119,6 +119,10 @@ class Vec2
         T operator[](int idx) const;
         T& operator[](int idx);
         Vec2<T>& operator+=(const Vec2<T>& v);
+
+        T dot(const Vec2<T>& other) const {
+            return vec[0] * other.vec[0] + vec[1] * other.vec[1];
+        }
 };
 
 using u16 = uint16_t;

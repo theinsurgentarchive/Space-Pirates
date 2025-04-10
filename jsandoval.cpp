@@ -4,6 +4,10 @@
 #include <GL/gl.h>
 #include <random>
 #include <vector>
+#include <cmath>
+#include <glm/vec3.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #define rnd() (float)rand() / (float)RAND_MAX
 typedef float Flt;
@@ -21,7 +25,7 @@ namespace ecs {
     extern ECS ecs;
 Entity* character_x()
 {
-    
+    //ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr); 
     auto x = ecs::ecs.entity().checkout();
     auto health = ecs::ecs.component().assign<HEALTH>(x);
     auto transform = ecs::ecs.component().assign<TRANSFORM>(x);
@@ -54,6 +58,41 @@ Entity* character_x()
     }
     return x;
 }
+Entity* GeneratePlanet()
+{
+    float rndNums[4];
+    PlanetSeedGenerator(rndNums);
+
+    auto planetEntity = ecs::ecs.entity().checkout();
+    ecs::ecs.component().assign<PLANET>(planetEntity);
+
+    auto properties = ecs::ecs.component().fetch<PLANET>(planetEntity);
+    
+    properties->size = PlanetSize(rndNums[0]);
+    properties->smooth = PlanetSmooth(rndNums[1]);
+    properties->temperature = PlanetTemp(rndNums[2]);
+    properties->humidity = PlanetHumidity(rndNums[3]);
+
+    properties-> AngY  = 0.1f;
+    properties-> PosX = 3.0f;
+    properties-> PosY = 3.0f;
+    properties-> PosZ = -10.0f;
+    properties-> rotationX = 0.0f;
+    properties-> rotationY = 1.0f;
+    //GLfloat lightPosition[] = { 100.0f, 60.0f, -140.0f, 1.0f};
+
+    if (properties) {
+        std::cout << "Planet Properties: " << "Size: "<< properties -> size
+        << " Smooth: " << properties -> smooth << " Temperature: " << properties-> temperature << " humidity: " << properties-> humidity << " AngY: " << properties-> AngY << " PosX: " << properties-> PosX << " PosY: " << properties-> PosY << " PosZ: " << properties-> PosZ << " rotationX: " << properties-> rotationX << " rotationY: " << properties-> rotationY << std::endl;
+    }
+    else {
+        std::cout << "Failed to retrieve Health Component." <<std::endl;
+    }
+
+    return planetEntity;
+
+//Implement Entity Calling and set up Biome Attribute thru here
+}
 }
 void DisableFor2D()
 {
@@ -67,7 +106,7 @@ void EnableFor3D()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
 }
-void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, 
+void DrawPlanetMenu(float planetAngY, float planetPosX, float planetPosY, 
     float planetPosZ, GLfloat* lightPosition, GLuint planetTexture, float size, 
     float rotationX, float rotationY) 
 {
@@ -173,57 +212,223 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
     
 }
 
-int* PlanetSeedGenerator() 
+//////////////////////////// PLANET COMPONENTS BELOW ////////////////////////
+void PlanetSeedGenerator(float values[4]) 
 {
-    static int values[3];
-
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(100, 999);
 
-    //First 3 numbers represent size, 2nd smoooth, 3rd temp
-    values[0] = dis(gen);
-    values[1] = dis(gen);
-    values[2] = dis(gen);
-
-    return values;
+    //Planet Properties
+    values[0] = dis(gen); //Size
+    values[1] = dis(gen); //Smooth
+    values[2] = dis(gen); //Temp
+    values[3] = dis(gen); //Humidity
 }
 
-float PlanetSize(int rndNum)
+float PlanetSize(float rndNum)
 {
-    if (rndNum > 934)
+    //chance rndNum to a % probability to define Size (0.5x to 5.0x)
+    float sizeChance = ((rndNum - 100) / 899) * 100;
+    
+    if (sizeChance > 92.5)
         return 5.0f;
-    else if (rndNum > 844)
+    else if (sizeChance > 82.5)
+        return 3.0f;
+    else if (sizeChance > 67.5)
         return 2.0f;
-    else if (rndNum > 709)
-        return 1.5f;
-    else if (rndNum > 506)
+    else if (sizeChance > 45.0)
         return 1.0f;
-    else if (rndNum > 213)
+    else if (sizeChance > 12.5)
         return 0.75f;
     else
         return 0.5f;
 }
 
-float PlanetSmooth([[maybe_unused]]int rndNum)
+float PlanetSmooth([[maybe_unused]]float rndNum)
 {
-    return 0.0f;
+    return ((rndNum - 100) / 899) * 100;
 }
 
-float PlanetTemp(int rndNum)
+float PlanetTemp(float rndNum)
 {
-    if (rndNum > 934) {}
-    return 0.0f; 
+    //Scaling rndNum to Temp
+    float temp = -30 + ((float(rndNum) - 100) / 899.0) * (100 + 30);
+    return temp;
 }
 
-float GeneratePlanet(int* rndNums)
+float PlanetHumidity(float rndNum)
 {
-    [[maybe_unused]]float size = PlanetSize(rndNums[0]);
-    [[maybe_unused]]float smooth = PlanetSmooth(rndNums[1]);
-    [[maybe_unused]]float temp = PlanetTemp(rndNums[2]);
+    float humidity = (float(rndNum) - 100) / 899.0;
+    return humidity;
+}
 
-//Implement Entity Calling and set up Biome Attribute thru here
-//define _MAX_TEMPERATURE 100.0f
-//define _MIN_TEMPERATURE -30.0f
-    return 0.0f;
+/*Imitating Perlin-Noise - Had to do research to understand concept and
+best way to imitate without Library. One guide: Perlin C++ SFML
+Tutorial - Youtube
+*/
+Vec2<float> GetGradient(int x, int y) 
+{
+    int hash = (x * 1836311903) ^ (y * 2971215073);
+    hash = (hash >> 13) ^ hash;
+    float angle = (hash % 360) * 3.14159 / 180.0;
+    return Vec2<float>(std::cos(angle), std::sin(angle));
+}
+//found on reddit: which is introduced by Ken Perlin
+float SmoothInterpo(float t) 
+{
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+//Grab coordinates and determine dot based on vector distance
+float PerlinNoise(float x, float y) 
+{
+    int x0 = (int)x;
+    int y0 = (int)y;
+    int x1 = x0 + 1;
+    int y1 = y0 + 1;
+
+    float sx = x - (float)x0;
+    float sy = y - (float)y0;
+
+    Vec2<float> c00 = GetGradient(x0, y0);
+    Vec2<float> c10 = GetGradient(x1, y0);
+    Vec2<float> c01 = GetGradient(x0, y1);
+    Vec2<float> c11 = GetGradient(x1, y1);
+
+    Vec2<float> dist00(sx, sy);
+    Vec2<float> dist10(sx - 1, sy);
+    Vec2<float> dist01(sx, sy - 1);
+    Vec2<float> dist11(sx - 1, sy - 1);
+
+    float dot00 = c00.dot(dist00);
+    float dot10 = c10.dot(dist10);
+    float dot01 = c01.dot(dist01);
+    float dot11 = c11.dot(dist11);
+
+    float u = SmoothInterpo(sx);
+    float v = SmoothInterpo(sy);
+    float i1 = (1 - u) * dot00 + u * dot10;
+    float i2 = (1 - u) * dot01 + u * dot11;
+    return (1 - v) * i1 + v * i2;
+}
+
+//Generate Height Map (Creating the grid for the Height Map 9 x 16)
+std::vector<float> GenerateHeightMap() 
+{
+    std::vector<float> heightMap(144);
+
+    for (int i = 0; i < 16; i++) {
+        for (int j = 0; j < 9; j++) {
+            float x = ((float)j / 9.0f) * 5.0f;
+            float y = ((float)i / 16.0f) * 5.0f;
+
+            float pNoise = PerlinNoise(x, y);
+            pNoise = (pNoise + 1.0f) / 2.0f;
+            heightMap[i * 9 + j] = pNoise;
+        }
+    }
+    return heightMap;
+}
+
+//Return color based on Temp
+glm::vec3 TempToColor(float temp) {
+    if (temp < 20.0f) {
+        return glm::vec3(0.0f, 0.0f, 0.5f); 
+    }
+    else if (temp < 30) {
+        float factor = (temp - 20.0f) / 10.0f;
+        glm::vec3 icy = glm::vec3(0.0f, 0.0f, 0.5f);
+        glm::vec3 cool = glm::vec3(0.0f, 0.3f, 0.1f);
+        return glm::mix(icy, cool, factor);
+    }
+    else if (temp < 60.0f) {
+        float factor = (temp - 30.0f) / 30.0f;
+        glm::vec3 water = glm::vec3(0.0f, 0.0f, 0.3f);
+        glm::vec3 warm = glm::vec3(0.3f, 0.6f, 0.2f);
+        return glm::mix(water, warm, factor);
+    }
+    else {
+        float factor = (temp - 60.0f) / 40.0f;
+        glm::vec3 warm = glm::vec3(0.3f, 0.6f, 0.2f);
+        glm::vec3 hot = glm::vec3(1.0f, 0.0f, 0.0f);
+        return glm::mix(warm, hot, glm::clamp(factor, 0.0f, 1.0f));
+    }
+}
+
+//FINALLY ADJUST MenuPlanet to General Planet
+void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, 
+    float planetPosZ, GLfloat* lightPosition, float size, 
+    float rotationX, float rotationY, [[maybe_unused]] float roughness, float temp) 
+{
+    std::vector<float> heightMap = GenerateHeightMap(); 
+    static int firsttime = 1;
+    int i, j, i2, j2, j3;
+    static Flt verts[9][16][3];
+    static Flt norms[9][16][3];
+    static Flt tx[9][17][2];
+
+    if (firsttime) {
+        firsttime = 0;
+
+        static const Flt circle[16][2] = {
+            {1.000000f, 0.000000f}, {0.923880f, -0.382683f}, 
+            {0.707107f, -0.707107f}, {0.382683f, -0.923880f}, 
+            {-0.000000f, -1.000000f}, {-0.382683f, -0.923880f},
+            {-0.707107f, -0.707107f}, {-0.923880f, -0.382683f}, 
+            {-1.000000f, -0.000000f}, {-0.923880f, 0.382683f}, 
+            {-0.707107f, 0.707107f}, {-0.382683f, 0.923880f},
+            {0.000000f, 1.000000f}, {0.382683f, 0.923880f}, 
+            {0.707107f, 0.707107f}, {0.923880f, 0.382683f}
+        };
+
+        for (i = 0; i <= 8; i++) {
+            for (j = 0; j < 16; j++) {
+                int index = i * 16 + j;
+                //float height = heightMap[index] * roughness;  // Apply roughness TEST LATER
+                float height = heightMap[index];
+                //testing noise
+                float noise = PerlinNoise(i, j);
+                verts[i][j][0] = (circle[j][0] * circle[i][1]) * (1.0f + height + noise);
+                verts[i][j][2] = (circle[j][1] * circle[i][1]) * (1.0f + height + noise);
+                verts[i][j][1] = circle[i][0] * (1.0f + height + noise);
+
+                norms[i][j][0] = verts[i][j][0];  
+                norms[i][j][1] = verts[i][j][1];  
+                norms[i][j][2] = verts[i][j][2];
+
+                tx[i][j][0] = (Flt)j / 16.0f;
+                tx[i][j][1] = (Flt)i / 8.0f;
+            }
+            tx[i][j][0] = (Flt)j / 16.0f;
+            tx[i][j][1] = (Flt)i / 8.0f;
+        }
+    }
+    glm::vec3 color = TempToColor(temp); 
+    glColor3f(color.r, color.g, color.b);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    glPushMatrix();
+    glTranslatef(planetPosX, planetPosY-5, planetPosZ);
+    glScalef(size, size, size);
+    glRotatef(planetAngY, rotationX, rotationY, 0.0f);
+    glBegin(GL_QUADS);
+
+    for (i = 0; i < 8; i++) {
+        for (j = 0; j < 16; j++) {
+            i2 = i + 1;
+            j2 = (j + 1) & 0x0f;
+            j3 = j + 1;
+            glNormal3fv(norms[i][j]);
+            glVertex3fv(verts[i][j]);
+            glNormal3fv(norms[i2][j]);
+            glVertex3fv(verts[i2][j]);
+            glNormal3fv(norms[i2][j2]);
+            glVertex3fv(verts[i2][j2]);
+            glNormal3fv(norms[i][j2]);
+            glVertex3fv(verts[i][j2]);
+        }
+    }
+
+    glEnd();
+    glPopMatrix();
 }
