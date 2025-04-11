@@ -2,6 +2,7 @@
 #include <cmath>
 #include <list>
 #include <cstdlib>
+#include <string>
 #include <ctime>
 
 namespace ecs
@@ -23,6 +24,10 @@ namespace ecs
             auto tc = ecs.component().fetch<TRANSFORM>(entity);
             auto nc = ecs.component().fetch<HEALTH>(entity);
             auto dc = ecs.component().fetch<COMBAT>(entity);
+
+            if (tc == nullptr || nc == nullptr || dc = nullptr) {
+
+            }
             
             //To-Be-Done
         }
@@ -44,11 +49,22 @@ namespace ecs
             auto pc = ecs.component().fetch<PHYSICS>(entity);
             auto nc = ecs.component().fetch<NAVIGATE>(entity);
             
-            if (pc->enabled) {
-                //To-Be-Done
+            if (pc->enabled &&
+                tc->pos[0] != nc->goal[0] &&
+                tc->pos[0] != nc->goal[0]
+            ) {
+                //Calculate the Direction of the Node
+                v2f sum, dir, ;
+                sum[0] = sqrtf(
+                    powf(nc->goal[0], 2.0f) - powf(tc->pos[0], 2.0f)
+                );
+                sum[1] = sqrtf(
+                    powf(nc->goal[1], 2.0f) - powf(tc->pos[1], 2.0f)
+                );
+                dir[0] = sum[0]));
+                dir[1] = sum[0]));
 
                 //pc->vel += pc->acc * dt;
-                //tc->pos += pc->vel * dt;
             }
         }
         
@@ -86,7 +102,7 @@ float floatRand(uint16_t max, uint16_t min)
     //Generate Whole Number
     uint16_t whole = (rand() % (max - min + 1) - min);
     if (whole >= max) {
-        return (float)whole;
+        return (float)max;
     }
 
     //Generate Decimal

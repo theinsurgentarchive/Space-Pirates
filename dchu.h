@@ -148,12 +148,12 @@ namespace ecs
     {
         float damage;
         bool allow {true};
-    }
+    };
 
     //Pathing Component
     struct Navigate
     {
-        v2u start, goal;
+        v2f goal;
         Node* next_node {nullptr};
     };
 
@@ -163,7 +163,7 @@ namespace ecs
         public:
             HP_DMGSystem(ECS& ecs, float sample_delta);
             void update(float dt) override;
-    }
+    };
 
     //Entity Pathfinding System
     class PathSystem : public System<Transform,Navigate>
@@ -171,5 +171,5 @@ namespace ecs
         public:
             PathSystem(ECS& ecs, float sample_delta);
             void update(float dt) override;
-    }
+    };
 }
