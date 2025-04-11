@@ -591,6 +591,15 @@ int check_keys(XEvent *e)
 			return 0;
 		}
 
+		auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
+		if (fuel && fuel->fuel > 0.0f){
+			fuel->fuel -= 0.2f; //decrment 
+			if(fuel->fuel < 0.0f) { 
+				fuel->fuel = 0.0f;
+				gl.state = GAMEOVER;
+			}
+		}
+
 		if (key == XK_Escape && gl.state == SPACE) {  // TEMP FOR EASE
 			gl.state = MENU; 
 			return 0;
@@ -621,19 +630,73 @@ int check_keys(XEvent *e)
 				case XK_Right:
 					sc->ssheet = "player-right";
 					pc->vel = {movement_mag,0};
+
+
+				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
+					if (fuel && fuel->fuel > 0.0f){
+						fuel->fuel -= 0.5f; //decrment 
+						if(fuel->fuel < 0.0f) { 
+							fuel->fuel = 0.0f;
+							gl.state = GAMEOVER;
+						}
+					}
+				}
+					
+
+
 					break;
 				case XK_Left:
 					sc->invert_y = true;
 					sc->ssheet = "player-right";
 					pc->vel = {-movement_mag,0};
+
+				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
+					if (fuel && fuel->fuel > 0.0f){
+						fuel->fuel -= 0.5f; //decrment 
+						if(fuel->fuel < 0.0f) { 
+							fuel->fuel = 0.0f;
+							gl.state = GAMEOVER;
+						}
+					}
+
+				}
+					
+
+
 					break;
 				case XK_Up:
 					sc->ssheet = "player-back";
 					pc->vel = {0,movement_mag};
+
+				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
+					if (fuel && fuel->fuel > 0.0f){
+						fuel->fuel -= 0.5f; //decrment 
+						if(fuel->fuel < 0.0f) { 
+							fuel->fuel = 0.0f;
+							gl.state = GAMEOVER;
+						}
+					}
+
+				}
+					
+
+
 					break;
 				case XK_Down:
 					sc->ssheet = "player-front";
 					pc->vel = {0,-movement_mag};
+					
+
+				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
+					if (fuel && fuel->fuel > 0.0f){
+						fuel->fuel -= 0.5f; //decrment 
+						if(fuel->fuel < 0.0f) { 
+							fuel->fuel = 0.0f;
+							gl.state = GAMEOVER;
+						}
+					}
+				}
+
 					break;
 				case XK_a:
 					done = 1;
@@ -818,13 +881,52 @@ void render() {
 		case SPACE:
 		{
 			glMatrixMode(GL_PROJECTION);
+			glPushMatrix(); 
 			glLoadIdentity();
 			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix(); 
 			glLoadIdentity();
+
 			spaceCamera->update();
 			// make c camera space camera to solve jlo visability check 
 			const_cast<Camera*&>(c) = const_cast<Camera*>(spaceCamera); 
+
+			// merge into ssheets global in space mode
+			static bool spaceSheetsLoaded = false;
+			if (!spaceSheetsLoaded) {
+    			ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
+   				spaceSheetsLoaded = true; 
+				
+			}
+		
+			spawnAsteroids(gl.spaceship, gl.xres, gl.yres); 
+			//c->update(); // update camera
+			//spaceRenderer.sample(); // sample space entities
+			SampleSpaceEntities(); //chat: update entity list w/ asteroids
+			spaceRenderer.update((float)1/10); // update space render system
+			//cout << "SpaceRenderer updated" << endl;
+
+			// ==== ui bar render === // 
+			glMatrixMode(GL_PROJECTION); //fix health from not moving 
+			glPushMatrix();
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+			DisableFor2D();
+
+
+			if (gl.spaceship) {
+				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+				if (spaceshipHealth->health <= 0.0f) {
+					gl.state = GAMEOVER; 
+					return; 
+				}
+			}
+			
 
 			if (gl.spaceship) { //draw ui space bars
 				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
@@ -843,31 +945,13 @@ void render() {
 					drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
 				}
 			}
-			// merge into ssheets global in space mode
-			static bool spaceSheetsLoaded = false;
-			if (!spaceSheetsLoaded) {
-    			ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
-   				spaceSheetsLoaded = true; 
-				
-			}
-		
-			spawnAsteroids(gl.spaceship, gl.xres, gl.yres); 
-			//c->update(); // update camera
-			//spaceRenderer.sample(); // sample space entities
-			SampleSpaceEntities(); //chat: update entity list w/ asteroids
-			spaceRenderer.update((float)1/10); // update space render system
-			//cout << "SpaceRenderer updated" << endl;
+
+			// ---- restore ---- 
+			glMatrixMode(GL_MODELVIEW);
+			glPopMatrix();
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix();
 			
-			if (gl.spaceship) {
-				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
-				if (spaceshipHealth->health <= 0.0f) {
-					gl.state = GAMEOVER; 
-					return; 
-				}
-			}
-			
-	
-			DisableFor2D();
 			break;
 			
 		}
