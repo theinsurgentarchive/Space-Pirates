@@ -795,7 +795,7 @@ namespace ecs
         for (auto& entity : _entities) {
             auto tc = _ecs.component().fetch<TRANSFORM>(entity);
             if (!c->visible(tc->pos)) {
-                DINFO("entity was skipped");
+                DINFO("entity was skipped");  
                 continue;
             }
             auto ec = _ecs.component().fetch<SPRITE>(entity);

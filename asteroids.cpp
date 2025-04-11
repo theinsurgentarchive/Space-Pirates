@@ -284,6 +284,7 @@ ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
 const Camera* c;
+const Camera* spaceCamera; 
 int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
@@ -314,12 +315,24 @@ int main()
 	ptr = ecs::ecs.entity().checkout();
 	ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
 
+	 // player camera 
 	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
 	Camera camera {
 		tc->pos,
 			{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
 	};
 	c = &camera;
+
+	// spaceship camera 
+
+	auto spaceshipCamera = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+	Camera space_Camera {
+		spaceshipCamera->pos, 
+				{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
+	};
+
+	spaceCamera = &space_Camera; 
+
 	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
 	sc->ssheet = "player-front";
 	sc->render_order = 15;
@@ -783,10 +796,8 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
-
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-
 			glPushMatrix();
 			c->update();
 			rs.update((float)1/10);
@@ -811,6 +822,9 @@ void render() {
 			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
+			spaceCamera->update();
+			// make c camera space camera to solve jlo visability check 
+			const_cast<Camera*&>(c) = const_cast<Camera*>(spaceCamera); 
 
 			if (gl.spaceship) { //draw ui space bars
 				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
@@ -838,20 +852,51 @@ void render() {
 			}
 		
 			spawnAsteroids(gl.spaceship, gl.xres, gl.yres); 
-			c->update(); // update camera
+			//c->update(); // update camera
 			//spaceRenderer.sample(); // sample space entities
 			SampleSpaceEntities(); //chat: update entity list w/ asteroids
 			spaceRenderer.update((float)1/10); // update space render system
 			//cout << "SpaceRenderer updated" << endl;
 			
-
+			if (gl.spaceship) {
+				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+				if (spaceshipHealth->health <= 0.0f) {
+					gl.state = GAMEOVER; 
+					return; 
+				}
+			}
 			
 	
 			DisableFor2D();
-			ggprint8b(&r, 0, 0xFFFFFF, "Welcome to SPACE mode 🚀");
 			break;
 			
 		}
+
+		case GAMEOVER:
+
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			glLoadIdentity();
+			glOrtho(0, gl.xres, 0, gl.yres, -1, 1); 
+
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+			DisableFor2D();
+
+			
+			Rect r;
+			r.left = gl.xres / 2;
+			r.bot = gl.yres / 2;
+			r.center = 1;
+			ggprint40(&r, 40, 0xFF0000, "GAME OVER");
+			
+			// store 
+			glPopMatrix();
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix();
+			glMatrixMode(GL_MODELVIEW);
+			break; 
 
 		case EXIT: 
 			break; 

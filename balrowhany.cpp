@@ -8,6 +8,7 @@
 //?
 
 using namespace std;
+extern const Camera* spaceCamera; //spaceCamera in main
 
 
 
@@ -70,7 +71,8 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
 
 
 
-void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,   [[maybe_unused]]  GLuint titleTexture, int selected_option) {
+void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,  
+             [[maybe_unused]]  GLuint titleTexture, int selected_option) {
     DisableFor2D();
 
     glPushMatrix();
@@ -103,7 +105,8 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,   [[ma
         r.center = 1;
 
         
-        const char* options[] = {"START", "CONTROLS", "CREDITS", "SPACE", "EXIT"}; 
+        const char* options[] = {"START", "CONTROLS", "CREDITS", "SPACE",
+                                                                 "EXIT"}; 
         for (int i = 0; i < 5; i++) {
             int color = (i == selected_option) ? 0x00FF99FF : 0x00FFFFFF;
                                             // menu option color change
@@ -169,7 +172,7 @@ void initializeEntity(ecs::Entity* spaceship)
 
     
     if (health) {
-        health -> health = 50.0f; 
+        health -> health = 5.0f; 
         health -> max = 100.0f;
 
     }
@@ -196,8 +199,10 @@ void initializeEntity(ecs::Entity* spaceship)
 
     //cout << "Spaceship intialized with health, oxygen, & fuel" << endl;
     if (getHealth) {
-        DINFOF("Health: %.2f / %.2f\n", getHealth -> health <<  getHealth -> max);  
-       [[maybe_unused]] float healthPercent = (getHealth -> health / getHealth -> max) * 100.0f;
+        DINFOF("Health: %.2f / %.2f\n", 
+                getHealth -> health <<  getHealth -> max);  
+       [[maybe_unused]] float healthPercent = 
+                    (getHealth -> health / getHealth -> max) * 100.0f;
 		DINFOF("Health Percentage: %.2f%%\n", healthPercent);
  
     } else {
@@ -216,7 +221,8 @@ void initializeEntity(ecs::Entity* spaceship)
     }
 
     if (getTransform) {
-        DINFOF("Position: %.2f, %.2f\n", getTransform->pos[0], getTransform->pos[1]);
+        DINFOF("Position: %.2f, %.2f\n",
+                 getTransform->pos[0], getTransform->pos[1]);
     } else {
         DINFO("Transform component not found.\n");
     }
@@ -227,7 +233,8 @@ void initializeEntity(ecs::Entity* spaceship)
 
 
 //draw bar
-void drawUIBar (const char* label, float current, float max, float x, float y, unsigned int color) 
+void drawUIBar (const char* label, float current, float max, 
+                float x, float y, unsigned int color) 
 {
     float percentage = (current / max);  //used to dynamically display bar 
     int barWidth = 150;
@@ -262,9 +269,11 @@ void drawUIBar (const char* label, float current, float max, float x, float y, u
 
 // Load asteroid and ship related sprites into custom sprite sheet map.
 void loadShipAndAsteroids(
-    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets)
+    std::unordered_map<std::string,
+        std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets)
 {
-    SpriteSheetLoader loader {shipAndAsteroidsSheets};  //loader instance using custom map defined above
+    SpriteSheetLoader loader {shipAndAsteroidsSheets};  
+    //loader instance using custom map defined above
     	DINFOF("Loading asteroid base.png sprites...\n") 
     loader
     
@@ -277,7 +286,8 @@ void loadShipAndAsteroids(
             "./resources/textures/space/explode.png", true), {1,8}, {32,32})
     .loadStatic("ship-front-back", 
         loadTexture(
-            "./resources/textures/space/ship-front-back.png", true), {1,1}, {32,32})
+            "./resources/textures/space/ship-front-back.png", true),
+                 {1,1}, {32,32})
     .loadStatic("ship-left", 
         loadTexture(
             "./resources/textures/space/ship-left.png", true), {1,1}, {32,32})
@@ -289,9 +299,9 @@ void loadShipAndAsteroids(
 }
 
 
-// single asteroid
+// creates a asteroid with it's properties 
 
-ecs::Entity* createAsteroid(float x, float y) 
+ecs::Entity* createAsteroid(float x, float y)  
 {
     ecs::Entity* asteroid = ecs::ecs.entity().checkout();
 
@@ -305,8 +315,10 @@ ecs::Entity* createAsteroid(float x, float y)
     auto singleAsteroid = ecs::ecs.component().assign<ecs::Asteroid>(asteroid);
     singleAsteroid->health = size * 2; // based on size
     singleAsteroid->size = size; // 1, 2, or 3
-    //singleAsteroid->rotationSpeed = (rand() % 100) / 100.0f; // random rotation speed between 0 and 1
-    singleAsteroid->movementSpeed = static_cast<float>((rand() % 10) + 5); // random movement speed between 5 and 15
+    //singleAsteroid->rotationSpeed = (rand() % 100) / 100.0f; 
+    // random rotation speed between 0 and 1
+    singleAsteroid->movementSpeed = static_cast<float>((rand() % 10) + 5); 
+    // random movement speed between 5 and 15
 
     // assign Transform properties
     auto transform = ecs::ecs.component().assign<ecs::Transform>(asteroid);
@@ -320,9 +332,6 @@ ecs::Entity* createAsteroid(float x, float y)
     sprite->ssheet = "asteroid";
     sprite->frame = 0;
 
-
-
-    // assign Physics properties later from full screen asteroids
     [[maybe_unused]]auto physics = ecs::ecs.component().assign<ecs::Physics>(asteroid);
     //cout << "Asteroid created with sprite: " << sprite->ssheet << ", frame: " << sprite->frame << endl;
     return asteroid;
@@ -331,26 +340,87 @@ ecs::Entity* createAsteroid(float x, float y)
 void generateAsteroids(int count, int xres, int yres) 
 {
     for (int i = 0; i < count; i++) {
-        float x = (float)(xres + rand() % 100); // spawn off screen right
-       // float y = (float)(rand() % yres); // random y pos (will only display top center)
-        float y = static_cast<float>(rand() % yres) - (yres / 2.0f); // shift so y=0 is center, chat fix so asteroids throughout. 
-        DINFOF("Spawning asteroid at y: %.2f\n", y);
+        float x = 0.0f; 
+        float y = 0.0f; 
+
+        int directionRandomizer = (rand() % 8) + 1; // 1 to 4 
+
+                                              
+        //float x = spaceCamera->pos[0] + (xres / 2) + (rand() % 200); 
+        // just outside right edge
+        //float y = spaceCamera->pos[1] - (yres / 2) + (rand() % yres); 
+        // full vertical spread
+        
+        switch(directionRandomizer) {   //chat helped +- formula 
+            case 1: //top->moving down
+                x = spaceCamera->pos[0] - (xres / 2) + (rand() % 200); 
+                y = spaceCamera->pos[1] + (yres / 2) + (rand() % yres);
+                break; 
+            case 2: //right->moving left 
+                x = spaceCamera->pos[0] + (xres / 2) + (rand() % 200); 
+                y = spaceCamera->pos[1] - (yres / 2) + (rand() % yres);
+                break;
+            case 3: //bottom ->moving top 
+                x = spaceCamera->pos[0] - (xres / 2) + (rand() % 200); 
+                y = spaceCamera->pos[1] - (yres / 2) + (rand() % yres);
+                break; 
+            case 4: //left -> moving right
+                x = spaceCamera->pos[0] - (xres / 2) + (rand() % 200); 
+                y = spaceCamera->pos[1] - (yres / 2) + (rand() % yres);
+                break;  
+
+                //corners 
+
+            case 5: //top left 
+                 x = spaceCamera->pos[0] - (xres / 2) - (rand() % 200); 
+                 y = spaceCamera->pos[1] + (yres / 2) + (rand() % yres);
+                break;
+
+            case 6: // top right 
+                 x = spaceCamera->pos[0] + (xres / 2) + (rand() % 200); 
+                 y = spaceCamera->pos[1] + (yres / 2) + (rand() % yres);
+                break; 
+
+            case 7:  // bottom left 
+                 x = spaceCamera->pos[0] - (xres / 2) - (rand() % 200); 
+                 y = spaceCamera->pos[1] - (yres / 2) - (rand() % yres);
+                break;
+
+            case 8: //button right
+                 x = spaceCamera->pos[0] + (xres / 2) + (rand() % 200); 
+                 y = spaceCamera->pos[1] - (yres / 2) - (rand() % yres);
+                break;         
+        }
+        //create Asteroid entity with it's properties in x, y position
+        ecs::Entity* asteroid = createAsteroid(x, y); 
+
+        // assign that Asteroid with spawnPoint for randomized direction 
+        ecs::ecs.component().assign<ecs::SpawnPoint>(asteroid)->direction 
+                                                    = directionRandomizer; 
+
+        DINFOF("Spawning asteroid at x: %.2f, y: %.2f (dir %d)\n", x, y, 
+                                            directionRandomizer);
 
 
        
-        createAsteroid(x, y); // create asteroid at random x,y positions
+      //  createAsteroid(x, y); // create asteroid at random x,y positions
     }
 }
 
 void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
     // auto-spawn asteroids every 5 seconds
-			static auto lastAsteroidSpawn = std::chrono::high_resolution_clock::now();
+			static auto lastAsteroidSpawn = 
+                                std::chrono::high_resolution_clock::now();
 			auto current = std::chrono::high_resolution_clock::now();
 			auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(current - lastAsteroidSpawn);
 			
-			if (secondsPassed.count() >= 5) {  
+			if (secondsPassed.count() >= 3) {  
 				DINFOF("Spawning Asteroids \n");
-				generateAsteroids(rand() % 2 + 8, xres, yres); //rand 0-1, 7-8 asteroids 
+                auto transform = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
+                //generateAsteroids(transform->pos); // passing position now 
+
+				generateAsteroids(rand() % 2 + 8, xres, yres); 
+                //rand 0-1, 7-8 asteroids 
 				// random 0-1 + 4 asteroids
 				lastAsteroidSpawn = current; //reset timer
 			}
@@ -376,9 +446,12 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
 
 // collision
 
-bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* asteroid) {
-    auto spaceshipTransform = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
-    auto asteroidTransform = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
+bool checkCircleCollision(const ecs::Entity* spaceship, 
+                                            const ecs::Entity* asteroid) {
+    auto spaceshipTransform = 
+                        ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+    auto asteroidTransform 
+                = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
 
     if (!spaceshipTransform || !asteroidTransform){
         DINFOF("We are missing components for collision");
@@ -392,7 +465,8 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
     float spaceshipRadius = 30.0f;  
     float asteroidRadius = 20.0f; // temp, get real size / 2
 
-    return distance < (spaceshipRadius + asteroidRadius); //circle collision formula
+    return distance < (spaceshipRadius + asteroidRadius); 
+                                //circle collision formula
 }
 
 
@@ -406,15 +480,50 @@ void moveAsteroids(ecs::Entity* spaceship)
     }
 
 
-    auto asteroids = ecs::ecs.query<ecs::Asteroid, ecs::Transform>(); //query asteroid w/ transform
-    for (auto* asteroid: asteroids) { // chat: how loop to through all asteroids. 
+    auto asteroids = ecs::ecs.query<ecs::Asteroid, ecs::Transform>(); 
+                    //query asteroid w/ transform
+    for (auto* asteroid: asteroids) { 
+                    // chat: how loop to through all asteroids. 
        
         auto transform = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
         auto asteroidComp = ecs::ecs.component().fetch<ecs::Asteroid>(asteroid);
         auto sprite = ecs::ecs.component().fetch<ecs::Sprite>(asteroid);
+        auto spawnDirection = ecs::ecs.component().fetch<ecs::SpawnPoint>(asteroid); 
 
-        if (!transform || !asteroidComp || !sprite)
+    
+
+        if (!transform || !asteroidComp || !sprite || !spawnDirection)
             continue; 
+            // chat did the math 
+        switch (spawnDirection->direction){
+            case 1: transform->pos[1] -= asteroidComp->movementSpeed; break; 
+                // top->down
+            case 2: transform->pos[0] -= asteroidComp->movementSpeed; break; 
+                // right-left
+            case 3: transform->pos[1] += asteroidComp->movementSpeed; break;
+                // bottom-up
+            case 4: transform->pos[0] += asteroidComp->movementSpeed; break; 
+                // left-right
+
+            // corners 
+            case 5: // top-left -> move down-right //chat formula 
+                transform->pos[0] += asteroidComp->movementSpeed * 0.6f;
+                transform->pos[1] -= asteroidComp->movementSpeed * 0.6f;
+                break;
+            case 6:  // top-right -> move down-left
+                transform->pos[0] -= asteroidComp->movementSpeed * 0.6f;
+                transform->pos[1] -= asteroidComp->movementSpeed * 0.6f;
+                break;
+            case 7: // bottom-left -> move up-right
+                transform->pos[0] += asteroidComp->movementSpeed * 0.6f;
+                transform->pos[1] += asteroidComp->movementSpeed * 0.6f;
+                break;
+            case 8: // bottom-right -> move up-left
+                transform->pos[0] -= asteroidComp->movementSpeed * 0.6f;
+                transform->pos[1] += asteroidComp->movementSpeed * 0.6f;
+                break;
+            
+        }
         
 
         if (asteroidComp->exploding) {
@@ -433,7 +542,8 @@ void moveAsteroids(ecs::Entity* spaceship)
         }
 
         
-        transform->pos[0] -= asteroidComp->movementSpeed; // move asteroids left
+        //transform->pos[0] -= asteroidComp->movementSpeed; 
+                    // move asteroids left
 
             // collision check and health reduction
         if (checkCircleCollision(spaceship, asteroid)) {
@@ -452,7 +562,8 @@ void moveAsteroids(ecs::Entity* spaceship)
 
                 if (shipHealth) {
                     shipHealth->health -= 1.0f; 
-                    DINFOF("Spaceship damaged, health is now: %.2f\n", shipHealth->health);
+                    DINFOF("Spaceship damaged, health is now: %.2f\n", 
+                            shipHealth->health);
                 } else {
                     DINFO("no health comp\n");
 
@@ -463,6 +574,10 @@ void moveAsteroids(ecs::Entity* spaceship)
     }
 
 }
+
+
+
+
 
 
 
