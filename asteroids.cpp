@@ -631,73 +631,31 @@ int check_keys(XEvent *e)
 					sc->ssheet = "player-right";
 					pc->vel = {movement_mag,0};
 
-
-				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
-					if (fuel && fuel->fuel > 0.0f){
-						fuel->fuel -= 0.5f; //decrment 
-						if(fuel->fuel < 0.0f) { 
-							fuel->fuel = 0.0f;
-							gl.state = GAMEOVER;
-						}
-					}
-				}
-					
-
-
+					decrementResources(gl.state, gl.spaceship); 
 					break;
+
 				case XK_Left:
 					sc->invert_y = true;
 					sc->ssheet = "player-right";
 					pc->vel = {-movement_mag,0};
 
-				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
-					if (fuel && fuel->fuel > 0.0f){
-						fuel->fuel -= 0.5f; //decrment 
-						if(fuel->fuel < 0.0f) { 
-							fuel->fuel = 0.0f;
-							gl.state = GAMEOVER;
-						}
-					}
-
-				}
-					
-
-
+					decrementResources(gl.state, gl.spaceship); 
 					break;
+
 				case XK_Up:
 					sc->ssheet = "player-back";
 					pc->vel = {0,movement_mag};
 
-				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
-					if (fuel && fuel->fuel > 0.0f){
-						fuel->fuel -= 0.5f; //decrment 
-						if(fuel->fuel < 0.0f) { 
-							fuel->fuel = 0.0f;
-							gl.state = GAMEOVER;
-						}
-					}
-
-				}
-					
-
-
+					decrementResources(gl.state, gl.spaceship); 
 					break;
+
 				case XK_Down:
 					sc->ssheet = "player-front";
 					pc->vel = {0,-movement_mag};
-					
 
-				{	auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
-					if (fuel && fuel->fuel > 0.0f){
-						fuel->fuel -= 0.5f; //decrment 
-						if(fuel->fuel < 0.0f) { 
-							fuel->fuel = 0.0f;
-							gl.state = GAMEOVER;
-						}
-					}
-				}
-
+					decrementResources(gl.state, gl.spaceship); 
 					break;
+
 				case XK_a:
 					done = 1;
 					break;

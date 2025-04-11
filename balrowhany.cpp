@@ -245,7 +245,7 @@ void drawUIBar (const char* label, float current, float max,
         r.bot = y + barHeight + 5; //space between label and bar
         ggprint13(&r, 16, color, "%s: %0.f/%0.f", label, current, max);
 
-    // background bar (dark grey)
+    // background bar (dark grey) -chat help
     glColor3f(0.1f, 0.1f, 0.1f);  // black bg for empty portion
     glBegin(GL_QUADS); 
         glVertex2f(x, y); // 2d vertex 
@@ -254,7 +254,7 @@ void drawUIBar (const char* label, float current, float max,
         glVertex2f(x, y + barHeight);
     glEnd();
    
-    // forground bar (dynamic color fill)
+    // forground bar (dynamic color fill) -chat help
     glColor3f(0.5f,0.5f, 0.5f); 
     glBegin(GL_QUADS); 
         glVertex2f(x, y); //finish
@@ -577,7 +577,24 @@ void moveAsteroids(ecs::Entity* spaceship)
 
 
 
+void decrementResources(GameState &state, ecs::Entity* spaceship) 
+{
+    auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(spaceship); 
+	auto oxygen = ecs::ecs.component().fetch<ecs::Oxygen>(spaceship);
 
+    if (fuel && fuel->fuel > 0.0f && oxygen && oxygen->oxygen > 0.0f) {
+		fuel->fuel -= 0.5f;
+		oxygen->oxygen -= 0.5f; 
+
+		if (fuel->fuel < 0.0f || oxygen->oxygen < 0.0f) { 
+			fuel->fuel = 0.0f;
+			oxygen->oxygen = 0.0f;
+
+			state = GAMEOVER;
+		}
+	}
+
+}
 
 
 

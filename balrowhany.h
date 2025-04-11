@@ -60,3 +60,4 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 void moveAsteroids(ecs::Entity* spaceship);
 void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres);
 
+void decrementResources(GameState &state, ecs::Entity* spaceship); 
