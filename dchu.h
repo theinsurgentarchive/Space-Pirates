@@ -105,7 +105,7 @@ class Enemies
         std::vector<ecs::Entity*> entities;
 
         //Sprite Sheet for Set of Enemies
-        string sprite_sheet;
+        char* sprite_sheet;
 
         //Origin Spawning Position of Grouping
         v2f origin;
@@ -131,7 +131,7 @@ class Enemies
             v2f, 
             u16 number = 1, u16 delay = 5,
             float hp = 1.0f, float dmg = 1.0f,
-            string ssheet = "player-front"
+            char ssheet[] = "player-front"
         );
         Enemies(EnemyT);
 
