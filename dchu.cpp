@@ -5,77 +5,10 @@
 #include <string>
 #include <ctime>
 
-namespace ecs
-{
-    HP_DMGSystem::HP_DMGSystem(ECS& ecs, float sample_delta)
-    :
-    System<Transform,Health,Combat>(ecs,sample_delta)
-    {
-        DINFO("Health/Damage System Initialized");
-    }
-    
-    void HP_DMGSystem::update([[maybe_unused]]float dt)
-    {
-        for (auto& entity : _entities) {
-            DINFOF(
-                "Calculating Damage Dealt by/Afflicted to Entity (%d)\n",
-                entity->id
-            );
-            auto tc = ecs.component().fetch<TRANSFORM>(entity);
-            auto nc = ecs.component().fetch<HEALTH>(entity);
-            auto dc = ecs.component().fetch<COMBAT>(entity);
-
-            if (tc == nullptr || nc == nullptr || dc = nullptr) {
-
-            }
-            
-            //To-Be-Done
-        }
-    }
-
-    PathSystem::PathSystem(ECS& ecs, float sample_delta)
-    :
-    System<Transform,Physics,Navigate>(ecs, sample_delta)
-    {
-        DINFO("Path System Initialized");
-    }
-
-    void PathSystem::update([[maybe_unused]]float dt)
-    {
-        for (auto& entity : _entities) {
-            
-            DINFOF("Generating Forces for Entity (%d)\n",entity->id);
-            auto tc = ecs.component().fetch<TRANSFORM>(entity);
-            auto pc = ecs.component().fetch<PHYSICS>(entity);
-            auto nc = ecs.component().fetch<NAVIGATE>(entity);
-            
-            if (pc->enabled &&
-                tc->pos[0] != nc->goal[0] &&
-                tc->pos[0] != nc->goal[0]
-            ) {
-                //Calculate the Direction of the Node
-                v2f sum, dir, ;
-                sum[0] = sqrtf(
-                    powf(nc->goal[0], 2.0f) - powf(tc->pos[0], 2.0f)
-                );
-                sum[1] = sqrtf(
-                    powf(nc->goal[1], 2.0f) - powf(tc->pos[1], 2.0f)
-                );
-                dir[0] = sum[0]));
-                dir[1] = sum[0]));
-
-                //pc->vel += pc->acc * dt;
-            }
-        }
-        
-    }
-}
-
 //Renderability Check
 bool canRender(ecs::Entity* ent)
 {
     bool display = true;
-
     //Check entity for Transform & Sprite Component
     if (ecs::ecs.component().fetch<TRANSFORM>(ent) == nullptr) {
         display = false;
@@ -86,7 +19,7 @@ bool canRender(ecs::Entity* ent)
     if (!display) {
         DWARNF(
             "Unrenderable Entity: ID(%d)\n", 
-            tiles[x][y]->id
+            ent->id
         );
     }
     return display;
@@ -251,8 +184,8 @@ void AStar::initGrid(v2f dim)
         for (u16 y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].setLocal({x, y});
             node_grid[x][y].setWorld({
-                ((float)x * dim[0]),
-                ((float)y * dim[1])
+                ((float)x * dim[0] + offset),
+                ((float)y * dim[1] + offset)
             });
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
@@ -262,7 +195,6 @@ void AStar::initGrid(v2f dim)
 
     //Fill Each Node's Neighbors Vector Matrix
     genNeighbors();
-}
 }
 
 void AStar::genNeighbors()
@@ -309,17 +241,13 @@ bool AStar::hasNeighbors(Node* node)
 
 Node* AStar::aStar(v2u begin_node, v2u ending_node)
 {
-
     //Pointer to Start Node
     Node* start = &node_grid[begin_node[0]][begin_node[1]];
 
     //Pointer to Goal Node
     Node* goal = &node_grid[ending_node[0]][ending_node[1]];
 
-    //Reset All Nodes to Default
     resetNodes();
-
-    //Check If The Start Node has Neighbors
     if (!hasNeighbors(start)) {
         return nullptr;
     }
@@ -328,7 +256,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     start->local_dist = 0.0f;
     start->global_dist = heuristics(start, goal);
 
-    //Initialize Current Node to the Start Node
+    //Initialize Current Node
     Node* current = start;
 
     //Initialize an Ordered List of Untested Nodes
@@ -337,11 +265,9 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
 
     //Primary Algorithm Loop
     while (!untestedNodes.empty()) {
-        //Sort the list from least to greatest distance from the Goal
+        
+        //Sort The List From least to greatest distance from the Goal
         untestedNodes.sort(
-            //(This is a Lambda function, which is a unnamed function call)
-            
-            //If Equal to or Greater than, then swap positions
             [](const Node* a, const Node* b)
             {
                 return a->global_dist < b->global_dist;
@@ -358,25 +284,23 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
             return nullptr;
         }
         
-        //Set The Current Node to the front of the list and set to visited
+        //Set The Current Node to the front of the list & set to visited
         current = untestedNodes.front();
         current->visited = true;
 
         //Check All Neighbors of The Current Node
         for (Node* neighbor : current->neighbors) {
-            //Add Node to List if it's Not Been Visited and is Not a Obstacle
+            //Add Node to List if it's Not Been Visited & is Not a Obstacle
             if (!neighbor->visited && !neighbor->obstacle) {
                 untestedNodes.push_back(neighbor);
             }
 
             //Generate a Potentially Lower Local Distance Based On Distance 
-            //From current Node and The Selected neighbor
-            //Plus current->local_dist
             float potential_low_goal = (
                 current->local_dist + distance(current, neighbor)
             );
 
-            //Set neigbor->parent to the current Node and
+            //Set neighbor->parent to the current Node &
             //Set neighbor->local_dist to The Generated Value
             if (potential_low_goal > current->local_dist) {
                 if ((neighbor->parent == nullptr) &&
@@ -415,6 +339,7 @@ void AStar::resetNodes()
     }
 }
 
+//Find The Distance between Two Points
 float AStar::distance(Node* a, Node* b)
 {
     return sqrtf(
@@ -437,196 +362,34 @@ float AStar::heuristics(Node* a, Node* b)
     return distance(a, b);
 }
 
-//Enemy Generation
-Enemies::Enemies()
+void initEnemy(ecs::Entity* foe)
 {
-    //Initialize Variables
-    origin = {0.0f, 0.0f};
-    amount = 1;
-    timer = 5;
-    health = 2.0f;
-    damage = 1.0f;
-    sprite_sheet = "player-front"; //Placeholder Texture !!
+    //Initialize Components
+    auto health = ecs::ecs.component().assign<HEALTH>(foe);
+    auto transform = ecs::ecs.component().assign<TRANSFORM>(foe);
+    auto physics = ecs::ecs.component().assign<PHYSICS>(foe);
+    auto navigate = ecs::ecs.component().assign<NAVIGATE>(foe);
 
-    //Resize The Entity Vector
-    entities.resize(amount);
-
-    //Initialize All Attributes
-    entities[0] = ecs::ecs.entity().checkout();
-    auto health = (
-        ecs::ecs.component().assign<HEALTH>(entities[0])
-    );
-    auto transform = (
-        ecs::ecs.component().assign<TRANSFORM>(entities[0])
-    );
-    auto sprite = (
-        ecs::ecs.component().assign<SPRITE>(entities[0])
-    );
-    auto combat = (
-        ecs::ecs.component().assign<COMBAT>(entities[0])
-    );
-    auto navigate = (
-        ecs::ecs.component().assign<NAVIGATE>(entities[0])
-    );
-
-    //Set All Attributes
-    health->max = (50.0f * health);
-    health->hp = health->max;
-    
-    transform->pos = {
-        0.0f + floatRand(10, 0),
-        0.0f + floatRand(10, 0)
-    };
-    //Placeholder Values !!
-
-    transform->rotation = 0.0f;
-        
-    sprite->ssheet = sprite_sheet;
-    sprite->render_order = 0; //Placeholder Value !!
-
-    combat->damage = (1.0f * this.damage);
-
-    navigate->start = transform->pos;
-    navigate->goal = {0.0f, 0.0f};
+    //Set Component Variables
+    health->max = 50.0f;
+    health->health = health->max;
+    transform->pos = {0.0f, 0.0f};
+    physics->acc = {0.0f, 0.0f};
+    physics->vel = {0.0f, 0.0f};
 }
 
-Enemies::Enemies(EnemyT type)
+Node* genPath(Node* chain)
 {
+    if (chain->parent == nullptr) {
+        return nullptr;
+    }
     //Initialize Variables
-    switch (type)
-    {
-        case BANDIT:
-            sprite_sheet = "player-front"; //Placeholder Texture !!
-            break;
-        case ALIEN:
-            sprite_sheet = "player-front"; //Placeholder Texture !!
-            break;
-        case DEFAULT:
-        default:
-            sprite_sheet = "player-front"; //Placeholder Texture !!
-            break;
-    }
-    origin = {0.0f, 0.0f};
-    amount = 1;
-    timer = 5;
-    health = 2.0f;
-    damage = 1.0f;
-
-    //Resize The Entity Vector
-    entities.resize(amount);
-
-    //Initialize All Attributes
-    entities[0] = ecs::ecs.entity().checkout();
-    auto health = (
-        ecs::ecs.component().assign<HEALTH>(entities[0])
-    );
-    auto transform = (
-        ecs::ecs.component().assign<TRANSFORM>(entities[0])
-    );
-    auto sprite = (
-        ecs::ecs.component().assign<SPRITE>(entities[0])
-    );
-    auto combat = (
-        ecs::ecs.component().assign<COMBAT>(entities[0])
-    );
-    auto navigate = (
-        ecs::ecs.component().assign<NAVIGATE>(entities[0])
-    );
-
-    //Set All Attributes
-    health->max = (50.0f * health);
-    health->hp = health->max;
-    
-    transform->pos = {
-        0.0f + floatRand(10, 0),
-        0.0f + floatRand(10, 0)
-    };
-    //Placeholder Values !!
-
-    transform->rotation = 0.0f;
-    
-    sprite->ssheet = sprite_sheet;
-    sprite->render_order = 0; //Placeholder Value !!
-
-    combat->damage = (1.0f * this.damage);
-
-    navigate->start = transform->pos;
-    navigate->goal = {0.0f, 0.0f};
-}
-
-Enemies::Enemies(
-    v2f origin,
-    u16 number,
-    u16 delay,
-    float hp,
-    float dmg,
-    string ssheet
-)
-{
-    //Initialize Variables
-    this->origin = origin;
-    amount = number;
-    timer = delay;
-    health = hp;
-    damage = dmg;
-    sprite_sheet = ssheet;
-
-    //Check if Amount is 0
-    if (amount <= 0) {
-        DERROR("Amount of Enemies Generated Cannot be Zero.");
-        return;
-    }
-
-    //Resize The Entity Vector
-    entities.resize(amount);
-
-    //Add All Attributes to Each Entity
-    for (uint16_t i = 0; i < amount; i++) {
-        entities[i] = ecs::ecs.entity().checkout();
-        //Initialize All Attributes
-        auto health = (
-            ecs::ecs.component().assign<HEALTH>(entities[i])
-        );
-        auto transform = (
-            ecs::ecs.component().assign<TRANSFORM>(entities[i])
-        );
-        auto sprite = (
-            ecs::ecs.component().assign<SPRITE>(entities[i])
-        );
-        auto combat = (
-            ecs::ecs.component().assign<COMBAT>(entities[i])
-        );
-        auto navigate = (
-            ecs::ecs.component().assign<NAVIGATE>(entities[i])
-        );
-
-        //Set All Attributes
-        health->max = (2.0f * this->health);
-        health->hp = health->max;
-
-        transform->pos = {
-            0.0f + floatRand(10, 0),
-            0.0f + floatRand(10, 0)
-        }; 
-        //Placeholder Values !!
+    bool flag = true;
+    Node* current = chain->parent;
+    std::list<Node*> parents;
+    parents.push_back(current);
+    while (flag) {
         
-        transform->rotation = 0.0f;
-        
-        sprite->ssheet = sprite_sheet;
-        sprite->render_order = 0; //Placeholder Value !!
-
-        combat->damage = (1.0f * this.damage);
-
-        navigate->start = transform->pos;
-        navigate->goal = {0.0f, 0.0f};
     }
-}
-
-Enemies::~Enemies()
-{
-    for (uint16_t i = 0; i < amount; i++)
-    {
-        ecs::ecs.entity().ret(entities[i]);
-    }
-    
+    return parents.back();
 }

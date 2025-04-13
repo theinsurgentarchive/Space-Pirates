@@ -77,6 +77,7 @@ class Global {
 		GameState state; 
 		int selected_option; // 0 = start, 1 = controls, 2 = exit
 		ecs::Entity* spaceship;
+		ecs::Entity* dummy;
 
 		Global() {
 			xres = 1280;
@@ -294,6 +295,8 @@ int main()
 {
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
+	gl.dummy = ecs::ecs.entity().checkout();
+	initEnemy(gl.dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	[[maybe_unused]]int* PlanetSeed;
 	// [[maybe_unused]]auto character = ecs::character_x();

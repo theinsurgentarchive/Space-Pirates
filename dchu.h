@@ -5,6 +5,16 @@
 #define COMBAT ecs::Combat
 #define NAVIGATE ecs::Navigate
 
+namespace ecs
+{
+    struct Navigate
+    {
+        v2f dist = {0.0f, 0.0f};
+        Node* next {nullptr};
+        Node* prev {nullptr};
+    };
+}
+
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
@@ -97,79 +107,5 @@ enum EnemyT
     ALIEN    //2
 };
 
-//Enemy Class
-class Enemies
-{
-    private:
-        //Store Entity
-        std::vector<ecs::Entity*> entities;
-
-        //Sprite Sheet for Set of Enemies
-        char* sprite_sheet;
-
-        //Origin Spawning Position of Grouping
-        v2f origin;
-
-        //Amount of Entities Spawned
-        u16 amount;
-
-        //Damage Modifier
-        float damage;
-
-        //Health Modifier
-        float health;
-
-        //Wait for n Seconds of Time
-        u16 timer;
-    public:
-        u16 getTimer();
-        void setTimer(u16);
-
-        //Constructor
-        Enemies();
-        Enemies(
-            v2f, 
-            u16 number = 1, u16 delay = 5,
-            float hp = 1.0f, float dmg = 1.0f,
-            char ssheet[] = "player-front"
-        );
-        Enemies(EnemyT);
-
-        //Destructor
-        ~Enemies();
-
-};
-
-//Entity Component Systems
-namespace ecs
-{
-    //Damage Component
-    struct Combat
-    {
-        float damage;
-        bool allow {true};
-    };
-
-    //Pathing Component
-    struct Navigate
-    {
-        v2f goal;
-        Node* next_node {nullptr};
-    };
-
-    //Health / Damage System
-    class HP_DMGSystem : public System<Transform,Health,Combat>
-    {
-        public:
-            HP_DMGSystem(ECS& ecs, float sample_delta);
-            void update(float dt) override;
-    };
-
-    //Entity Pathfinding System
-    class PathSystem : public System<Transform,Navigate>
-    {
-        public:
-            PathSystem(ECS& ecs, float sample_delta);
-            void update(float dt) override;
-    };
-}
+void initEnemy(ecs::Entity*);
+Node* genPath(Node*);
