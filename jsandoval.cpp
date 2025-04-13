@@ -21,7 +21,8 @@ void vecSub(Vec v0, Vec v1, Vec dest)
 	dest[2] = v0[2] - v1[2];
 }
 
-namespace ecs {
+namespace ecs 
+{
     extern ECS ecs;
 Entity* character_x()
 {
@@ -83,7 +84,12 @@ Entity* GeneratePlanet()
 
     if (properties) {
         std::cout << "Planet Properties: " << "Size: "<< properties -> size
-        << " Smooth: " << properties -> smooth << " Temperature: " << properties-> temperature << " humidity: " << properties-> humidity << " AngY: " << properties-> AngY << " PosX: " << properties-> PosX << " PosY: " << properties-> PosY << " PosZ: " << properties-> PosZ << " rotationX: " << properties-> rotationX << " rotationY: " << properties-> rotationY << std::endl;
+        << " Smooth: " << properties -> smooth << " Temperature: " << 
+        properties-> temperature << " humidity: " << properties-> humidity << 
+        " AngY: " << properties-> AngY << " PosX: " << properties-> PosX << 
+        " PosY: " << properties-> PosY << " PosZ: " << properties-> PosZ << 
+        " rotationX: " << properties-> rotationX << " rotationY: " << 
+        properties-> rotationY << std::endl;
     }
     else {
         std::cout << "Failed to retrieve Health Component." <<std::endl;
@@ -359,7 +365,8 @@ glm::vec3 TempToColor(float temp) {
 //FINALLY ADJUST MenuPlanet to General Planet
 void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, 
     float planetPosZ, GLfloat* lightPosition, float size, 
-    float rotationX, float rotationY, [[maybe_unused]] float roughness, float temp) 
+    float rotationX, float rotationY, [[maybe_unused]] float roughness, 
+    float temp) 
 {
     std::vector<float> heightMap = GenerateHeightMap(); 
     static int firsttime = 1;
@@ -385,12 +392,15 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
         for (i = 0; i <= 8; i++) {
             for (j = 0; j < 16; j++) {
                 int index = i * 16 + j;
-                //float height = heightMap[index] * roughness;  // Apply roughness TEST LATER
+                // Apply roughness TEST LATER
+                //float height = heightMap[index] * ((roughness)/100);  
                 float height = heightMap[index];
                 //testing noise
                 float noise = PerlinNoise(i, j);
-                verts[i][j][0] = (circle[j][0] * circle[i][1]) * (1.0f + height + noise);
-                verts[i][j][2] = (circle[j][1] * circle[i][1]) * (1.0f + height + noise);
+                verts[i][j][0] = (circle[j][0] * circle[i][1]) * 
+                (1.0f + height + noise);
+                verts[i][j][2] = (circle[j][1] * circle[i][1]) * 
+                (1.0f + height + noise);
                 verts[i][j][1] = circle[i][0] * (1.0f + height + noise);
 
                 norms[i][j][0] = verts[i][j][0];  
