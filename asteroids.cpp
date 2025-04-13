@@ -630,30 +630,22 @@ int check_keys(XEvent *e)
 				case XK_Right:
 					sc->ssheet = "player-right";
 					pc->vel = {movement_mag,0};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
 
 				case XK_Left:
 					sc->invert_y = true;
 					sc->ssheet = "player-right";
 					pc->vel = {-movement_mag,0};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
 
 				case XK_Up:
 					sc->ssheet = "player-back";
 					pc->vel = {0,movement_mag};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
 
 				case XK_Down:
 					sc->ssheet = "player-front";
 					pc->vel = {0,-movement_mag};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
 
 				case XK_a:
@@ -673,19 +665,23 @@ int check_keys(XEvent *e)
 				case XK_Right:
 					sprite->ssheet = "ship-right";
 					physics->vel = {movement_mag,0};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
 				case XK_Left:
 					sprite->invert_y = true;
 					sprite->ssheet = "ship-right";
 					physics->vel = {-movement_mag,0};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
 				case XK_Up:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,movement_mag};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
 				case XK_Down:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,-movement_mag};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
 				case XK_a:
 					done = 1;
