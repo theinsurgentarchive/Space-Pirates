@@ -591,15 +591,6 @@ int check_keys(XEvent *e)
 			return 0;
 		}
 
-		auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
-		if (fuel && fuel->fuel > 0.0f){
-			fuel->fuel -= 0.2f; //decrment 
-			if(fuel->fuel < 0.0f) { 
-				fuel->fuel = 0.0f;
-				gl.state = GAMEOVER;
-			}
-		}
-
 		if (key == XK_Escape && gl.state == SPACE) {  // TEMP FOR EASE
 			gl.state = MENU; 
 			return 0;
