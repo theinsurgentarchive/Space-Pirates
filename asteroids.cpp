@@ -291,6 +291,7 @@ const Camera* c;
 int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
+std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> enemySheets;
 int main()
 {
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -738,7 +739,7 @@ void render() {
             c->update();
             rs.update((float)1/10);
             glPopMatrix();
-
+			ssheets.insert(enemySheets.begin(), enemySheets.end());
             DisableFor2D();
             ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
 
