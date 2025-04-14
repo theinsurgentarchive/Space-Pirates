@@ -388,7 +388,7 @@ void moveEntity(ecs::Entity* ent, v2f target)
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
     float dif_x = target[0] - transform->pos[0];
     float dif_y = target[1] - transform->pos[1];
-    physics->acc = {dif_x, dif_y};
+    physics->vel = {(dif_x * 2), (dif_y * 2)};
 }
 
 /*
