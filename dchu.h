@@ -11,7 +11,6 @@ namespace ecs
     {
         v2f dist = {0.0f, 0.0f};
         Node* next {nullptr};
-        Node* prev {nullptr};
     };
 }
 
@@ -35,9 +34,9 @@ class Node
         float local_dist, global_dist;
         std::vector<Node*> neighbors;
         
-        //Node Directly Preceding Current Node
-        Node* parent;
-        
+        //Node Directly Preceding & Proceeding Current Node
+        Node* parent {nullptr};
+        Node* child {nullptr};
         //Constructor
         Node();
         Node(bool);
@@ -108,4 +107,5 @@ enum EnemyT
 };
 
 void initEnemy(ecs::Entity*);
-Node* genPath(Node*);
+v2f moveEntity(ecs::Entity*);
+//Node* genPath(Node*);

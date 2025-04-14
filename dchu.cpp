@@ -190,6 +190,7 @@ void AStar::initGrid(v2f dim)
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
             node_grid[x][y].parent = nullptr;
+            node_grid[x][y].child = nullptr;
         }
     }
 
@@ -308,6 +309,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
                     (neighbor->parent != start)
                 ) {
                     neighbor->parent = current;
+                    current->child = neighbor;
                     neighbor->local_dist = potential_low_goal;
 
                     //The global_dist is a Measure of local_dist
@@ -378,14 +380,24 @@ void initEnemy(ecs::Entity* foe)
     physics->vel = {0.0f, 0.0f};
 }
 
+void moveEntity(ecs::Entity* ent, v2f target)
+{
+    auto physics = ecs::ecs.component().fetch<PHYSICS>(ent);
+    auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
+    float dif_x = target[0] - transform->pos[0];
+    float dif_y = target[1] - transform->pos[1];
+    physics->acc = {dif_x, dif_y};
+}
+
+/*
 Node* genPath(Node* chain)
 {
-    if (chain->parent == nullptr) {
+    if (chain->child == nullptr) {
         return nullptr;
     }
     //Initialize Variables
     bool flag = true;
-    Node* current = chain->parent;
+    Node* current = chain->child;
     std::list<Node*> parents;
     parents.push_back(current);
     while (flag) {
@@ -393,3 +405,4 @@ Node* genPath(Node* chain)
     }
     return parents.back();
 }
+*/
