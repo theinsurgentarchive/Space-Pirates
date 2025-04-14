@@ -377,6 +377,7 @@ void initEnemy(ecs::Entity* foe)
     health->max = 50.0f;
     health->health = health->max;
     sprite->ssheet = "player-idle";
+    sprite->render_order = 14;
     transform->pos = {0.0f, 0.0f};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
