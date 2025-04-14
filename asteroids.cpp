@@ -271,7 +271,7 @@ class X11_wrapper {
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent *e, World *w, AStar *as);
+int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity*);
 void physics();
 void render();
 // For transparent title.png background

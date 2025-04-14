@@ -107,7 +107,7 @@ enum EnemyT
     ALIEN    //2
 };
 
-void initEnemy(ecs::Entity*);
+void initEnemy(ecs::Entity*, v2f);
 void loadEnemyTex(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
 );
