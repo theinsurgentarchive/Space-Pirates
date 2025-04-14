@@ -388,7 +388,7 @@ void moveEntity(ecs::Entity* ent, v2f target)
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
     v2f dif = {target[0] - transform->pos[0], target[1] - transform->pos[1]};
     bool negative[2] = {false};
-    if (dif == {0, 0}) {
+    if (dif[0] == 0.0f && dif[1] == 0.0f) {
         return;
     }
 
