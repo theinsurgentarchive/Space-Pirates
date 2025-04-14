@@ -360,7 +360,7 @@ int main()
 			XEvent e = x11.getXNextEvent();
 			x11.check_resize(&e);
 			check_mouse(&e);
-			done = check_keys(&e, &w, &tstar);
+			done = check_keys(&e, &w, &tstar, gl.dummy);
 		}
 		clock_gettime(CLOCK_REALTIME, &timeCurrent);
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
