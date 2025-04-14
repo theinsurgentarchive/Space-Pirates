@@ -292,6 +292,9 @@ int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> enemySheets;
+void loadEnemyTex(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
+);
 int main()
 {
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -324,7 +327,6 @@ int main()
 	sc->render_order = 15;
 	loadTextures(ssheets);
 	loadEnemyTex(enemySheets);
-	ssheets.insert(enemySheets.begin(), enemySheets.end());
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
 	tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
 	tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
