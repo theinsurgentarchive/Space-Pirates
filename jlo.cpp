@@ -135,6 +135,9 @@ void loadTextures(
     .loadStatic("grass",
         loadTexture(
             "./resources/textures/tiles/grass.webp",false))
+    .loadStatic("placeholder",
+        loadTexture(
+            "./resources/placeholder.webp", true))
     .loadStatic("water",
         loadTexture(
             "./resources/textures/tiles/warmwater.webp",false),{1,3},{16,16},true);

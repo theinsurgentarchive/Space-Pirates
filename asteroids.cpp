@@ -326,7 +326,6 @@ int main()
 	sc->ssheet = "player-front";
 	sc->render_order = 15;
 	loadTextures(ssheets);
-	loadEnemyTex(enemySheets);
 	std::unordered_map<std::string,wfc::TileMeta> tile_map;
 	tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
 	tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
