@@ -288,6 +288,7 @@ const v2u wrd_size = {50, 50};
 const World* world;
 const AStar* astar;
 const Camera* c;
+bool move_to = false;
 int done;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
@@ -348,6 +349,9 @@ int main()
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
 	clock_gettime(CLOCK_REALTIME, &timeStart);
+	if (move_to) {
+		moveEntity(ent, {70, 70});
+	}
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	done = 0;
@@ -548,7 +552,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e, World *w, AStar *as)
+int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity* ent)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;  // Initialize to 0
@@ -622,6 +626,7 @@ int check_keys(XEvent *e, World *w, AStar *as)
 							cout << tct->pos[0] << ", " << tct->pos[1] << endl;
 						}
 					}
+					(move_to) ? move_to = false : move_to = true;
 					break;
 			}
 		}
