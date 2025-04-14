@@ -388,6 +388,10 @@ void moveEntity(ecs::Entity* ent, v2f target)
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
     v2f dif = {target[0] - transform->pos[0], target[1] - transform->pos[1]};
     bool negative[2] = {false};
+    if (dif == {0, 0}) {
+        return;
+    }
+
     if (dif[0] < 0.0f) {
         negative[0] = true;
         dif[0] *= -1.0f;
@@ -399,16 +403,16 @@ void moveEntity(ecs::Entity* ent, v2f target)
 
     if (dif[0] != 0.0f) {
         if (negative[0]) {
-            physics->acc[0] = -1.0f;
+            physics->acc[0] = -5.0f;
         } else {
-            physics->acc[0] = 1.0f;
+            physics->acc[0] = 5.0f;
         }
     }
     if (dif[1] != 0.0f) {
         if (negative[1]) {
-            physics->acc[1] = -1.0f;
+            physics->acc[1] = -5.0f;
         } else {
-            physics->acc[1] = 1.0f;
+            physics->acc[1] = 5.0f;
         }
     }
 }
