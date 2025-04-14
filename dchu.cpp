@@ -376,10 +376,21 @@ void initEnemy(ecs::Entity* foe)
     //Set Component Variables
     health->max = 50.0f;
     health->health = health->max;
-    sprite->ssheet = "cherry-001";
+    sprite->ssheet = "placeholder";
     transform->pos = {70.0f, 70.0f};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
+}
+
+void loadEnemyTex(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
+)
+{
+    SpriteSheetLoader loader {ssheets};
+    loader.loadStatic(
+        "placeholder",
+        loadTexture("./resources/placeholder.webm", true)
+    );
 }
 
 void moveEntity(ecs::Entity* ent, v2f target)

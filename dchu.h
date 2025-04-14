@@ -108,5 +108,8 @@ enum EnemyT
 };
 
 void initEnemy(ecs::Entity*);
+void loadEnemyTex(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
+);
 v2f moveEntity(ecs::Entity*);
 //Node* genPath(Node*);
