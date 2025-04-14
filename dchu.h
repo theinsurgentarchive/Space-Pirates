@@ -5,15 +5,6 @@
 #define COMBAT ecs::Combat
 #define NAVIGATE ecs::Navigate
 
-namespace ecs
-{
-    struct Navigate
-    {
-        v2f dist = {0.0f, 0.0f};
-        Node* next = nullptr;
-    };
-}
-
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
@@ -47,6 +38,16 @@ class Node
         v2u getLocal();
         void setLocal(v2u);
 };
+
+namespace ecs
+{
+    struct Navigate
+    {
+        v2f dist = {0.0f, 0.0f};
+        Node* next {nullptr};
+    };
+}
+
 
 //AStarGrid of Node Elements, Used in A* Search
 class AStar
