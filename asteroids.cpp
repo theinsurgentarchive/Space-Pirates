@@ -626,7 +626,7 @@ int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity* ent)
 							cout << tct->pos[0] << ", " << tct->pos[1] << endl;
 						}
 					}
-					(move_to) ? move_to = false : move_to = true;
+					move_to = true;
 					break;
 			}
 		}
