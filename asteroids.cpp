@@ -350,7 +350,7 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timePause);
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	if (move_to) {
-		moveEntity(ent, {70, 70});
+		moveEntity(gl.dummy, {70, 70});
 	}
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
