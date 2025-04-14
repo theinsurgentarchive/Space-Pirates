@@ -387,17 +387,30 @@ void moveEntity(ecs::Entity* ent, v2f target)
     auto physics = ecs::ecs.component().fetch<PHYSICS>(ent);
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
     v2f dif = {target[0] - transform->pos[0], target[1] - transform->pos[1]};
-    if (transform->pos[0] >= target[0] + 10.0f ||
-        transform->pos[0] <= target[0] - 10.0f 
-    ) {
-        physics->vel[0] = 0.0f;
+    bool negative[2] = {false};
+    if (dif[0] < 0.0f) {
+        negative[0] = true;
+        dif[0] *= -1.0f;
     }
-    if (transform->pos[1] >= target[1] + 10.0f ||
-        transform->pos[1] <= target[1] - 10.0f
-    ) {
-        physics->vel[1] = 0.0f;
+    if (dif[1] < 0.0f) {
+        negative[1] = true;
+        dif[1] *= -1.0f;
     }
-    physics->acc = dif;
+
+    if (dif[0] != 0.0f) {
+        if (negative[0]) {
+            physics->acc[0] = -1.0f;
+        } else {
+            physics->acc[0] = 1.0f;
+        }
+    }
+    if (dif[1] != 0.0f) {
+        if (negative[1]) {
+            physics->acc[1] = -1.0f;
+        } else {
+            physics->acc[1] = 1.0f;
+        }
+    }
 }
 
 /*
