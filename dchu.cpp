@@ -368,6 +368,7 @@ void initEnemy(ecs::Entity* foe)
 {
     //Initialize Components
     auto health = ecs::ecs.component().assign<HEALTH>(foe);
+    auto sprite = ecs::ecs.component().assign<SPRITE>(foe);
     auto transform = ecs::ecs.component().assign<TRANSFORM>(foe);
     auto physics = ecs::ecs.component().assign<PHYSICS>(foe);
     auto navigate = ecs::ecs.component().assign<NAVIGATE>(foe);
@@ -378,6 +379,18 @@ void initEnemy(ecs::Entity* foe)
     transform->pos = {0.0f, 0.0f};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
+    sprite->ssheet = "./textures/decorations/cherry-001.webp";
+}
+
+void loadEnemyTex(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
+)
+{
+    SpriteSheetLoader loader {ssheets};
+    loader.loadStatic(
+        "cherry-001",
+        loadTexture("./resources/textures/decorations/cherry-001.webp", true)
+    )
 }
 
 void moveEntity(ecs::Entity* ent, v2f target)
