@@ -10,7 +10,7 @@ namespace ecs
     struct Navigate
     {
         v2f dist = {0.0f, 0.0f};
-        Node* next {nullptr};
+        Node* next = nullptr;
     };
 }
 
