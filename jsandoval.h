@@ -28,6 +28,7 @@ namespace ecs
         float PosY;
         float PosZ;
     };
+    void updatePlanetSpin();
 }
 
 
@@ -41,6 +42,7 @@ void EnableFor3D();
 
 //Used for Planet Generation and HeightMap Generation
 void PlanetSeedGenerator(float values[4]);
+void PlanetCoorGenerator(float values[3]);
 float PlanetSize(float rndNum);
 float PlanetSmooth(float rndNum);
 float PlanetTemp(float rndNum);

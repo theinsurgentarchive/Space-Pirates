@@ -62,7 +62,9 @@ Entity* character_x()
 Entity* GeneratePlanet()
 {
     float rndNums[4];
+    float rndCoor[3];
     PlanetSeedGenerator(rndNums);
+    PlanetCoorGenerator(rndCoor);
 
     auto planetEntity = ecs::ecs.entity().checkout();
     ecs::ecs.component().assign<PLANET>(planetEntity);
@@ -75,9 +77,9 @@ Entity* GeneratePlanet()
     properties->humidity = PlanetHumidity(rndNums[3]);
 
     properties-> AngY  = 0.1f;
-    properties-> PosX = 3.0f;
-    properties-> PosY = 3.0f;
-    properties-> PosZ = -10.0f;
+    properties-> PosX = rndCoor[0];
+    properties-> PosY = rndCoor[1];
+    properties-> PosZ = rndCoor[2];
     properties-> rotationX = 0.0f;
     properties-> rotationY = 1.0f;
     //GLfloat lightPosition[] = { 100.0f, 60.0f, -140.0f, 1.0f};
@@ -99,6 +101,13 @@ Entity* GeneratePlanet()
 
 //Implement Entity Calling and set up Biome Attribute thru here
 }
+// void updatePlanetSpin()
+// {
+//     auto traits = ecs::ecs.query<ecs::PLANET>();
+//     for (auto* PLANET) {
+//         traits-> AngY += 1.0f;
+//     }
+// }
 }
 void DisableFor2D()
 {
@@ -230,6 +239,22 @@ void PlanetSeedGenerator(float values[4])
     values[1] = dis(gen); //Smooth
     values[2] = dis(gen); //Temp
     values[3] = dis(gen); //Humidity
+}
+
+void PlanetCoorGenerator(float values[3])
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0,1);
+
+    float x = dis(gen) == 0 ? -8 : 8;
+    float y = dis(gen) == 0 ? -7 : 7;
+    float z = -10; //MAYBE change it later
+
+    values[0] = x; 
+    values[1] = y;
+    values[2] = z;
+
 }
 
 float PlanetSize(float rndNum)

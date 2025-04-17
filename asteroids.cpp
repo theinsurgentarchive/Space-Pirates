@@ -281,6 +281,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 //==========================================================================
 ecs::Entity* ptr;
 ecs::Entity* planetPtr;
+ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const World* world;
@@ -307,6 +308,8 @@ int main()
 	//Initiate Planet
 	planetPtr = ecs::GeneratePlanet();
 	auto planetAttr = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr);
+	planetPtr2 = ecs::GeneratePlanet();
+	auto planetAttr2 = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr2);
 	auto biome = selectBiome(planetAttr-> temperature, planetAttr-> humidity);
 	std::cout << biome.type << ' ' << biome.description << '\n';
 
@@ -682,6 +685,7 @@ void physics()
 	else if (gl.state == SPACE) {
 		auto traits = ecs::ecs.component().fetch<ecs::PLANET>(planetPtr);
 		traits-> AngY += 1.0f;
+		// ecs::updatePlanetSpin();
 	}
 
 }
