@@ -1,12 +1,15 @@
 #include "fonts.h"
 #include <iostream>
+#include <cmath>
 #include <X11/keysym.h>
 #include "balrowhany.h"
 #include "mchitorog.h"
 #include "jsandoval.h"
-//#include <GL/glx.h>
+//?
 
 using namespace std;
+
+
 
 
 int handle_menu_keys(int key, GameState &state, int &selected_option)
@@ -17,12 +20,12 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
                 // Menu navigation sound
                 playGameSound(MENU_CLICK);
                 // Assuming 3 options
-                selected_option = (selected_option - 1 + 3) % 3;
+                selected_option = (selected_option - 1 + 5) % 5;
                 break;
             case XK_Down:
                 // Menu navigation sound
                 playGameSound(MENU_CLICK);
-                selected_option = (selected_option + 1) % 3;
+                selected_option = (selected_option + 1) % 5;
                 break;
             case XK_Return:
                 // Menu selection sound
@@ -39,6 +42,12 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
                     // Update audio to match the new game state
                     updateAudioState(state);
                 } else if (selected_option == 2) {
+                    state = CREDITS;
+                    updateAudioState(state);
+
+				} else if (selected_option == 3) {
+					state = SPACE;
+				} else if (selected_option == 4) {
                     // Exit option
                     return 1; // Exit request
                 }
@@ -61,7 +70,7 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
 
 
 
-void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, int selected_option){
+void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,   [[maybe_unused]]  GLuint titleTexture, int selected_option) {
     DisableFor2D();
 
     glPushMatrix();
@@ -92,10 +101,12 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, int se
         r.left = xres/2;
         r.bot = yres - 270;
         r.center = 1;
+
         
-        const char* options[] = {"START", "CONTROLS", "EXIT"}; // menu option color 
-        for (int i = 0; i < 3; i++) {
+        const char* options[] = {"START", "CONTROLS", "CREDITS", "SPACE", "EXIT"}; 
+        for (int i = 0; i < 5; i++) {
             int color = (i == selected_option) ? 0x00FF99FF : 0x00FFFFFF;
+                                            // menu option color change
             ggprint17(&r, 40, color, options[i]);
         }
 
@@ -108,7 +119,7 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, int se
 }; 
 
 
-void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
+void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture) {
     DisableFor2D();
     //  controls screen bg
     glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
@@ -142,14 +153,18 @@ void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture){
 
 void initializeEntity(ecs::Entity* spaceship)
 {
+    auto [health,oxygen,fuel,transform,sprite,physics] = ecs::ecs.component().assign<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM,SPRITE,PHYSICS>(spaceship);
 
- //   auto spaceship = ecs::ecs.entity().checkout(); // create 
-    auto [health,oxygen,fuel,transform] = ecs::ecs.component().assign<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM>(spaceship);
+    //default values
+    transform->pos = {50, 50};  //
+    sprite->ssheet = "ship-right"; 
+    physics ->vel = {0.0f, 0.0f}; //not moving 
 
+    
     if (health) {
         health -> health = 50.0f; 
         health -> max = 100.0f;
-      //  drawUIBar("Health", getHealth->health, getHealth->max, 20, 500, 0xFF0000);
+
     }
 
     if (transform) {
@@ -169,38 +184,39 @@ void initializeEntity(ecs::Entity* spaceship)
 
     auto [getHealth,getOxygen,getFuel,getTransform] = ecs::ecs.component().fetch<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM>(spaceship);
 
-    cout << "Spaceship intialized with health, oxygen, fuel, and transform components." << endl;
+    //cout << "Spaceship intialized with health, oxygen, & fuel" << endl;
     if (getHealth) {
-        cout << "Health: " << getHealth -> health << " / " << getHealth -> max << endl;
-        float healthPercent = (getHealth -> health / getHealth -> max) * 100.0f;
-      cout << "Health Percentage: " << healthPercent << "%" << endl << endl;
+        DINFOF("Health: %.2f / %.2f\n", getHealth -> health <<  getHealth -> max);  
+       [[maybe_unused]] float healthPercent = (getHealth -> health / getHealth -> max) * 100.0f;
+		DINFOF("Health Percentage: %.2f%%\n", healthPercent);
  
     } else {
-        cout << "Health component not found." << endl;
+       DINFO("Health component not found.\n");
     }
 
     if (getOxygen) {
-        cout << "Oxygen: " << getOxygen -> oxygen << " / " << getOxygen -> max << endl;
+        DINFOF("Oxygen: %.2f / %.2f\n", getOxygen->oxygen, getOxygen->max);
     } else {
-        cout << "Oxygen component not found." << endl;
+        DINFO("Oxygen component not found.\n");
     }
 
     if (getFuel) {
-        cout << "Fuel: " << getFuel -> fuel << " / " << getFuel -> max << endl;
-    } else {
-        cout << "Fuel component not found." << endl;
+        DINFOF("Fuel: %.2f / %.2f\n", getFuel->fuel, getFuel->max);
+        DINFOF("Fuel component not found."); 
     }
 
     if (getTransform) {
-        cout << "Position: " << getTransform -> pos[0] << ", " << getTransform -> pos[1] << endl;
+        DINFOF("Position: %.2f, %.2f\n", getTransform->pos[0], getTransform->pos[1]);
     } else {
-        cout << "Transform component not found." << endl;
+        DINFO("Transform component not found.\n");
     }
+
+	DINFOF("\n");
     
 }
 
 
-//draw
+//draw bar
 void drawUIBar (const char* label, float current, float max, float x, float y, unsigned int color) 
 {
     float percentage = (current / max);  //used to dynamically display bar 
@@ -232,3 +248,206 @@ void drawUIBar (const char* label, float current, float max, float x, float y, u
 
 
 }
+
+
+// Load asteroid and ship related sprites into custom sprite sheet map.
+void loadShipAndAsteroids(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
+{
+    SpriteSheetLoader loader {ssheets};  //loader instance using custom map defined above
+    	DINFOF("Loading asteroid base.png sprites...\n") 
+    loader
+    
+
+    .loadStatic("asteroid", 
+        loadTexture(
+            "./resources/textures/space/base.png", true), {1,1}, {24,24}) 
+    .loadStatic("asteroid-explode", 
+        loadTexture(
+            "./resources/textures/space/explode.png", true), {1,8}, {32,32}, true)
+    .loadStatic("ship-front-back", 
+        loadTexture(
+            "./resources/textures/space/ship-front-back.png", true), {1,1}, {32,32})
+    .loadStatic("ship-left", 
+        loadTexture(
+            "./resources/textures/space/ship-left.png", true), {1,1}, {32,32})
+    .loadStatic("ship-right", 
+        loadTexture(
+            "./resources/textures/space/ship-right.png", true), {1,1}, {32,32});
+     DINFOF("finished loading asteroid and ship sprites.\n");
+}
+
+
+// single asteroid
+
+ecs::Entity* createAsteroid(float x, float y) 
+{
+    ecs::Entity* asteroid = ecs::ecs.entity().checkout();
+
+    if (!asteroid) {
+        DINFOF("Failed to create asteroid entity.\n");
+        return nullptr;
+    }
+
+    //assign Asteroid properties
+    float size = (float)(rand() % 3 + 1); // random size between 1.0 and 3.0
+    auto [singleAsteroid,transform,sprite] = ecs::ecs.component().assign<ecs::Asteroid,ecs::Transform,ecs::Sprite>(asteroid);
+    singleAsteroid->health = size * 2; // based on size
+    singleAsteroid->size = size; // 1, 2, or 3
+    //singleAsteroid->rotationSpeed = (rand() % 100) / 100.0f; // random rotation speed between 0 and 1
+    singleAsteroid->movementSpeed = static_cast<float>((rand() % 10) + 5); // random movement speed between 5 and 15
+    // assign Transform properties
+    float scaleSize = static_cast<float>((rand() % 5) + 1); // 1 to 5
+    transform->pos = {x, y};
+    transform->scale = {scaleSize, scaleSize}; //{size, size};
+    transform->rotation = 0.0f;
+    // assign Sprite properties
+    sprite->ssheet = "asteroid";
+    sprite->frame = 0;
+
+
+
+    // assign Physics properties later from full screen asteroids
+    [[maybe_unused]]auto physics = ecs::ecs.component().assign<ecs::Physics>(asteroid);
+    //cout << "Asteroid created with sprite: " << sprite->ssheet << ", frame: " << sprite->frame << endl;
+    return asteroid;
+}
+
+void generateAsteroids(int count, int xres, int yres) 
+{
+    for (int i = 0; i < count; i++) {
+        float x = (float)(xres + rand() % 100); // spawn off screen right
+       // float y = (float)(rand() % yres); // random y pos (will only display top center)
+        float y = static_cast<float>(rand() % yres) - (yres / 2.0f); // shift so y=0 is center, chat fix so asteroids throughout. 
+        DINFOF("Spawning asteroid at y: %.2f\n", y);
+
+
+       
+        createAsteroid(x, y); // create asteroid at random x,y positions
+    }
+}
+
+void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
+    // auto-spawn asteroids every 5 seconds
+			static auto lastAsteroidSpawn = std::chrono::high_resolution_clock::now();
+			auto current = std::chrono::high_resolution_clock::now();
+			auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(current - lastAsteroidSpawn);
+			
+			if (secondsPassed.count() >= 5) {  
+				DINFOF("Spawning Asteroids \n");
+				generateAsteroids(rand() % 2 + 8, xres, yres); //rand 0-1, 7-8 asteroids 
+				// random 0-1 + 4 asteroids
+				lastAsteroidSpawn = current; //reset timer
+			}
+            // set asteroids w/ asteroid sprite
+			auto spaceEntities = ecs::ecs.query<SPRITE, TRANSFORM, ASTEROID>();
+			for (auto* entity : spaceEntities) {
+				auto [sprite] = ecs::ecs.component().fetch<SPRITE>(entity);
+				if (sprite) {
+					sprite->ssheet = "asteroid";
+					//cout << "set space sprite for asteroid entity" << endl;
+				}
+			}
+
+            if (spaceship == nullptr){
+                DINFOF("Error: Spaceship Null!\n");
+                return; //debug 
+            }
+
+			moveAsteroids(spaceship);
+
+          
+}
+
+// collision
+
+bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* asteroid) {
+    auto [spaceshipTransform] = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+    auto [asteroidTransform] = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
+
+    if (!spaceshipTransform || !asteroidTransform){
+        DINFOF("We are missing components for collision");
+        return false; 
+    }
+
+    float dx = spaceshipTransform->pos[0] - asteroidTransform->pos[0];
+    float dy = spaceshipTransform->pos[1] - asteroidTransform->pos[1];
+    float distance = sqrt(pow(dx, 2) + pow(dy, 2)); 
+
+    float spaceshipRadius = 30.0f;  
+    float asteroidRadius = 20.0f; // temp, get real size / 2
+
+    return distance < (spaceshipRadius + asteroidRadius); //circle collision formula
+}
+
+
+
+
+void moveAsteroids(ecs::Entity* spaceship) 
+{
+    if (!spaceship) {
+        DINFOF("Spaceship is null\n");
+        return; 
+    }
+
+
+    auto asteroids = ecs::ecs.query<ecs::Asteroid, ecs::Transform>(); //query asteroid w/ transform
+    for (auto* asteroid: asteroids) { // chat: how loop to through all asteroids. 
+       
+        auto [transform,asteroidComp,sprite] = ecs::ecs.component().fetch<ecs::Transform,ecs::Asteroid,ecs::Sprite>(asteroid);
+
+        if (!transform || !asteroidComp || !sprite)
+            continue; 
+        
+
+        if (asteroidComp->exploding) {
+            sprite->frame++; // begin incrementing sprite frame 
+            DINFOF("Exploding frame is: %d\n", sprite->frame);
+
+            
+            if (sprite->frame >= 10) { //slight cool down
+                 DINFOF("Asteroid *poof* aka returned\n");
+                 ecs::ecs.entity().ret(const_cast<ecs::Entity*>(asteroid));
+               
+                continue; // skip to next asteroid 
+            }
+
+            continue; //skip
+        }
+
+        
+        transform->pos[0] -= asteroidComp->movementSpeed; // move asteroids left
+
+            // collision check and health reduction
+        if (checkCircleCollision(spaceship, asteroid)) {
+            if (asteroidComp->exploding == false) { 
+                asteroidComp->exploding = true; //set exploding true 
+                DINFOF("Collison Detected!\n") 
+                sprite->ssheet = "asteroid-explode";
+                sprite->frame = 2;
+                if (asteroidComp->exploding) {
+                    sprite->frame++; // begin incrementing sprite frame 
+                    DINFOF("Exploding frame is: %d\n", sprite->frame);
+
+                }
+
+                auto [shipHealth] = ecs::ecs.component().fetch<HEALTH>(spaceship);
+
+                if (shipHealth) {
+                    shipHealth->health -= 1.0f; 
+                    DINFOF("Spaceship damaged, health is now: %.2f\n", shipHealth->health);
+                } else {
+                    DINFO("no health comp\n");
+
+                }
+            }
+
+        }
+    }
+
+}
+
+
+
+
+

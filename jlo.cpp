@@ -623,8 +623,9 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale, bool invertY)
         static_cast<u16>(frame / frame_dim[1])
     };
     const u16 sw {static_cast<u16>(sprite_dim[0] * scale[0])};
+    const u16 sh {static_cast<u16>(sprite_dim[1] * scale[1])};
     const u16 swhalf {static_cast<u16>(sw * 0.5)};
-    const u16 shhalf {static_cast<u16>(sw * 0.5)};
+    const u16 shhalf {static_cast<u16>(sh * 0.5)};
     const u16 rows {frame_dim[0]};
     const u16 cols {frame_dim[1]};
     const float fx {(float) f[0] / cols};
@@ -680,12 +681,25 @@ Biome selectBiome(float temperature, float humidity, u32 seed)
     return biomes[0];
 }
 
+
+WorldGenerationSettings::WorldGenerationSettings(
+    float temperature, 
+    float humidity, 
+    u16 radius, 
+    u32 seed) : 
+    temperature{temperature},
+    humidity{humidity},
+    radius{radius},
+    biome_seed{seed}
+{}
+
 World::World(WorldGenerationSettings settings)
 {
     Biome biome = selectBiome(
         settings.temperature,
         settings.humidity, 
         settings.biome_seed);
+        std::cout << biome.type << ' ' << biome.description << std::endl;
     std::unordered_map<std::string,wfc::TileMeta> tile_map = biome.tiles();
     wfc::Grid grid {{settings.radius,settings.radius}};
     wfc::WaveFunction wf {grid,tile_map};
@@ -735,7 +749,9 @@ World::World(WorldGenerationSettings settings)
                 std::uniform_int_distribution<> dist (0, decors.size() - 1);
                 int decor_index = dist(generator);
                 auto decor_ssheet = ssheets.find(decors[decor_index]);
-                if (decor_ssheet == ssheets.end())
+                if (decor_ssheet == ssheets.end() || 
+                    sprite->ssheet.find("water") != std::string::npos ||
+                    sprite->ssheet.find("lava") != std::string::npos)
                     continue;
                 auto decor_sd = decor_ssheet->second->sprite_dim;
                 const ecs::Entity* decor = ecs::ecs.entity().checkout();
@@ -1090,19 +1106,6 @@ namespace ecs
 
 ////////////////////////////////////////////////////////////////////////////////
 
-    Planet::Planet(
-        float temperature,
-        float humidity, 
-        float roughness, 
-        float radius)
-        :
-        temperature{temperature},
-        humidity{humidity},
-        roughness{roughness},
-        radius{radius} 
-    {
-    }
-
     ComponentPool::ComponentPool(u32 size) : _size {size}
     {
         _ptr_data = std::make_unique<char[]>(size * MAX_ENTITIES);
@@ -1182,10 +1185,12 @@ namespace ecs
     {
         for (auto& entity : _entities) {
             DINFOF("applying physics to entity (%d)\n",entity->id);
-            auto [transform,physics] = _ecs.component().fetch<TRANSFORM,PHYSICS>(entity);
-            if (physics->enabled) {
-                physics->vel += physics->acc * dt;
-                transform->pos += physics->vel * dt;
+            auto [tc,pc] = ecs.component().fetch<Transform,Physics>(entity);
+            if (!pc || !tc)
+                continue; // b
+            if (pc->enabled) {
+                pc->vel += pc->acc * dt;
+                tc->pos += pc->vel * dt;
             }
         }
     }

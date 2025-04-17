@@ -95,7 +95,6 @@ namespace wfc
 
 namespace ecs
 {
-    struct Planet;
     struct Nameable;
     struct Physics;
     struct Transform;
@@ -125,6 +124,10 @@ class Vec2
         T operator[](int idx) const;
         T& operator[](int idx);
         Vec2<T>& operator+=(const Vec2<T>& v);
+
+        T dot(const Vec2<T>& other) const {
+            return vec[0] * other.vec[0] + vec[1] * other.vec[1];
+        }
 };
 
 using u16 = uint16_t;
@@ -246,6 +249,7 @@ struct WorldGenerationSettings
     float temperature, humidity;
     u16 radius;
     u32 biome_seed;
+    WorldGenerationSettings(float temperature, float humidity, u16 radius, u32 seed);
 };
 
 struct World
@@ -363,20 +367,6 @@ namespace ecs
         v2f offset;
         v2u dim;
         std::function<void(const ecs::Entity*, const ecs::Entity*)> callback;
-    };
-
-    struct Planet
-    {
-        float temperature;
-        float humidity;
-        float roughness;
-        float radius;
-        Planet(
-            float temperature, 
-            float humidity, 
-            float roughness, 
-            float radius);
-        Biome selectBiome(u32 biome_seed) const;
     };
 
     struct Physics
@@ -538,8 +528,9 @@ namespace ecs
             time_point _last_sampled;
         protected:
             ECS& _ecs;
-            std::vector<const Entity*> _entities;
+            //std::vector<const Entity*> _entities; //billie for custom sample
         public:
+            std::vector<const Entity*> _entities;  
             const float sample_delta;
             System(ECS& ecs, float sample_delta);
             virtual void update(float dt);

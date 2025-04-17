@@ -1,12 +1,5 @@
 #pragma once
 #include "jlo.h"
-#include "jsandoval.h"
-#include "balrowhany.h"
-#include "mchitorog.h"
-#include "fonts.h"
-
-//Credit Print Function
-void ShowDChu(Rect*);
 
 //Entity Components
 struct oxygen_resource
@@ -29,52 +22,88 @@ struct fuel_resource
 	bool depleted;
 };
 
-struct color
-{
-    uint8_t red;
-    uint8_t blue;
-    uint8_t green;
-    uint8_t alpha;
-};
+//Can-Be-Displayed Check Function
+bool isDisplayable(ecs::Entity*);
 
-struct item
-{
-    std::string item_name;
-    uint16_t slot_num;
-    /*TBD*/
-};
-
-//Declaration of Inventory Management
-class Inventory
+//A* Pathfinding Algorithm
+//(INTEGRATION IN PROCESS)
+class Node
 {
     private:
-        void initStoreVolume(int, int);
-        bool full;
-        item** storage;
-        Vec2<uint16_t> inv_size;
-        public:
+        //World Position
+        v2f world_pos;
+
+        //Local Position
+        v2u local_pos;
+
+        //Hitbox Scale
+        v2f scale;
+    public:
+
+        //Variables
+        bool obstacle, visited;
+        float local_dist, global_dist;
+        std::vector<Node*> neighbors;
+        
+        //Node Directly Preceding Current Node
+        Node* parent;
+        
         //Constructor
-        Inventory();
+        Node();
+        Node(bool);
 
-        //Destructor
-        ~Inventory();
-
-        //Setters
-        void addItem(item);
-        void useItemSlot(/*TBD*/);
-
-        //Getters:
-        void getInventory();
-        item returnItemSlot(int, int);
+        //Functions
+        v2f getWorld();
+        void setWorld(v2f);
+        v2u getLocal();
+        void setLocal(v2u);
 };
 
-//ECS: Inventory Management System
-// namespace ecs
-// {
-//     class InventorySystem : public System
-//     {
-//         public:
-//             InventorySystem();
-//             void update(float dt) override;
-//     };
-// }
+//AStarGrid of Node Elements, Used in A* Search
+class AStar
+{
+    private:
+        //AStar's X & Y Axis Size
+        v2u grid_size;
+
+        //The Position in The World that The Grid is Generated From.
+        v2f origin_pos;
+    public:
+        //Dynamic Node Grid
+        std::vector<std::vector<Node>> node_grid;
+
+        //Constructor
+        AStar();
+        AStar(World&, v2f, v2u);
+        AStar(uint16_t, uint16_t);
+
+        //Sets a Node to an Obstacle in A*
+        void toggleObstacle(uint16_t, uint16_t);
+
+        //Get The Node Grid's Size
+        v2u size();
+
+        //Retrieves a Pointer to The Node
+        Node* getNode(uint16_t, uint16_t);
+
+        //Initializes The Node Grid
+        void initGrid();
+
+        //Generate All Neighbors for Each Node
+        void genNeighbors();
+
+        //Check If The Passed Node has Neighbors
+        bool hasNeighbors(Node*);
+
+        //A* Search Algorithm
+        Node* aStar(uint16_t[2], uint16_t[2]);
+
+        //Node Refresh
+        void resetNodes();
+
+        //Calculates The Distance From One Node to The Next
+        float distance(Node*, Node*);
+
+        //Generates Biased Data Based On Two Given Input Nodes
+        float heuristics(Node*, Node*);
+};
