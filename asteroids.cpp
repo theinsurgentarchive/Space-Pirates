@@ -60,7 +60,7 @@ extern void timeCopy(struct timespec *dest, struct timespec *source);
 
 class Global {
 public:
-	int xres, yres;
+	v2u res;
 	char keys[65536];
 	int mouse_cursor_on;
 	GLuint walkTexture;
@@ -79,8 +79,8 @@ public:
 	ecs::Entity* spaceship;
 
 	Global() {
-		xres = 720;
-		yres = 480;
+		res[0] = 720;
+		res[1] = 480;
 		memset(keys, 0, 65536);
 		// mouse value 1 = true = mouse is a regular mouse.
 		state = MENU; // default 
@@ -146,7 +146,7 @@ public:
 		GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
 		//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
 		XSetWindowAttributes swa;
-		setup_screen_res(gl.xres, gl.yres);
+		setup_screen_res(gl.res[0],gl.res[1]);
 		dpy = XOpenDisplay(NULL);
 		if (dpy == NULL) {
 			std::cout << "\n\tcannot connect to X server" << std::endl;
@@ -156,12 +156,12 @@ public:
 		XWindowAttributes getWinAttr;
 		XGetWindowAttributes(dpy, root, &getWinAttr);
 		int fullscreen = 0;
-		gl.xres = w;
-		gl.yres = h;
+		gl.res[0] = w;
+		gl.res[1] = h;
 		if (!w && !h) {
 			//Go to fullscreen.
-			gl.xres = getWinAttr.width;
-			gl.yres = getWinAttr.height;
+			gl.res[0] = getWinAttr.width;
+			gl.res[1] = getWinAttr.height;
 			//When window is fullscreen, there is no client window
 			//so keystrokes are linked to the root window.
 			XGrabKeyboard(dpy, root, False,
@@ -183,7 +183,7 @@ public:
 			winops |= CWOverrideRedirect;
 			swa.override_redirect = True;
 		}
-		win = XCreateWindow(dpy, root, 0, 0, gl.xres, gl.yres, 0,
+		win = XCreateWindow(dpy, root, 0, 0, gl.res[0], gl.res[1], 0,
 			vi->depth, InputOutput, vi->visual, winops, &swa);
 		//win = XCreateWindow(dpy, root, 0, 0, gl.xres, gl.yres, 0,
 		//vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
@@ -207,7 +207,7 @@ public:
 		if (e->type != ConfigureNotify)
 			return;
 		XConfigureEvent xce = e->xconfigure;
-		if (xce.width != gl.xres || xce.height != gl.yres) {
+		if (xce.width != gl.res[0] || xce.height != gl.res[1]) {
 			//Window size did change.
 			reshape_window(xce.width, xce.height);
 		}
@@ -218,15 +218,15 @@ public:
 		glViewport(0, 0, (GLint)width, (GLint)height);
 		glMatrixMode(GL_PROJECTION); glLoadIdentity();
 		glMatrixMode(GL_MODELVIEW); glLoadIdentity();
-		glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
-		gl.xres = width;
-		gl.yres = height;
+		glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+		gl.res[0] = width;
+		gl.res[1] = height;
 		set_title();
 	}
 	void setup_screen_res(const int w, const int h) {
-		gl.xres = w;
-		gl.yres = h;
-	}
+		gl.res[0] = w;
+		gl.res[1] = h;
+	} 
 	void swapBuffers() {
 		glXSwapBuffers(dpy, win);
 	}
@@ -265,7 +265,7 @@ public:
 		//it will undo the last change done by XDefineCursor
 		//(thus do only use ONCE XDefineCursor and then XUndefineCursor):
 	}
-} x11(gl.xres, gl.yres);
+} x11(gl.res[0],gl.res[1]);
 // ---> for fullscreen x11(0, 0);
 
 //function prototypes
@@ -283,11 +283,10 @@ ecs::Entity* ptr;
 
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
-const World* world;
 const Camera* c;
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
-std::vector<ecs::Collision> cols;
+std::vector<Collision> cols;
 atomic<bool> done = false;
 void sig_handle(int sig)
 {
@@ -297,9 +296,7 @@ void sig_handle(int sig)
 
 int main()
 {
-    
-	ThreadPool tp(10);
-	
+	ThreadPool tp {4};
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -309,37 +306,36 @@ int main()
     // [[maybe_unused]]auto character = ecs::character_x(); 
 	PlanetSeed = PlanetSeedGenerator();
     // Initialize audio system
-	auto biome = selectBiome(30.0f,0.5f);
     initAudioSystem();
     
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
 
-	const ecs::Entity* player = createPlayer();
-    // ptr = ecs::ecs.entity().checkout();
     // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
-	
-	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	ptr = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(ptr);
 	Camera camera = {
-		tc->pos,
-		{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
+		transform->pos,
+		gl.res
 	};
-	c = &camera;
-	Vec2<uint16_t> v {50,50};
+	name->name = "Simon";
+	name->offset = {0,-25};
+	sprite->ssheet = "player-idle";
+	sprite->render_order = 15;
+	collider->offset = {0.0f,-8.0f};
+	collider->dim = v2u {5,4};
+	health->health = 50;
+	health->max = 100;
 	loadTextures(ssheets);
-	std::unordered_map<std::string,wfc::TileMeta> tile_map;
-    tile_map.insert({"A",wfc::TileBuilder{0.6,"sand-002"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
-    tile_map.insert({"_",wfc::TileBuilder{0.6,"warm-water"}.omni("C").omni("_").coefficient("_",5).build()});
-	tile_map.insert({"C",wfc::TileBuilder{0.3,"sand-003"}.omni("_").coefficient("C",3).omni("C").omni("A").build()});
-	std::unordered_set<std::string> tiles;
-	for (auto& pair : tile_map) {
-		tiles.insert(pair.first);
-	}
-	wfc::Grid grid {v, tiles};
-	wfc::WaveFunction wf {grid,tile_map};
-	wf.run();
-	auto w = World{{0,0},grid,tile_map};
-	world = &w;
+	c = &camera;
+
+	WorldGenerationSettings settings;
+	settings.origin = {0,0};
+	settings.temperature = -4.0f;
+	settings.humidity = 0.7f;
+	settings.radius = 100;
+	settings.biome_seed = 2;
+	World w {settings};
 	rs.sample();
 	ps.sample();
 	init_opengl();
@@ -374,7 +370,7 @@ int main()
 GLuint tex;
 void init_opengl(void)
 {
-	glViewport(0, 0, gl.xres, gl.yres);
+	glViewport(0, 0, gl.res[0],gl.res[1]);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glEnable(GL_TEXTURE_2D);
 	
@@ -539,33 +535,32 @@ int check_keys(XEvent *e)
         if (!ecs::ecs.component().has<PHYSICS>(ptr)) {
             return 0;
         }
-        auto pc = ecs::ecs.component().fetch<PHYSICS>(ptr);
-		auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
+		auto [physics,sprite] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(ptr);
         if (e->type == KeyRelease) {
             if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
-				        sc->ssheet = "player-idle";
-				        sc->invert_y = false;
-                pc->vel = {0,0};
+				        sprite->ssheet = "player-idle";
+				        sprite->invert_y = false;
+                physics->vel = {0,0};
             }
         } else if (e->type == KeyPress) {
             static float movement_mag = 300.0;
             switch(key) {
                 case XK_Right:
-					sc->ssheet = "player-right";
-                    pc->vel = {movement_mag,0};
+					sprite->ssheet = "player-right";
+                    physics->vel = {movement_mag,0};
                     break;
                 case XK_Left:
-					sc->invert_y = true;
-					sc->ssheet = "player-right";
-                    pc->vel = {-movement_mag,0};
+					sprite->invert_y = true;
+					sprite->ssheet = "player-right";
+                    physics->vel = {-movement_mag,0};
                     break;
                 case XK_Up:
-					sc->ssheet = "player-back";
-                    pc->vel = {0,movement_mag};
+					sprite->ssheet = "player-back";
+                    physics->vel = {0,movement_mag};
                     break;
                 case XK_Down:
-					sc->ssheet = "player-front";
-                    pc->vel = {0,-movement_mag};
+					sprite->ssheet = "player-front";
+                    physics->vel = {0,-movement_mag};
                     break;
 				case XK_Escape:
 					return 1;
@@ -590,20 +585,17 @@ void render() {
 
 	Rect r;
 	r.left = 100;
-	r.bot = gl.yres - 20;
-	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-	float cameraX = static_cast<float>(tc->pos[0]);
-	float cameraY = static_cast<float>(tc->pos[1]);
+	r.bot = gl.res[1] - 20;
 	switch(gl.state) {
 		case MENU:
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
 			glMatrixMode(GL_MODELVIEW); 
 			glPushMatrix(); glLoadIdentity();
 
-			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.selected_option);
+			render_menu_screen(gl.res[0],gl.res[1], menuBackgroundTexture, gl.selected_option);
 			
 			glPopMatrix();
             glMatrixMode(GL_PROJECTION);
@@ -612,7 +604,7 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
 			glLoadIdentity();
-			gluPerspective(45.0f, (GLfloat)gl.xres / (GLfloat)gl.yres, 0.1f, 100.0f);
+			gluPerspective(45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1], 0.1f, 100.0f);
 			
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
@@ -646,7 +638,7 @@ void render() {
 
 			break;
 		case CONTROLS:
-			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			render_control_screen(gl.res[0],gl.res[1], menuBackgroundTexture);
 			break;
 		case PLAYING:
 			glPushMatrix();
@@ -655,24 +647,19 @@ void render() {
 			glPopMatrix();
 			
 			DisableFor2D();
-			ggprint8b(&r,0,0xffffffff,"position: %f %f",cameraX,cameraY);
 			
 			//bar
-			if (gl.spaceship) {
-				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
-				auto spaceshipOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(gl.spaceship);
-				auto spaceshipFuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship);
-			
-				if (spaceshipHealth) {
-					drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.yres - 50, 0xF00FF00);
+			if (ptr) {
+				auto [health,oxygen,fuel] = ecs::ecs.component().fetch<ecs::Health,
+                     ecs::Oxygen,ecs::Fuel>(ptr);		
+				if (health) {
+					drawUIBar("Health", health->health, health->max, 20, gl.res[1] - 50, 0xF00FF00);
 				}
-			
-				if (spaceshipOxygen) {
-					drawUIBar("Oxygen", spaceshipOxygen->oxygen, spaceshipOxygen->max, 20, gl.yres - 90, 0x00FFFF);
+				if (oxygen) {
+					drawUIBar("Oxygen", oxygen->oxygen, oxygen->max, 20, gl.res[1] - 90, 0x00FFFF);
 				}
-			
-				if (spaceshipFuel) {
-					drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
+				if (fuel) {
+					drawUIBar("Fuel", fuel->fuel, fuel->max, 20, gl.res[1] - 130, 0xFF9900);
 				}
 			}
 			break;

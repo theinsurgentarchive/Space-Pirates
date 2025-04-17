@@ -53,75 +53,77 @@ Vec2<T>& Vec2<T>::operator+=(const Vec2<T>& v)
 namespace ecs
 {
     template <typename T>
-    T* ComponentManager::assign(const Entity *e_ptr)
+    std::tuple<T*> assignHelper(const Entity* e_ptr, std::vector<std::unique_ptr<ComponentPool>>& pools, T)
     {
-        if (e_ptr == nullptr)
-            return nullptr;
+        if (e_ptr == nullptr) {
+            DWARN("entity pointer was null\n");
+            return std::tuple<T*>(nullptr);
+        }
         auto cid = getId<T>();
         DINFOF("component (%d) -> entity (%p | %d)\n",cid,e_ptr,e_ptr->id);
         if (e_ptr->mask.test(cid)) {
             DINFOF("reassignment for component (%d) to entity (%d), returning null\n",cid, e_ptr->id);
             return nullptr;
         }
-        if (cid >= _pools.size()) {
-            u32 n = _pools.size() + 1;
-            DINFOF("expanded component pools to: %d -> %d\n", static_cast<u32>(_pools.size()), n);
-            _pools.resize(n);
+        if (cid >= pools.size()) {
+            u32 n = pools.size() + 1;
+            DINFOF("expanded component pools to: %d -> %d\n", static_cast<u32>(pools.size()), n);
+            pools.resize(n);
         }
-        if (_pools[cid] == nullptr) {
+        if (pools[cid] == nullptr) {
             DINFOF("instantiated component pool (%d)\n",cid);
-            _pools[cid] = std::make_unique<ComponentPool>(sizeof(T));
+            pools[cid] = std::make_unique<ComponentPool>(sizeof(T));
         }
-        void *mem = _pools[cid]->get(e_ptr->id);
+        void *mem = pools[cid]->get(e_ptr->id);
         DINFOF("creating new component (%d) at (%p)\n", cid, mem);
         auto *ptr_component = new (mem) T();
         e_ptr->mask.set(cid);
-        return ptr_component;
-    }
-
-    template <typename T>
-    std::tuple<T*> bulkAssignHelper(const Entity* e_ptr, T)
-    {
-        if (e_ptr == nullptr) {
-            DWARN("entity pointer was null\n");
-            return std::tuple<T*>(nullptr);
-        }
-        return std::tuple<T*>(ecs::ecs.component().assign<T>(e_ptr));
+        return std::tuple<T*>(ptr_component);   
     }
     template <typename T, typename... Ts>
-    auto bulkAssignHelper(const Entity* e_ptr, T, Ts... ts)
+    auto assignHelper(const Entity* e_ptr, std::vector<std::unique_ptr<ComponentPool>>& pools, T, Ts... ts)
     {
         return std::tuple_cat(
-            std::tuple<T*>(bulkAssignHelper(e_ptr,T())),
-            bulkAssignHelper(e_ptr,ts...)
+            std::tuple<T*>(assignHelper(e_ptr,pools,T())),
+            assignHelper(e_ptr,pools,ts...)
         );
     }
 
     template <typename... T>
-    auto ComponentManager::bulkAssign(const Entity* e_ptr)
+    auto ComponentManager::assign(const Entity* e_ptr)
     {
-        return bulkAssignHelper(e_ptr,T()...);
+        std::lock_guard<std::shared_mutex> lock(component_mutex_);
+        return assignHelper(e_ptr,_pools,T()...);
     }
 
     template <typename T>
-    T* ComponentManager::fetch(const Entity *e_ptr)
+    std::tuple<T*> ComponentManager::fetchHelper(const Entity* entity, std::vector<std::unique_ptr<ComponentPool>>& pools, T)
     {
-        // static unordered_map<u32,T*> components;
-        // const u32 entity_id {e_ptr->id};
-        // if (components.count(entity_id)) {
-        //     return components[entity_id];
-        // }
-        if (e_ptr == nullptr) {
-            DWARN("entity pointer was null\n");
+        if (entity == nullptr) {
             return nullptr;
         }
-        uint16_t cid = getId<T>();
-        if (!ComponentManager::has<T>(e_ptr)) {
-            DINFOF("entity (%d) does not own component (%d)\n",e_ptr->id,cid);
+        u16 cid = getId<T>();
+        if (!ComponentManager::has<T>(entity)) {
             return nullptr;
         }
-        void *mem = _pools[cid]->get(e_ptr->id);
+        void *mem = pools[cid]->get(entity->id);
         return reinterpret_cast<T *>(mem);
+    }
+
+    template <typename T, typename... Ts>
+    auto ComponentManager::fetchHelper(const Entity* entity, std::vector<std::unique_ptr<ComponentPool>>& pools, T, Ts... ts)
+    {
+        return std::tuple_cat(
+            std::tuple<T*>(fetchHelper(entity, pools, T())),
+            fetchHelper(entity, pools, ts...)
+        );
+    }
+
+    template <typename... T>
+    auto ComponentManager::fetch(const Entity *entity)
+    {
+        std::shared_lock<std::shared_mutex> lock(component_mutex_);
+        return fetchHelper(entity,_pools, T()...);
     }
 
 
@@ -143,8 +145,9 @@ namespace ecs
     }
 
     template <typename... T>
-    bool ComponentManager::has(const Entity *e_ptr) const
+    bool ComponentManager::has(const Entity *e_ptr)
     {
+        std::shared_lock<std::shared_mutex> lock(component_mutex_);
         return hasHelper(e_ptr,T()...);
     }      
 

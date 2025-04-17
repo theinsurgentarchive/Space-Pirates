@@ -58,18 +58,10 @@
 
 enum BiomeType
 {
-    CHRISTMAS,
-    RAINFOREST,
-    SAVANNA,
     FOREST,
-    GRASSLAND,
-    WOODLAND,
     DESERT,
     TAIGA,
-    TUNDRA,
-    ARCTIC_DESERT,
     MEADOW,
-    WETLANDS,
     HELL
 };
 
@@ -84,8 +76,9 @@ enum Direction
 struct Biome;
 struct SpriteSheet;
 class Camera;
-class World;
+struct World;
 struct Texture;
+struct Collision;
 template <typename T>
 class AtomicVector;
 class ThreadPool;
@@ -149,7 +142,6 @@ extern u16 counter;
 extern void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets);
 extern std::shared_ptr<Texture> loadTexture(const std::string&, bool);
-extern Biome selectBiome(float temperature, float humidity);
 extern void collisions(const Camera& camera, ThreadPool& pool);
 template <class T>
 u16 getId()
@@ -169,6 +161,8 @@ struct Biome
         const v2f& temperature, 
         const v2f& humidity, 
         const std::string& description);
+    std::unordered_map<std::string,wfc::TileMeta> tiles();
+    static std::vector<std::string> decor(BiomeType type);
 };
 
 /*
@@ -177,7 +171,8 @@ struct Biome
 class Camera
 {
     public:
-        void move(v2f delta);
+        void bind(v2f& pos);
+        void bind(const ecs::Entity* entity);
         bool visible(v2f curr) const;
         void update() const;
         v2u dim() const;
@@ -189,18 +184,19 @@ class Camera
         
             @return collection of entities        
         */
-        std::unique_ptr<AtomicVector<const ecs::Entity*>> findVisible(
+        std::vector<const ecs::Entity*> findVisible(
             std::vector<const ecs::Entity*>& entities,
             ThreadPool& pool) const;
-        Camera(v2f& pos, const v2u dim);
+        Camera(v2f& pos, v2u& dim);
     private:
-        v2f& pos_;
-        const v2u dim_;
+        std::reference_wrapper<v2f> pos_;
+        std::reference_wrapper<v2u> dim_;
         void visibleHelper(
             std::vector<const ecs::Entity*>& entities, 
-            AtomicVector<const ecs::Entity*>& visible_entities, 
+            std::vector<const ecs::Entity*>& visible_entities,
             const u32 start, 
-            const u32 end) const;
+            const u32 end,
+            std::mutex& visible_entities_mutex) const;
 };
 
 
@@ -208,7 +204,7 @@ struct Texture
 {
     const v2u dim;
     bool alpha {false};
-    std::shared_ptr<GLuint> tex;
+    std::unique_ptr<GLuint> tex;
     Texture(const v2u& dim, bool alpha);
 };
 
@@ -244,17 +240,20 @@ class SpriteSheetLoader
         std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets_;
 };
 
-class World
+struct WorldGenerationSettings
 {
-    private:
-        std::vector<std::vector<ecs::Entity*>> decoration_;
-        std::vector<std::vector<ecs::Entity*>> _grid;
-    public:
-        std::vector<std::vector<ecs::Entity*>>& tiles();
-        ~World();
-        World(
-            const v2f& origin, wfc::Grid& grid,
-            std::unordered_map<std::string,wfc::TileMeta>& tiles);
+    v2f origin;
+    float temperature, humidity;
+    u16 radius;
+    u32 biome_seed;
+};
+
+struct World
+{
+    using WorldCell = std::vector<const ecs::Entity*>;
+    std::vector<std::vector<WorldCell>> cells;
+    World(WorldGenerationSettings settings);
+    ~World();
 };
 
 namespace wfc
@@ -286,6 +285,7 @@ namespace wfc
                 int dir, 
                 const std::string& tile);
             TileBuilder& omni(const std::string& tile);
+            TileBuilder& omni(std::initializer_list<std::string> tiles);
             TileBuilder& coefficient(
                 const std::string& tile, 
                 float weight);
@@ -304,19 +304,13 @@ namespace wfc
         bool collapsed() const;
     };
 
-    class Grid 
+    struct Grid
     {
-        private:
-            std::vector<Cell> cells_;
-            v2u size_;
-        public:
-            Grid(
-                v2u size, 
-                const std::unordered_set<std::string>& states);
-            v2u size() const;
-            Cell* get(v2i pos);
-            std::vector<Cell>& cells();
-            bool collapsed();
+        const v2u size;
+        std::vector<Cell> cells;
+        Grid(const v2u& size);
+        bool collapsed();
+        Cell* get(v2i pos);
     };
 
     class TilePriorityQueue
@@ -363,20 +357,12 @@ namespace ecs
         std::string name;
     };
 
-    struct Interactable
-    {
-        //std::function<void()> handle;        
-    };
-
     struct Collider
     {
-        v2u dim;
+        bool passable {true};
         v2f offset;
-    };
-
-    struct Collision
-    {
-        u32 a, b;
+        v2u dim;
+        std::function<void(const ecs::Entity*, const ecs::Entity*)> callback;
     };
 
     struct Planet
@@ -384,6 +370,13 @@ namespace ecs
         float temperature;
         float humidity;
         float roughness;
+        float radius;
+        Planet(
+            float temperature, 
+            float humidity, 
+            float roughness, 
+            float radius);
+        Biome selectBiome(u32 biome_seed) const;
     };
 
     struct Physics
@@ -435,22 +428,17 @@ namespace ecs
 
     class ComponentManager
     {
-        private:
-            std::vector<std::unique_ptr<ComponentPool>> _pools;
         public:
-            std::mutex pp;
             /*
                 Assigns component <T> to the entity,
                 if the entity has already been assigned <T>, then
                 this function will return nullptr.
 
-                @returns a pointer to <T>
+                @returns a tuple of T*
             */
-            template <typename T>
-            T* assign(const Entity* e_ptr);
             
             template <typename... T>
-            auto bulkAssign(const Entity* e_ptr);
+            auto assign(const Entity* e_ptr);
 
             /*
                 Retrieves a component <T> assigned to the entity;
@@ -458,10 +446,10 @@ namespace ecs
                 or the entity is nullptr,
                 this function will return nullptr.
 
-                @returns a pointer to <T>
+                @returns a tuple of T*
             */
-            template <typename T>
-            T* fetch(const Entity* e_ptr);
+            template <typename... T>
+            auto fetch(const Entity* e_ptr);
 
             /*
                 Checks whether the entity has 
@@ -470,7 +458,14 @@ namespace ecs
                 @returns a bool of whether the entity has all components
             */
             template <typename... T>
-            bool has(const Entity* e_ptr) const;
+            bool has(const Entity* e_ptr);
+        private:
+            std::vector<std::unique_ptr<ComponentPool>> _pools;
+            std::shared_mutex component_mutex_;
+            template <typename T>
+            std::tuple<T*> fetchHelper(const Entity* entity, std::vector<std::unique_ptr<ComponentPool>>& pools, T);
+            template <typename T, typename... Ts>
+            auto fetchHelper(const Entity* entity, std::vector<std::unique_ptr<ComponentPool>>& pools, T, Ts... ts);
     };
 
     class EntityManager
@@ -516,7 +511,7 @@ namespace ecs
                 Entity ID = 1;
                 Mask = 0...000
             */
-            void ret(Entity* e_ptr);
+            void ret(const Entity* e_ptr);
             u32 maxEntities() const;
             bool isFree(const Entity* e_ptr);
             
@@ -628,12 +623,27 @@ class ThreadPool
         void workerThread();
 };
 
+struct Collision
+{
+    const ecs::Entity *a, *b;
+    Collision(const ecs::Entity* a, const ecs::Entity* b);
+};
+
+class CollisionHandler
+{
+    public:
+        void addHandler(std::function<void()> handler);
+        void handle(std::vector<Collision> collisions);
+    private:
+        std::vector<std::function<void()>> handlers_;
+};
+
 class PlayerFactory
 {
     public:
         const ecs::Entity* createPlayer();
-        Player(Camera& camera);
+        PlayerFactory(Camera& camera);
     private:
-        
+        Camera& camera_;
 };
 #include "jlo.tpp"

@@ -144,10 +144,7 @@ void initializeEntity(ecs::Entity* spaceship)
 {
 
  //   auto spaceship = ecs::ecs.entity().checkout(); // create 
-    auto health = ecs::ecs.component().assign<ecs::Health>(spaceship);
-    auto oxygen = ecs::ecs.component().assign<ecs::Oxygen>(spaceship);
-    auto fuel = ecs::ecs.component().assign<ecs::Fuel>(spaceship);
-    auto transform = ecs::ecs.component().assign<ecs::Transform>(spaceship);
+    auto [health,oxygen,fuel,transform] = ecs::ecs.component().assign<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM>(spaceship);
 
     if (health) {
         health -> health = 50.0f; 
@@ -170,10 +167,7 @@ void initializeEntity(ecs::Entity* spaceship)
         oxygen -> max = 200.0f;
     }
 
-    auto getHealth = ecs::ecs.component().fetch<ecs::Health>(spaceship);
-    auto getOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(spaceship);
-    auto getFuel = ecs::ecs.component().fetch<ecs::Fuel>(spaceship);
-    auto getTransform = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+    auto [getHealth,getOxygen,getFuel,getTransform] = ecs::ecs.component().fetch<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM>(spaceship);
 
     cout << "Spaceship intialized with health, oxygen, fuel, and transform components." << endl;
     if (getHealth) {
