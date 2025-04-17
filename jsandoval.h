@@ -9,12 +9,12 @@
 #include <stdio.h>
 #include "image.h"    
 #include <random>
-
+#define PLANET ecs::Planet
 namespace ecs
 {
     Entity* character_x();
     Entity* GeneratePlanet();
-    struct PLANET
+    struct Planet
     {
         float temperature;
         float humidity;
