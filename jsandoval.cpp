@@ -99,7 +99,6 @@ Entity* GeneratePlanet()
 
     return planetEntity;
 
-//Implement Entity Calling and set up Biome Attribute thru here
 }
 // void updatePlanetSpin()
 // {
