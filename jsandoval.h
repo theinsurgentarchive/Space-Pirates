@@ -28,7 +28,7 @@ namespace ecs
         float PosY;
         float PosZ;
     };
-    void updatePlanetSpin();
+    // void updatePlanetSpin();
 }
 
 
