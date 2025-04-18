@@ -284,6 +284,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 ecs::Entity* ptr;
 
 ecs::Entity* planetPtr;
+ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
@@ -309,16 +310,18 @@ int main()
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
+	planetPtr2 = ecs::GeneratePlanet();
+
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
+
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
 		planetAttr->humidity,
 		static_cast<u16>(planetAttr->size * 50),
 		static_cast<u32>(2)};
 	settings.origin = {0,0};
-	[[maybe_unused]]int* PlanetSeed;
-    // [[maybe_unused]]auto character = ecs::character_x(); 
-	// PlanetSeed = PlanetSeedGenerator();
+
     // Initialize audio system
     initAudioSystem();
 	loadTextures(ssheets);  //load planet textures
@@ -668,6 +671,7 @@ void physics()
 	else if (gl.state == SPACE) {
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		traits-> AngY += 1.0f;
+		// ecs::updatePlanetSpin();
 	}
 }
 

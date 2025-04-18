@@ -21,7 +21,8 @@ void vecSub(Vec v0, Vec v1, Vec dest)
 	dest[2] = v0[2] - v1[2];
 }
 
-namespace ecs {
+namespace ecs 
+{
     extern ECS ecs;
 Entity* character_x()
 {
@@ -58,7 +59,9 @@ Entity* character_x()
 Entity* GeneratePlanet()
 {
     float rndNums[4];
+    float rndCoor[3];
     PlanetSeedGenerator(rndNums);
+    PlanetCoorGenerator(rndCoor);
 
     auto planetEntity = ecs::ecs.entity().checkout();
     ecs::ecs.component().assign<PLANET>(planetEntity);
@@ -71,16 +74,21 @@ Entity* GeneratePlanet()
     properties->humidity = PlanetHumidity(rndNums[3]);
 
     properties-> AngY  = 0.1f;
-    properties-> PosX = 3.0f;
-    properties-> PosY = 3.0f;
-    properties-> PosZ = -10.0f;
+    properties-> PosX = rndCoor[0];
+    properties-> PosY = rndCoor[1];
+    properties-> PosZ = rndCoor[2];
     properties-> rotationX = 0.0f;
     properties-> rotationY = 1.0f;
     //GLfloat lightPosition[] = { 100.0f, 60.0f, -140.0f, 1.0f};
 
     if (properties) {
         std::cout << "Planet Properties: " << "Size: "<< properties -> size
-        << " Smooth: " << properties -> smooth << " Temperature: " << properties-> temperature << " humidity: " << properties-> humidity << " AngY: " << properties-> AngY << " PosX: " << properties-> PosX << " PosY: " << properties-> PosY << " PosZ: " << properties-> PosZ << " rotationX: " << properties-> rotationX << " rotationY: " << properties-> rotationY << std::endl;
+        << " Smooth: " << properties -> smooth << " Temperature: " << 
+        properties-> temperature << " humidity: " << properties-> humidity << 
+        " AngY: " << properties-> AngY << " PosX: " << properties-> PosX << 
+        " PosY: " << properties-> PosY << " PosZ: " << properties-> PosZ << 
+        " rotationX: " << properties-> rotationX << " rotationY: " << 
+        properties-> rotationY << std::endl;
     }
     else {
         std::cout << "Failed to retrieve Health Component." <<std::endl;
@@ -88,8 +96,14 @@ Entity* GeneratePlanet()
 
     return planetEntity;
 
-//Implement Entity Calling and set up Biome Attribute thru here
 }
+// void updatePlanetSpin()
+// {
+//     auto traits = ecs::ecs.query<ecs::PLANET>();
+//     for (auto* PLANET) {
+//         traits-> AngY += 1.0f;
+//     }
+// }
 }
 void DisableFor2D()
 {
@@ -221,6 +235,22 @@ void PlanetSeedGenerator(float values[4])
     values[1] = dis(gen); //Smooth
     values[2] = dis(gen); //Temp
     values[3] = dis(gen); //Humidity
+}
+
+void PlanetCoorGenerator(float values[3])
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0,1);
+
+    float x = dis(gen) == 0 ? -8 : 8;
+    float y = dis(gen) == 0 ? -7 : 7;
+    float z = -10; //MAYBE change it later
+
+    values[0] = x; 
+    values[1] = y;
+    values[2] = z;
+
 }
 
 float PlanetSize(float rndNum)
@@ -356,7 +386,8 @@ glm::vec3 TempToColor(float temp) {
 //FINALLY ADJUST MenuPlanet to General Planet
 void DrawPlanet(float planetAngY, float planetPosX, float planetPosY, 
     float planetPosZ, GLfloat* lightPosition, float size, 
-    float rotationX, float rotationY, [[maybe_unused]] float roughness, float temp) 
+    float rotationX, float rotationY, [[maybe_unused]] float roughness, 
+    float temp) 
 {
     std::vector<float> heightMap = GenerateHeightMap(); 
     static int firsttime = 1;
@@ -382,12 +413,15 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
         for (i = 0; i <= 8; i++) {
             for (j = 0; j < 16; j++) {
                 int index = i * 16 + j;
-                //float height = heightMap[index] * roughness;  // Apply roughness TEST LATER
+                // Apply roughness TEST LATER
+                //float height = heightMap[index] * ((roughness)/100);  
                 float height = heightMap[index];
                 //testing noise
                 float noise = PerlinNoise(i, j);
-                verts[i][j][0] = (circle[j][0] * circle[i][1]) * (1.0f + height + noise);
-                verts[i][j][2] = (circle[j][1] * circle[i][1]) * (1.0f + height + noise);
+                verts[i][j][0] = (circle[j][0] * circle[i][1]) * 
+                (1.0f + height + noise);
+                verts[i][j][2] = (circle[j][1] * circle[i][1]) * 
+                (1.0f + height + noise);
                 verts[i][j][1] = circle[i][0] * (1.0f + height + noise);
 
                 norms[i][j][0] = verts[i][j][0];  
