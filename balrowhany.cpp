@@ -153,14 +153,7 @@ void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture) {
 
 void initializeEntity(ecs::Entity* spaceship)
 {
-
- //   auto spaceship = ecs::ecs.entity().checkout(); // create 
-    auto health = ecs::ecs.component().assign<ecs::Health>(spaceship);
-    auto oxygen = ecs::ecs.component().assign<ecs::Oxygen>(spaceship);
-    auto fuel = ecs::ecs.component().assign<ecs::Fuel>(spaceship);
-    auto transform = ecs::ecs.component().assign<ecs::Transform>(spaceship);
-    auto sprite = ecs::ecs.component().assign<ecs::Sprite>(spaceship);
-    auto physics = ecs::ecs.component().assign<ecs::Physics>(spaceship);
+    auto [health,oxygen,fuel,transform,sprite,physics] = ecs::ecs.component().assign<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM,SPRITE,PHYSICS>(spaceship);
 
     //default values
     transform->pos = {50, 50};  //
@@ -189,10 +182,7 @@ void initializeEntity(ecs::Entity* spaceship)
         oxygen -> max = 200.0f;
     }
 
-    auto getHealth = ecs::ecs.component().fetch<ecs::Health>(spaceship);
-    auto getOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(spaceship);
-    auto getFuel = ecs::ecs.component().fetch<ecs::Fuel>(spaceship);
-    auto getTransform = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+    auto [getHealth,getOxygen,getFuel,getTransform] = ecs::ecs.component().fetch<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM>(spaceship);
 
     //cout << "Spaceship intialized with health, oxygen, & fuel" << endl;
     if (getHealth) {
@@ -262,9 +252,9 @@ void drawUIBar (const char* label, float current, float max, float x, float y, u
 
 // Load asteroid and ship related sprites into custom sprite sheet map.
 void loadShipAndAsteroids(
-    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets)
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
 {
-    SpriteSheetLoader loader {shipAndAsteroidsSheets};  //loader instance using custom map defined above
+    SpriteSheetLoader loader {ssheets};  //loader instance using custom map defined above
     	DINFOF("Loading asteroid base.png sprites...\n") 
     loader
     
@@ -274,7 +264,7 @@ void loadShipAndAsteroids(
             "./resources/textures/space/base.png", true), {1,1}, {24,24}) 
     .loadStatic("asteroid-explode", 
         loadTexture(
-            "./resources/textures/space/explode.png", true), {1,8}, {32,32})
+            "./resources/textures/space/explode.png", true), {1,8}, {32,32}, true)
     .loadStatic("ship-front-back", 
         loadTexture(
             "./resources/textures/space/ship-front-back.png", true), {1,1}, {32,32})
@@ -284,7 +274,6 @@ void loadShipAndAsteroids(
     .loadStatic("ship-right", 
         loadTexture(
             "./resources/textures/space/ship-right.png", true), {1,1}, {32,32});
-    shipAndAsteroidsSheets["asteroid-explode"]->animated = true; //chat
      DINFOF("finished loading asteroid and ship sprites.\n");
 }
 
@@ -302,21 +291,17 @@ ecs::Entity* createAsteroid(float x, float y)
 
     //assign Asteroid properties
     float size = (float)(rand() % 3 + 1); // random size between 1.0 and 3.0
-    auto singleAsteroid = ecs::ecs.component().assign<ecs::Asteroid>(asteroid);
+    auto [singleAsteroid,transform,sprite] = ecs::ecs.component().assign<ecs::Asteroid,ecs::Transform,ecs::Sprite>(asteroid);
     singleAsteroid->health = size * 2; // based on size
     singleAsteroid->size = size; // 1, 2, or 3
     //singleAsteroid->rotationSpeed = (rand() % 100) / 100.0f; // random rotation speed between 0 and 1
     singleAsteroid->movementSpeed = static_cast<float>((rand() % 10) + 5); // random movement speed between 5 and 15
-
     // assign Transform properties
-    auto transform = ecs::ecs.component().assign<ecs::Transform>(asteroid);
     float scaleSize = static_cast<float>((rand() % 5) + 1); // 1 to 5
     transform->pos = {x, y};
     transform->scale = {scaleSize, scaleSize}; //{size, size};
     transform->rotation = 0.0f;
-
     // assign Sprite properties
-    auto sprite = ecs::ecs.component().assign<ecs::Sprite>(asteroid);
     sprite->ssheet = "asteroid";
     sprite->frame = 0;
 
@@ -357,7 +342,7 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
             // set asteroids w/ asteroid sprite
 			auto spaceEntities = ecs::ecs.query<SPRITE, TRANSFORM, ASTEROID>();
 			for (auto* entity : spaceEntities) {
-				auto sprite = ecs::ecs.component().fetch<SPRITE>(entity);
+				auto [sprite] = ecs::ecs.component().fetch<SPRITE>(entity);
 				if (sprite) {
 					sprite->ssheet = "asteroid";
 					//cout << "set space sprite for asteroid entity" << endl;
@@ -377,8 +362,8 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
 // collision
 
 bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* asteroid) {
-    auto spaceshipTransform = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
-    auto asteroidTransform = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
+    auto [spaceshipTransform] = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+    auto [asteroidTransform] = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
 
     if (!spaceshipTransform || !asteroidTransform){
         DINFOF("We are missing components for collision");
@@ -409,9 +394,7 @@ void moveAsteroids(ecs::Entity* spaceship)
     auto asteroids = ecs::ecs.query<ecs::Asteroid, ecs::Transform>(); //query asteroid w/ transform
     for (auto* asteroid: asteroids) { // chat: how loop to through all asteroids. 
        
-        auto transform = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
-        auto asteroidComp = ecs::ecs.component().fetch<ecs::Asteroid>(asteroid);
-        auto sprite = ecs::ecs.component().fetch<ecs::Sprite>(asteroid);
+        auto [transform,asteroidComp,sprite] = ecs::ecs.component().fetch<ecs::Transform,ecs::Asteroid,ecs::Sprite>(asteroid);
 
         if (!transform || !asteroidComp || !sprite)
             continue; 
@@ -448,7 +431,7 @@ void moveAsteroids(ecs::Entity* spaceship)
 
                 }
 
-                auto shipHealth = ecs::ecs.component().fetch<HEALTH>(spaceship);
+                auto [shipHealth] = ecs::ecs.component().fetch<HEALTH>(spaceship);
 
                 if (shipHealth) {
                     shipHealth->health -= 1.0f; 

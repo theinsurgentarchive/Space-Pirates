@@ -4,8 +4,15 @@
 #include <bitset>
 #include <memory>
 #include <vector>
+#include <queue>
 #include <deque>
 #include <array>
+#include <shared_mutex>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <atomic>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <GL/glx.h>
@@ -18,8 +25,10 @@
 
 #define TRANSFORM ecs::Transform
 #define SPRITE ecs::Sprite
+#define NAME ecs::Name
 #define PHYSICS ecs::Physics
 #define HEALTH ecs::Health
+#define COLLIDER ecs::Collider
 
 #define _RESET "\033[0m"
 #define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
@@ -49,18 +58,10 @@
 
 enum BiomeType
 {
-    CHRISTMAS,
-    RAINFOREST,
-    SAVANNA,
     FOREST,
-    GRASSLAND,
-    WOODLAND,
     DESERT,
     TAIGA,
-    TUNDRA,
-    ARCTIC_DESERT,
     MEADOW,
-    WETLANDS,
     HELL
 };
 
@@ -74,9 +75,13 @@ enum Direction
 
 struct Biome;
 struct SpriteSheet;
-struct Camera;
-class World;
+class Camera;
+struct World;
 struct Texture;
+struct Collision;
+template <typename T>
+class AtomicVector;
+class ThreadPool;
 
 namespace wfc
 {
@@ -90,7 +95,7 @@ namespace wfc
 
 namespace ecs
 {
-    struct Planet;
+    struct Nameable;
     struct Physics;
     struct Transform;
     struct Health;
@@ -127,6 +132,7 @@ class Vec2
 
 using u16 = uint16_t;
 using u32 = uint32_t;
+using u64 = uint64_t;
 using i32 = int32_t;
 using v2u = Vec2<u16>;
 using v2i = Vec2<i32>;
@@ -139,8 +145,7 @@ extern u16 counter;
 extern void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets);
 extern std::shared_ptr<Texture> loadTexture(const std::string&, bool);
-extern Biome selectBiome(float temperature, float humidity);
-
+extern void collisions(const Camera& camera, ThreadPool& pool);
 template <class T>
 u16 getId()
 {
@@ -159,16 +164,42 @@ struct Biome
         const v2f& temperature, 
         const v2f& humidity, 
         const std::string& description);
+    std::unordered_map<std::string,wfc::TileMeta> tiles();
+    static std::vector<std::string> decor(BiomeType type);
 };
 
-struct Camera
+/*
+    Camera of the game, center of the camera is bound to 'pos_'.
+*/
+class Camera
 {
-    v2f& pos;
-    const v2u dim;
-    Camera(v2f& pos, const v2u dim);
-    void move(v2f delta);
-    bool visible(v2f curr) const;
-    void update() const;
+    public:
+        void bind(v2f& pos);
+        void bind(const ecs::Entity* entity);
+        bool visible(v2f curr) const;
+        void update() const;
+        v2u dim() const;
+       
+        /*
+
+                Finds entities that are currently visible to the camera
+            and places them in 'visible_entities'
+        
+            @return collection of entities        
+        */
+        std::vector<const ecs::Entity*> findVisible(
+            std::vector<const ecs::Entity*>& entities,
+            ThreadPool& pool) const;
+        Camera(v2f& pos, v2u& dim);
+    private:
+        std::reference_wrapper<v2f> pos_;
+        std::reference_wrapper<v2u> dim_;
+        void visibleHelper(
+            std::vector<const ecs::Entity*>& entities, 
+            std::vector<const ecs::Entity*>& visible_entities,
+            const u32 start, 
+            const u32 end,
+            std::mutex& visible_entities_mutex) const;
 };
 
 
@@ -176,7 +207,7 @@ struct Texture
 {
     const v2u dim;
     bool alpha {false};
-    std::shared_ptr<GLuint> tex;
+    std::unique_ptr<GLuint> tex;
     Texture(const v2u& dim, bool alpha);
 };
 
@@ -212,17 +243,21 @@ class SpriteSheetLoader
         std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets_;
 };
 
-class World
+struct WorldGenerationSettings
 {
-    private:
-        std::vector<std::vector<ecs::Entity*>> decoration_;
-        std::vector<std::vector<ecs::Entity*>> _grid;
-    public:
-        std::vector<std::vector<ecs::Entity*>>& tiles();
-        ~World();
-        World(
-            const v2f& origin, wfc::Grid& grid,
-            std::unordered_map<std::string,wfc::TileMeta>& tiles);
+    v2f origin;
+    float temperature, humidity;
+    u16 radius;
+    u32 biome_seed;
+    WorldGenerationSettings(float temperature, float humidity, u16 radius, u32 seed);
+};
+
+struct World
+{
+    using WorldCell = std::vector<const ecs::Entity*>;
+    std::vector<std::vector<WorldCell>> cells;
+    World(WorldGenerationSettings settings);
+    ~World();
 };
 
 namespace wfc
@@ -254,6 +289,7 @@ namespace wfc
                 int dir, 
                 const std::string& tile);
             TileBuilder& omni(const std::string& tile);
+            TileBuilder& omni(std::initializer_list<std::string> tiles);
             TileBuilder& coefficient(
                 const std::string& tile, 
                 float weight);
@@ -272,19 +308,13 @@ namespace wfc
         bool collapsed() const;
     };
 
-    class Grid 
+    struct Grid
     {
-        private:
-            std::vector<Cell> cells_;
-            v2u size_;
-        public:
-            Grid(
-                v2u size, 
-                const std::unordered_set<std::string>& states);
-            v2u size() const;
-            Cell* get(v2i pos);
-            std::vector<Cell>& cells();
-            bool collapsed();
+        const v2u size;
+        std::vector<Cell> cells;
+        Grid(const v2u& size);
+        bool collapsed();
+        Cell* get(v2i pos);
     };
 
     class TilePriorityQueue
@@ -323,11 +353,20 @@ namespace ecs
     class ECS;
     extern ECS ecs;
 
-    struct Planet
+    struct Name
     {
-        float temperature;
-        float humidity;
-        float roughness;
+        int alignment {0};
+        u32 cref {0x00ffffff};
+        v2i offset {0,0};
+        std::string name;
+    };
+
+    struct Collider
+    {
+        bool passable {true};
+        v2f offset;
+        v2u dim;
+        std::function<void(const ecs::Entity*, const ecs::Entity*)> callback;
     };
 
     struct Physics
@@ -379,22 +418,17 @@ namespace ecs
 
     class ComponentManager
     {
-        private:
-            std::vector<std::unique_ptr<ComponentPool>> _pools;
         public:
-
             /*
                 Assigns component <T> to the entity,
                 if the entity has already been assigned <T>, then
                 this function will return nullptr.
 
-                @returns a pointer to <T>
+                @returns a tuple of T*
             */
-            template <typename T>
-            T* assign(const Entity* e_ptr);
             
             template <typename... T>
-            void bulkAssign(const Entity* e_ptr);
+            auto assign(const Entity* e_ptr);
 
             /*
                 Retrieves a component <T> assigned to the entity;
@@ -402,10 +436,10 @@ namespace ecs
                 or the entity is nullptr,
                 this function will return nullptr.
 
-                @returns a pointer to <T>
+                @returns a tuple of T*
             */
-            template <typename T>
-            T* fetch(const Entity* e_ptr);
+            template <typename... T>
+            auto fetch(const Entity* e_ptr);
 
             /*
                 Checks whether the entity has 
@@ -414,7 +448,14 @@ namespace ecs
                 @returns a bool of whether the entity has all components
             */
             template <typename... T>
-            bool has(const Entity* e_ptr) const;
+            bool has(const Entity* e_ptr);
+        private:
+            std::vector<std::unique_ptr<ComponentPool>> _pools;
+            std::shared_mutex component_mutex_;
+            template <typename T>
+            std::tuple<T*> fetchHelper(const Entity* entity, std::vector<std::unique_ptr<ComponentPool>>& pools, T);
+            template <typename T, typename... Ts>
+            auto fetchHelper(const Entity* entity, std::vector<std::unique_ptr<ComponentPool>>& pools, T, Ts... ts);
     };
 
     class EntityManager
@@ -460,22 +501,24 @@ namespace ecs
                 Entity ID = 1;
                 Mask = 0...000
             */
-            void ret(Entity* e_ptr);
+            void ret(const Entity* e_ptr);
             u32 maxEntities() const;
+            bool isFree(const Entity* e_ptr);
             
     };
 
     class ECS
     {
-        private:
-            EntityManager _entity_manager;
-            ComponentManager _component_manager;
         public:
             ECS();
             EntityManager& entity();
             ComponentManager& component();
             template <typename... T>
-            std::vector<const Entity*> query() const;
+            std::vector<const Entity*> query();
+        private:
+            std::mutex _entity_manager_mutex;
+            EntityManager _entity_manager;
+            ComponentManager _component_manager;
     };
 
     template <typename... T>
@@ -510,4 +553,88 @@ namespace ecs
             void sample() override;
     };
 }
+
+/*
+        Thread-safe wrapper for std::vector, the usage is generally the same. 
+    All write operations are thread-safe and have synchronization primitives to 
+    prevent multiple writers, but permit concurrent readers 
+    using std::shared_mutex. This is an implementation detail.
+
+    e.x: AtomicVector<int> intAtomicVector;
+
+    intAtomicVector.add(1); //adding an integer
+    intAtomicVector.add({1,1}); //adding a vector list
+
+        This wrapper also supports a range-based for loop e.x:
+
+    for (auto& obj : intAtomicVector)
+        std::cout << obj << '\n';
+*/
+
+template <typename T>
+class AtomicVector {
+    public:
+        void add(const T& obj);
+        void add(const std::vector<T>& objs);
+        void clear();
+        auto begin();
+        auto end();
+        size_t size() const;
+        T operator[] (int idx) const;
+        void set(const T& obj, int idx);
+    private:
+        std::shared_mutex mutex_;
+        std::vector<T> objs_;
+};
+
+/*
+        A basic thread pool that allows for concurrent task scheduling with 
+    'nthreads' worker threads. This limits the overhead of creating multiple
+    new threads for each task.
+    
+    e.x: ThreadPool pool {4}; //spawns a pool with 4 threads
+
+    pool.enqueue([](){ * your task * });
+*/
+
+class ThreadPool
+{
+    public:
+        ThreadPool(u32 nthreads);
+        ~ThreadPool();
+        void enqueue(std::function<void()> task);
+        u32 size() const;
+    private:
+        std::mutex queue_mutex_;
+        std::vector<std::thread> workers_;
+        std::atomic<bool> stop_;
+        std::queue<std::function<void()>> task_queue_;
+        std::condition_variable task_available_;
+        u32 size_;
+        void workerThread();
+};
+
+struct Collision
+{
+    const ecs::Entity *a, *b;
+    Collision(const ecs::Entity* a, const ecs::Entity* b);
+};
+
+class CollisionHandler
+{
+    public:
+        void addHandler(std::function<void()> handler);
+        void handle(std::vector<Collision> collisions);
+    private:
+        std::vector<std::function<void()>> handlers_;
+};
+
+class PlayerFactory
+{
+    public:
+        const ecs::Entity* createPlayer();
+        PlayerFactory(Camera& camera);
+    private:
+        Camera& camera_;
+};
 #include "jlo.tpp"

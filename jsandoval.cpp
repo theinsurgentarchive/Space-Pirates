@@ -28,9 +28,7 @@ Entity* character_x()
 {
     //ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr); 
     auto x = ecs::ecs.entity().checkout();
-    auto health = ecs::ecs.component().assign<HEALTH>(x);
-    auto transform = ecs::ecs.component().assign<TRANSFORM>(x);
-    
+    auto [health,transform] = ecs::ecs.component().assign<HEALTH,TRANSFORM>(x);
     if (health) {
         health -> health = 50;
         health -> max = 100;
@@ -41,8 +39,7 @@ Entity* character_x()
         transform -> pos[1] = 30;
     }
 
-    auto retrievedHealth = ecs::ecs.component().fetch<HEALTH>(x);
-    auto retrievedPos = ecs::ecs.component().fetch<TRANSFORM>(x);
+    auto [retrievedHealth, retrievedPos] = ecs::ecs.component().fetch<HEALTH,TRANSFORM>(x);
     if (retrievedPos) {
         std::cout << "Position on x-axis: " << retrievedPos -> pos[0] 
         << " y Position " << retrievedPos -> pos[1] << std::endl;
@@ -69,7 +66,7 @@ Entity* GeneratePlanet()
     auto planetEntity = ecs::ecs.entity().checkout();
     ecs::ecs.component().assign<PLANET>(planetEntity);
 
-    auto properties = ecs::ecs.component().fetch<PLANET>(planetEntity);
+    auto [properties] = ecs::ecs.component().fetch<PLANET>(planetEntity);
     
     properties->size = PlanetSize(rndNums[0]);
     properties->smooth = PlanetSmooth(rndNums[1]);

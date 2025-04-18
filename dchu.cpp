@@ -2,15 +2,12 @@
 #include <cmath>
 #include <list>
 
-bool isDisplayable(ecs::Entity* ent)
+bool isDisplayable(const ecs::Entity* ent)
 {
     bool display = true;
 
     //Check entity for Transform & Sprite Component
-    if (ecs::ecs.component().fetch<TRANSFORM>(ent) == nullptr) {
-        display = false;
-    }
-    if (ecs::ecs.component().fetch<SPRITE>(ent) == nullptr) {
+    if (!ecs::ecs.component().has<TRANSFORM,SPRITE>(ent)) {
         display = false;
     }
     if (!display) {
@@ -81,13 +78,13 @@ AStar::AStar(World& grid, v2f origin, v2u tile_dim)
 {
     //Initialize Variables
     v2u grid_size;
-    grid_size[0] = (grid.tiles().size() * 4);
-    grid_size[1] = (grid.tiles()[0].size() * 4);
+    grid_size[0] = (grid.cells.size() * 4);
+    grid_size[1] = (grid.cells[0].size() * 4);
     node_grid.resize(grid_size[0]);
     for (uint16_t i = 0; i < node_grid.size(); i++) {
         node_grid[0].resize(grid_size[1]);
     }
-    auto tiles = grid.tiles();
+    auto tiles = grid.cells;
     [[maybe_unused]] v2f gen_dist = {
         tile_dim[0] / 4.0f,
         tile_dim[1] / 4.0f
@@ -108,14 +105,16 @@ AStar::AStar(World& grid, v2f origin, v2u tile_dim)
     for (uint16_t x = 0; x < grid_size[0]; x++) {
         for (uint16_t y = 0; y < grid_size[1]; y++) {
             //Check if the Entity Has Both a Transform & a Sprite Component
-            if (!isDisplayable(tiles[x][y])) {
-                node_grid[x][y].obstacle = true;
-                continue;
+            for (auto& layer : tiles[x][y]) {
+                if (!isDisplayable(layer)) {
+                    node_grid[x][y].obstacle = true;
+                    continue;
+                }
             }
 
             //Set The World Position of Each Node to The Center of 
             //Each Quadrant of Each World Tile Using the Tile's World Position 
-            auto t = ecs::ecs.component().fetch<TRANSFORM>(tiles[x][y]);
+            auto [t] = ecs::ecs.component().fetch<TRANSFORM>(tiles[x][y][0]);
             v2f tile_world = t->pos;
             
             if (x_iter + 1 < grid_size[0] && y_iter + 1 < grid_size[1]){

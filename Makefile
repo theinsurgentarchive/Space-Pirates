@@ -40,7 +40,7 @@ else
 	g++ ${CFLAGS} -DDEBUG -c $< -Wall -Wextra ${LFLAGS} -o $@
 
 asteroids: ${OBJ}
-	g++ $^ libggfonts.a -o $@ ${LFLAGS}
+	g++ $^ -g libggfonts.a -o $@ ${LFLAGS}
 
 debug: ${D_OBJ}
 	g++ $^ libggfonts.a -g -o $@ ${LFLAGS}
