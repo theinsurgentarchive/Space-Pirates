@@ -284,7 +284,7 @@ std::unordered_map<std::string, wfc::TileMeta> Biome::tiles()
             tile_map.insert({"0", wfc::TileBuilder{0.05, "dirt-001"}
                 .omni("1").omni("2").omni("3")
                 .coefficient("1", 0.3).coefficient("2", 0.3)
-                .coefficient("3", -0.5)
+                .coefficient("3", 0.1)
                 .build()});
             tile_map.insert({"1", wfc::TileBuilder{0.4, "grass-001"}
                 .omni("0").omni("1").omni("2")
@@ -310,7 +310,7 @@ std::unordered_map<std::string, wfc::TileMeta> Biome::tiles()
             tile_map.insert({"0", wfc::TileBuilder{0.3, "sand-001"}
                 .omni("1").omni("2").omni("3")
                 .coefficient("1", 0.3).coefficient("2", 0.3)
-                .coefficient("3", -0.5)
+                .coefficient("3", 0.1)
                 .build()});
             tile_map.insert({"1", wfc::TileBuilder{0.3, "sand-002"}
                 .omni("0").omni("1").omni("2")
