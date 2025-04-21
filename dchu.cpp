@@ -448,19 +448,19 @@ void moveTo(ecs::Entity* ent, v2f target)
     float top_speed = 50.0f;
     if (physics->vel[0] > top_speed) {
         physics->vel[0] = top_speed;
-        physics->acc[0] = 0.0f
+        physics->acc[0] = 0.0f;
     }
     if (physics->vel[0] < -top_speed) {
         physics->vel[0] = -top_speed;
-        physics->acc[0] = 0.0f
+        physics->acc[0] = 0.0f;
     }
     if (physics->vel[1] > top_speed) {
         physics->vel[1] = top_speed;
-        physics->acc[1] = 0.0f
+        physics->acc[1] = 0.0f;
     }
     if (physics->vel[1] < -top_speed) {
         physics->vel[1] = -top_speed;
-        physics->acc[1] = 0.0f
+        physics->acc[1] = 0.0f;
     }
 }
 
