@@ -10,10 +10,7 @@ bool canRender(ecs::Entity* ent)
 {
     bool display = true;
     //Check entity for Transform & Sprite Component
-    if (ecs::ecs.component().fetch<TRANSFORM>(ent) == nullptr) {
-        display = false;
-    }
-    if (ecs::ecs.component().fetch<SPRITE>(ent) == nullptr) {
+    if (!ecs::ecs.component().has<TRANSFORM,SPRITE>(ent)) {
         display = false;
     }
     if (!display) {

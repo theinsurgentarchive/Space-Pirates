@@ -10,50 +10,41 @@
 #include <fstream>
 #include <sstream>
 #include <climits>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+#include <atomic>
+#include <queue>
 
 #include <GL/glx.h>
 #include <dirent.h>
+#include <unistd.h>
 
 #include "image.h"
 #include "jlo.h"
 #include "fonts.h"
 #include "image.h"
 
-std::array<Biome, 13> biomes = {
-    Biome(CHRISTMAS, v2f{-20.0f, 0.0f}, v2f{0.3f, 0.7f}, 
-        "Cold, snowy terrain, often covered in Christmas trees."),
-    Biome(RAINFOREST, v2f{25.0f, 35.0f}, v2f{0.6f, 1.0f}, 
-        "Tropical, dense vegetation with high biodiversity."),
-    Biome(SAVANNA, v2f{25.0f, 35.0f}, v2f{0.2f, 0.6f}, 
-        "Warm grasslands with scattered trees, wet and dry seasons."),
+std::array<Biome, 5> biomes = {
     Biome(FOREST, v2f{10.0f, 25.0f}, v2f{0.4f, 0.8f}, 
         "Moderate temperature, lush tree-filled areas."),
-    Biome(GRASSLAND, v2f{10.0f, 25.0f}, v2f{0.1f, 0.5f}, 
-        "Wide open plains with grasses and few trees."),
-    Biome(WOODLAND, v2f{5.0f, 20.0f}, v2f{0.2f, 0.6f}, 
-        "Drier areas with scattered trees and underbrush."),
     Biome(DESERT, v2f{30.0f, 50.0f}, v2f{0.0f, 0.2f}, 
         "Hot and dry, minimal precipitation and vegetation."),
     Biome(TAIGA, v2f{-10.0f, 10.0f}, v2f{0.2f, 0.6f}, 
         "Cold, coniferous forest with long winters."),
-    Biome(TUNDRA, v2f{-20.0f, -5.0f}, v2f{0.3f, 0.7f}, 
-        "Frozen, barren land with little vegetation."),
-    Biome(ARCTIC_DESERT, v2f{_MIN_TEMPERATURE, -10.0f}, v2f{0.0f, 0.2f}, 
-        "Extremely cold and dry, often covered with ice."),
     Biome(MEADOW, v2f{-5.0f, 15.0f}, v2f{0.4f, 0.8f}, 
         "Cold, wet grasslands often found in mountainous regions."),
-    Biome(WETLANDS, v2f{5.0f, 20.0f}, v2f{0.6f, 1.0f}, 
-        "Wet, marshy areas with abundant aquatic life."),
     Biome(HELL, v2f{40.0f, _MAX_TEMPERATURE}, v2f{0.0f, 0.1f}, 
         "Extreme temperatures and dry conditions, inhospitable to life.")
 };
+
 
 void show_jlo(Rect* r)
 {
     ggprint8b(r, 16, 0x00ff0000, "Developer - Justin Lo");
 }
 
-std::vector<std::string> img_extensions {".webp",".png",".jpeg",".jpg",".gif"};
+// ----- Globals ----- 
 std::random_device rd;
 std::mt19937 generator(rd());
 v2i dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
@@ -66,6 +57,10 @@ extern std::unordered_map<
     std::shared_ptr<Texture>> textures;
 extern std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 extern const Camera* c;
+extern std::vector<Collision> cols;
+extern std::atomic<bool> done;
+extern ThreadPool* pool;
+extern ecs::Entity* player;
 
 void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
@@ -74,79 +69,157 @@ void loadTextures(
     loader
     .loadStatic("cherry-001", 
         loadTexture(
-            "./resources/textures/decorations/cherry-001.webp", true))
+            "./resources/textures/decorations/cherry-001.png", true))
     .loadStatic("cherry-002", 
         loadTexture(
-            "./resources/textures/decorations/cherry-002.webp", true))
+            "./resources/textures/decorations/cherry-002.png", true))
     .loadStatic("chestnut-001", 
         loadTexture(
-            "./resources/textures/decorations/chestnut-001.webp", true))
+            "./resources/textures/decorations/chestnut-001.png", true))
     .loadStatic("chestnut-002", 
         loadTexture(
-            "./resources/textures/decorations/chestnut-002.webp", true))
+            "./resources/textures/decorations/chestnut-002.png", true))
     .loadStatic("chestnut-003", 
         loadTexture(
-            "./resources/textures/decorations/chestnut-003.webp", true))
-    .loadStatic("pine000", 
+            "./resources/textures/decorations/chestnut-003.png", true))
+    .loadStatic("pine-001", 
         loadTexture(
-            "./resources/textures/decorations/pine000.webp", true))
-    .loadStatic("pine001", 
+            "./resources/textures/decorations/pine-001.png", true))
+    .loadStatic("pine-002", 
         loadTexture(
-            "./resources/textures/decorations/pine001.webp", true))
-    .loadStatic("pine002", 
+            "./resources/textures/decorations/pine-002.png", true))
+    .loadStatic("pine-003", 
         loadTexture(
-            "./resources/textures/decorations/pine002.webp", true))
-    .loadStatic("pine003", 
+            "./resources/textures/decorations/pine-003.png", true))
+    .loadStatic("pine-004", 
         loadTexture(
-            "./resources/textures/decorations/pine003.webp", true))
-    .loadStatic("pine004", 
+            "./resources/textures/decorations/pine-004.png", true))
+    .loadStatic("pine-005", 
         loadTexture(
-            "./resources/textures/decorations/pine004.webp", true))
-    .loadStatic("pine000snow", 
+            "./resources/textures/decorations/pine-005.png", true))
+    .loadStatic("cactus-001", 
         loadTexture(
-            "./resources/textures/decorations/pine000snow.webp", true))
-    .loadStatic("pine001snow", 
+            "./resources/textures/decorations/cactus-001.png", true))
+    .loadStatic("cactus-002", 
         loadTexture(
-            "./resources/textures/decorations/pine001snow.webp", true))
-    .loadStatic("pine002snow", 
+            "./resources/textures/decorations/cactus-002.png", true))
+    .loadStatic("cactus-003", 
         loadTexture(
-            "./resources/textures/decorations/pine002snow.webp", true))
-    .loadStatic("pine003snow", 
+            "./resources/textures/decorations/cactus-003.png", true))
+    .loadStatic("cactus-004", 
         loadTexture(
-            "./resources/textures/decorations/pine003snow.webp", true))
-    .loadStatic("pine004snow", 
+            "./resources/textures/decorations/cactus-004.png", true))
+    .loadStatic("cactus-005", 
         loadTexture(
-            "./resources/textures/decorations/pine004snow.webp", true))
+            "./resources/textures/decorations/cactus-005.png", true))
+    .loadStatic("pine-001snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-001snow.png", true))
+    .loadStatic("pine-002snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-002snow.png", true))
+    .loadStatic("pine-003snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-003snow.png", true))
+    .loadStatic("pine-004snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-004snow.png", true))
+    .loadStatic("pine-005snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-005snow.png", true))
     .loadStatic("player-idle",
         loadTexture(
-            "./resources/textures/player/idle.webp",true),{1,1},{18,32})
+            "./resources/textures/player/idle.webp",true),
+        {1,1},{18,32})
     .loadStatic("player-front",
         loadTexture(
-            "./resources/textures/player/front.webp",true),{1,3},{24,32},true)
+            "./resources/textures/player/front.webp",true),
+        {1,3},{26,32},true)
     .loadStatic("player-back",
         loadTexture(
-            "./resources/textures/player/back.webp",true),{1,3},{24,32},true)
+            "./resources/textures/player/back.webp",true),
+        {1,3},{26,32},true)
     .loadStatic("player-right",
         loadTexture(
-            "./resources/textures/player/right.webp",true),{1,3},{24,32},true)
-    .loadStatic("sand",
+            "./resources/textures/player/right.webp",true),
+        {1,3},{26,32},true)
+    .loadStatic("sand-001",
         loadTexture(
-            "./resources/textures/tiles/sand.webp",false))
-    .loadStatic("grass",
+            "./resources/textures/tiles/sand-001.webp",false))
+    .loadStatic("sand-002",
         loadTexture(
-            "./resources/textures/tiles/grass.webp",false))
+            "./resources/textures/tiles/sand-002.webp",false))
+    .loadStatic("sand-003",
+        loadTexture(
+            "./resources/textures/tiles/sand-003.webp",false))
+    .loadStatic("hell-001",
+        loadTexture(
+            "./resources/textures/tiles/hell-001.webp",false))
+    .loadStatic("hell-002",
+        loadTexture(
+            "./resources/textures/tiles/hell-002.webp",false))
+    .loadStatic("hell-003",
+        loadTexture(
+            "./resources/textures/tiles/hell-003.webp",false))
+    .loadStatic("snow-001",
+        loadTexture(
+            "./resources/textures/tiles/snow-001.webp",false))
+    .loadStatic("snow-002",
+        loadTexture(
+            "./resources/textures/tiles/snow-002.webp",false))
+    .loadStatic("grass-001",
+        loadTexture(
+            "./resources/textures/tiles/grass-001.webp",false))
+    .loadStatic("grass-002",
+        loadTexture(
+            "./resources/textures/tiles/grass-002.webp",false))
+    .loadStatic("grass-004",
+        loadTexture(
+            "./resources/textures/tiles/grass-004.webp",false))
+    .loadStatic("grass-005",
+        loadTexture(
+            "./resources/textures/tiles/grass-005.webp",false))
     .loadStatic("placeholder",
         loadTexture(
             "./resources/placeholder.webp", true))
-    .loadStatic("water",
+    .loadStatic("flower-001",
         loadTexture(
-            "./resources/textures/tiles/warmwater.webp",false),{1,3},{16,16},true);
+            "./resources/textures/tiles/flower-001.webp",false))
+    .loadStatic("flower-002",
+        loadTexture(
+            "./resources/textures/tiles/flower-002.webp",false))
+    .loadStatic("flower-003",
+        loadTexture(
+            "./resources/textures/tiles/flower-003.webp",false))
+    .loadStatic("flower-004",
+        loadTexture(
+            "./resources/textures/tiles/flower-004.webp",false))
+    .loadStatic("dirt-001",
+        loadTexture(
+            "./resources/textures/tiles/dirt-001.webp",false))
+    .loadStatic("dirt-002",
+        loadTexture(
+            "./resources/textures/tiles/dirt-002.webp",false))
+    .loadStatic("warm-water",
+        loadTexture(
+            "./resources/textures/tiles/warm-water.webp",false),
+        {1,3},{16,16},true)
+    .loadStatic("cold-water",
+        loadTexture(
+            "./resources/textures/tiles/cold-water.webp",false),
+        {1,3},{16,16},true)
+    .loadStatic("lava-001",
+        loadTexture(
+            "./resources/textures/tiles/lava-001.webp",false),
+        {1,45},{16,16}, true);
 }
 
 std::shared_ptr<Texture> loadTexture(
     const std::string& file_name, 
     bool alpha)
 {
+    static std::vector<std::string> img_extensions 
+    {".webp",".png",".jpeg",".jpg",".gif"};
     std::ifstream file (file_name);
     if (!file.is_open()) {
         DERRORF("file does not exist: %s\n",file_name.c_str());
@@ -190,22 +263,7 @@ std::shared_ptr<Texture> loadTexture(
     return tex;
 }
 
-Biome selectBiome(float temperature, float humidity) {
-    std::vector<int> indices(13);
-    std::iota(indices.begin(), indices.end(), 0);
-    std::shuffle(indices.begin(), indices.end(), generator);
-
-    for (int i : indices) {
-        auto& biome = biomes[i];
-        if (temperature >= biome.temperature[0] && 
-            temperature <= biome.temperature[1] &&
-            humidity >= biome.humidity[0] && 
-            humidity <= biome.humidity[1]) {
-            return biome;
-        }
-    }
-    return biomes[0];
-}
+////////////////////////////////////////////////////////////////////////////////
 
 Biome::Biome(
     BiomeType type, 
@@ -220,29 +278,295 @@ Biome::Biome(
 {
 }
 
-Camera::Camera(v2f& pos, const v2u dim) : pos{pos},dim{dim}
+std::unordered_map<std::string, wfc::TileMeta> Biome::tiles()
 {
+    std::unordered_map<std::string, wfc::TileMeta> tile_map;
+    
+    switch (type) {
+        case FOREST:
+            tile_map.insert({"0", wfc::TileBuilder{0.05, "dirt-001"}
+                .omni("1").omni("2").omni("3")
+                .coefficient("1", 0.3).coefficient("2", 0.3)
+                .coefficient("3", -0.5)
+                .build()});
+            tile_map.insert({"1", wfc::TileBuilder{0.4, "grass-001"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"2", wfc::TileBuilder{0.4, "grass-002"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"3", wfc::TileBuilder{0.1, "cold-water"}
+                .omni("0").omni("3")
+                .coefficient("0", 0.25).coefficient("3", 0.5)
+                .build()});
+            tile_map.insert({"4", wfc::TileBuilder{0.05, "sand-003"}
+                .omni("0").omni("4")
+                .coefficient("0", 0.3).coefficient("4", 0.3)
+                .build()});
+            break;
+
+        case DESERT:
+            tile_map.insert({"0", wfc::TileBuilder{0.3, "sand-001"}
+                .omni("1").omni("2").omni("3")
+                .coefficient("1", 0.3).coefficient("2", 0.3)
+                .coefficient("3", -0.5)
+                .build()});
+            tile_map.insert({"1", wfc::TileBuilder{0.3, "sand-002"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"2", wfc::TileBuilder{0.3, "sand-003"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"3", wfc::TileBuilder{0.1, "warm-water"}
+                .omni("0").omni("3")
+                .coefficient("0", 0.25).coefficient("3", 0.25)
+                .build()});
+            break;
+
+        case TAIGA:
+            tile_map.insert({"0", wfc::TileBuilder{0.3, "grass-004"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.4).coefficient("1", 0.4)
+                .coefficient("2", 0.2).coefficient("3", 0.2)
+                .coefficient("4", 0.1)
+                .build()});
+            tile_map.insert({"1", wfc::TileBuilder{0.3, "grass-005"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.5).coefficient("1", 0.5)
+                .coefficient("2", 0.1).coefficient("3", 0.1)
+                .coefficient("4", 0.05)
+                .build()});
+            tile_map.insert({"2", wfc::TileBuilder{0.3, "snow-001"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.1).coefficient("1", 0.1)
+                .coefficient("2", 0.6).coefficient("3", 0.6)
+                .coefficient("4", 0.05)
+                .build()});
+            tile_map.insert({"3", wfc::TileBuilder{0.3, "snow-002"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.1).coefficient("1", 0.1)
+                .coefficient("2", 0.7).coefficient("3", 0.7)
+                .coefficient("4", 0.05)
+                .build()});
+            tile_map.insert({"4", wfc::TileBuilder{0.1, "cold-water"}
+                .omni({"0","1","4"})
+                .coefficient("0", 0.15).coefficient("1", 0.15)
+                .coefficient("4", 0.7).coefficient("2", 0.05)
+                .coefficient("3", 0.05)
+                .build()});
+            tile_map.insert({"5", wfc::TileBuilder{0.2, "sand-001"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.1).coefficient("1", 0.1)
+                .coefficient("2", 0.1).coefficient("3", 0.1)
+                .coefficient("4", 0.8)
+                .build()});
+            break;
+
+        case MEADOW:
+            tile_map.insert({"0", wfc::TileBuilder{0.1, "flower-001"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.4).coefficient("1", 0.4)
+                .coefficient("2", 0.2).coefficient("3", 0.2)
+                .coefficient("4", 0.1)
+                .build()});
+            tile_map.insert({"1", wfc::TileBuilder{0.1, "flower-002"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.5).coefficient("1", 0.5)
+                .coefficient("2", 0.1).coefficient("3", 0.1)
+                .coefficient("4", 0.05)
+                .build()});
+            tile_map.insert({"2", wfc::TileBuilder{0.1, "flower-003"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.1).coefficient("1", 0.1)
+                .coefficient("2", 0.6).coefficient("3", 0.6)
+                .coefficient("4", 0.05)
+                .build()});
+            tile_map.insert({"3", wfc::TileBuilder{0.1, "flower-004"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.1).coefficient("1", 0.1)
+                .coefficient("2", 0.7).coefficient("3", 0.7)
+                .coefficient("4", 0.05)
+                .build()});
+            tile_map.insert({"4", wfc::TileBuilder{0.4, "grass-004"}
+                .omni({"0","1","4"})
+                .coefficient("0", 0.15).coefficient("1", 0.15)
+                .coefficient("4", 0.7).coefficient("2", 0.05)
+                .coefficient("3", 0.05)
+                .build()});
+            tile_map.insert({"5", wfc::TileBuilder{0.3, "grass-005"}
+                .omni({"0","1","2","3"})
+                .coefficient("0", 0.1).coefficient("1", 0.1)
+                .coefficient("2", 0.1).coefficient("3", 0.1)
+                .coefficient("4", 0.8)
+                .build()});
+            break;
+
+        case HELL:
+            tile_map.insert({"0", wfc::TileBuilder{0.5, "hell-001"}
+                .omni({"1","2","3"})
+                .coefficient("1", 0.3).coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"1", wfc::TileBuilder{0.3, "hell-002"}
+                .omni({"0","1","2"})
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"2", wfc::TileBuilder{0.3, "hell-003"}
+                .omni({"0","1","2"})
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"3", wfc::TileBuilder{0.4, "lava-001"}
+                .omni({"0","3"})
+                .coefficient("0", 0.25).coefficient("3", 0.5)
+                .build()});
+            break;
+    }
+
+    return tile_map;
 }
 
-void Camera::move(v2f delta)
+std::vector<std::string> Biome::decor(BiomeType type)
 {
-    pos += delta;
+    switch(type) {
+        case FOREST:
+            return {"pine-001","pine-002","pine-003","pine-004","pine-005"};
+        case DESERT:
+            return {"cactus-001","cactus-002","cactus-003",
+                "cactus-004","cactus-005"};
+        case TAIGA:
+            return {"pine-001snow","pine-002snow","pine-003snow",
+                "pine-004snow","pine005snow"};
+        case MEADOW:
+            return {"chestnut-001","chestnut-002","chestnut-003","pine-001",
+                "pine-002","pine-003","pine-004","pine-005"};
+        case HELL:
+            return {};
+    }
+    return {""};
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+    Camera of the game, center of the camera is bound to 'pos_'.
+*/
+
+Camera::Camera(v2f& pos, v2u& dim) : pos_{pos}, dim_{dim} {}
+
+void Camera::bind(v2f& pos)
+{
+    pos_ = std::ref(pos);
+}
+
+void Camera::bind(const ecs::Entity* entity)
+{
+    if (ecs::ecs.component().has<TRANSFORM>(entity)) {
+        auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(entity);
+        bind(transform->pos);
+    }
 }
 
 void Camera::update() const
 {
-    glTranslatef((dim[0] >> 1) - pos[0], (dim[1] >> 1) - pos[1],0);
+    glTranslatef((dim_.get()[0] >> 1) - pos_.get()[0], 
+    (dim_.get()[1] >> 1) - pos_.get()[1],0);
 }
 
 bool Camera::visible(v2f curr) const
 {
-    float wh = dim[0] >> 1;
-    float hh = dim[1] >> 1;
-    v2f v1 {pos[0] - wh, pos[1] - hh};
-    v2f v2 {pos[0] + wh, pos[1] + hh};
+    float wh = dim_.get()[0] >> 1;
+    float hh = dim_.get()[1] >> 1;
+    v2f v1 {pos_.get()[0] - wh, pos_.get()[1] - hh};
+    v2f v2 {pos_.get()[0] + wh, pos_.get()[1] + hh};
     return curr[0] >= v1[0] && curr[0] <= v2[0] &&
     curr[1] >= v1[1] && curr[1] <= v2[1];
 }
+
+v2u Camera::dim() const
+{
+    return dim_;
+}
+
+void Camera::visibleHelper(
+    std::vector<const ecs::Entity*>& entities, 
+    std::vector<const ecs::Entity*>& visible_entities, 
+    const u32 start, 
+    const u32 end,
+    std::mutex& visible_entities_mutex) const
+{
+    std::vector<const ecs::Entity*> thread_visible;
+    thread_visible.reserve(end - start);
+    for (u32 i {start}; i < end; ++i) {
+        auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(entities[i]);
+        if (visible(transform->pos)) {
+            thread_visible.emplace_back(entities[i]);
+        }
+    }
+
+    std::lock_guard<std::mutex> lock(visible_entities_mutex);
+    for (auto& entity : thread_visible) {
+        visible_entities.push_back(entity);
+    }
+}
+
+/*
+
+    Returns all entities that are currently visible to the camera
+
+    @return collection of entities
+
+*/
+
+std::vector<const ecs::Entity*> Camera::findVisible(
+    std::vector<const ecs::Entity*>& entities,
+    ThreadPool& pool) const
+{
+    const u32 nthreads = pool.size(); 
+    const u32 entities_size = static_cast<u32>(entities.size());
+    const u32 ethread = {entities_size / nthreads}; // entities per thread
+    std::mutex task_mutex;
+    std::condition_variable tasks_finished;
+    std::atomic<u32> worker_count {nthreads};
+    std::vector<const ecs::Entity*> visible_entities;
+    for (u32 i {0}; i < nthreads; ++i) { //static partitioning
+        u32 start {i * ethread};
+        u32 end {i == (nthreads - 1) ? entities_size : start + ethread };
+        pool.enqueue([
+            this, 
+            &entities, 
+            &visible_entities, 
+            start, 
+            end, 
+            &task_mutex, 
+            &tasks_finished, 
+            &worker_count
+        ]() {
+            visibleHelper(entities, visible_entities, start, end, task_mutex);
+            if (--worker_count == 0) {
+                std::lock_guard<std::mutex> lock(task_mutex);
+                tasks_finished.notify_all();
+            }
+        });
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(task_mutex);
+        tasks_finished.wait(lock,[&worker_count]() { return worker_count == 0; });
+    }
+
+    return visible_entities;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 Texture::Texture(
         const Vec2<u16>& dim, 
@@ -250,8 +574,10 @@ Texture::Texture(
         dim{dim}, 
         alpha{alpha}
 {
-    tex = std::make_shared<GLuint>();
+    tex = std::make_unique<GLuint>();
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 SpriteSheetLoader::SpriteSheetLoader(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets) 
@@ -272,6 +598,8 @@ SpriteSheetLoader& SpriteSheetLoader::loadStatic(
         animated)});
     return *this;
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 SpriteSheet::SpriteSheet(
     const v2u& frame_dim,
@@ -297,89 +625,169 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale, bool invertY)
         static_cast<u16>(frame % frame_dim[1]), 
         static_cast<u16>(frame / frame_dim[1])
     };
-    u16 sw {static_cast<u16>(sprite_dim[0] * scale[0])};
-    u16 sh {static_cast<u16>(sprite_dim[1] * scale[1])};
-    u16 rows {frame_dim[0]};
-    u16 cols {frame_dim[1]};
-    float fx {(float) f[0] / cols};
-    float fy {(float) f[1] / rows};
-    float xo {(float) 1 / cols};
-    float xy {(float) 1 / rows};
+    const u16 sw {static_cast<u16>(sprite_dim[0] * scale[0])};
+    const u16 sh {static_cast<u16>(sprite_dim[1] * scale[1])};
+    const u16 swhalf {static_cast<u16>(sw * 0.5)};
+    const u16 shhalf {static_cast<u16>(sh * 0.5)};
+    const u16 rows {frame_dim[0]};
+    const u16 cols {frame_dim[1]};
+    const float fx {(float) f[0] / cols};
+    const float fy {(float) f[1] / rows};
+    const float xo {(float) 1 / cols};
+    const float xy {(float) 1 / rows};
     glBindTexture(GL_TEXTURE_2D,*tex->tex);
     glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER, 0.0f);
+	glAlphaFunc(GL_GREATER, 0.9f);
     glColor4ub(255,255,255,255);
     glBegin(GL_QUADS);
         if (invertY) {
-            glTexCoord2f(fx + xo, fy + xy);     glVertex2i(pos[0] - sw, pos[1] - sh);
-            glTexCoord2f(fx + xo, fy);          glVertex2i(pos[0] - sw, pos[1] + sh);
-            glTexCoord2f(fx, fy);     glVertex2i(pos[0] + sw, pos[1] + sh);
-            glTexCoord2f(fx, fy + xy);glVertex2i(pos[0] + sw, pos[1] - sh);
+            glTexCoord2f(fx + xo, fy + xy);     
+            glVertex2i(pos[0] - swhalf, pos[1] - shhalf);
+            glTexCoord2f(fx + xo, fy);          
+            glVertex2i(pos[0] - swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx, fy);     
+            glVertex2i(pos[0] + swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx, fy + xy);
+            glVertex2i(pos[0] + swhalf, pos[1] - shhalf);
         } else {
-            glTexCoord2f(fx, fy + xy);     glVertex2i(pos[0] - sw, pos[1] - sh);
-            glTexCoord2f(fx, fy);          glVertex2i(pos[0] - sw, pos[1] + sh);
-            glTexCoord2f(fx + xo, fy);     glVertex2i(pos[0] + sw, pos[1] + sh);
-            glTexCoord2f(fx + xo, fy + xy);glVertex2i(pos[0] + sw, pos[1] - sh);
+            glTexCoord2f(fx, fy + xy);     
+            glVertex2i(pos[0] - swhalf, pos[1] - shhalf);
+            glTexCoord2f(fx, fy);          
+            glVertex2i(pos[0] - swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx + xo, fy);     
+            glVertex2i(pos[0] + swhalf, pos[1] + shhalf);
+            glTexCoord2f(fx + xo, fy + xy);
+            glVertex2i(pos[0] + swhalf,pos[1] - shhalf);
         }
     glEnd();
     glDisable(GL_ALPHA_TEST);
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
-std::vector<std::vector<ecs::Entity*>>& World::tiles()
+Biome selectBiome(float temperature, float humidity, u32 seed)
 {
-    return _grid;
-}
+    std::vector<int> indices(biomes.size());
+    std::iota(indices.begin(), indices.end(), 0);
+    generator.seed(seed);
+    std::shuffle(indices.begin(), indices.end(), generator);
 
-World::~World()
-{
-    for (auto& row : _grid) {
-        for (auto& tile : row) {
-            ecs::ecs.entity().ret(tile);
+    for (int i : indices) {
+        auto& biome = biomes[i];
+        if (temperature >= biome.temperature[0] && 
+            temperature <= biome.temperature[1] &&
+            humidity >= biome.humidity[0] && 
+            humidity <= biome.humidity[1]) {
+            return biome;
         }
     }
+    return biomes[0];
 }
 
-World::World(
-    const v2f& origin, 
-    wfc::Grid& grid, 
-    std::unordered_map<std::string,wfc::TileMeta>& tiles)
+
+WorldGenerationSettings::WorldGenerationSettings(
+    float temperature, 
+    float humidity, 
+    u16 radius, 
+    u32 seed) : 
+    temperature{temperature},
+    humidity{humidity},
+    radius{radius},
+    biome_seed{seed}
+{}
+
+World::World(WorldGenerationSettings settings)
 {
-    const auto grid_size = grid.size();
-    _grid.resize(grid_size[0]);
-    for (int32_t i {0}; i < grid_size[0]; i++) {
-        for (int32_t j {0}; j < grid_size[1]; j++) {
+    Biome biome = selectBiome(
+        settings.temperature,
+        settings.humidity, 
+        settings.biome_seed);
+        std::cout << biome.type << ' ' << biome.description << std::endl;
+    std::unordered_map<std::string,wfc::TileMeta> tile_map = biome.tiles();
+    wfc::Grid grid {{settings.radius,settings.radius}};
+    wfc::WaveFunction wf {grid,tile_map};
+    const auto grid_size = grid.size;
+    cells.resize(grid_size[1]);
+    for (i32 i {0}; i < grid_size[1]; i++) {
+        cells[i].resize(grid_size[0]);
+        for (i32 j {0}; j < grid_size[0]; j++) {
             auto cell = grid.get({i,j});
             if (cell == nullptr || cell->state.empty())
                 continue;
-            auto tile = tiles.find(cell->state);
-            if (tile == tiles.end())
+            auto tile = tile_map.find(cell->state);
+            if (tile == tile_map.end())
                 continue;
 
             auto ssheet = ssheets.find(tile->second.ssheet);
             if (ssheet == ssheets.end())
                 continue;
             auto sd = ssheet->second->sprite_dim;
-            auto p = cell->pos;
-            auto e = ecs::ecs.entity().checkout();
-            if (e == nullptr) {
+            v2i p = cell->pos;
+            const ecs::Entity* entity = ecs::ecs.entity().checkout();
+            if (entity == nullptr) {
                 continue;
             }
-            auto tc = ecs::ecs.component().assign<TRANSFORM>(e);
-            tc->scale = {4,4};
-            tc->pos = origin + v2f {
-                static_cast<float>(sd[0] * p[0] * tc->scale[0]),
-                static_cast<float>(sd[1] * p[1] * tc->scale[1])
+            auto [transform,sprite] = 
+                ecs::ecs.component().assign<TRANSFORM,SPRITE>(entity);
+            transform->scale = {3,3};
+            transform->pos = settings.origin + v2f {
+                static_cast<float>(sd[0] * p[0] * transform->scale[0]),
+                static_cast<float>(sd[1] * p[1] * transform->scale[1])
             };
-            auto sc = ecs::ecs.component().assign<SPRITE>(e);
-            sc->ssheet = tile->second.ssheet;
-            _grid[i].push_back(e);
+            sprite->ssheet = tile->second.ssheet;
+            if (sprite->ssheet == "warm-water") {
+                auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
+                collider->dim = v2u {16 * 3,16 * 3};
+                collider->passable = false;
+            }
+            cells[i][j].push_back(entity);
+            std::uniform_real_distribution<double> dis(0.0,1.0);
+            if (dis(generator) > 0.8) {
+                std::vector<std::string> decors = Biome::decor(biome.type);
+                if (decors.size() == 0) {
+                    continue;
+                }
+                std::random_device rd;
+                std::mt19937 generator { rd() };
+                std::uniform_int_distribution<> dist (0, decors.size() - 1);
+                int decor_index = dist(generator);
+                auto decor_ssheet = ssheets.find(decors[decor_index]);
+                if (decor_ssheet == ssheets.end() || 
+                    sprite->ssheet.find("water") != std::string::npos ||
+                    sprite->ssheet.find("lava") != std::string::npos)
+                    continue;
+                auto decor_sd = decor_ssheet->second->sprite_dim;
+                const ecs::Entity* decor = ecs::ecs.entity().checkout();
+                auto [dtransform,dsprite] = ecs::ecs.component()
+                    .assign<TRANSFORM,SPRITE>(decor);
+                dsprite->ssheet = decors[decor_index];
+                dsprite->render_order = INT_MAX - j;
+                dtransform->pos = transform->pos;
+                dtransform->pos[1] += (decor_sd[1] / 2);
+                cells[i][j].push_back(decor);
+            }
         }
     }
 }
 
+World::~World()
+{
+    for (auto& row : cells) {
+        for (auto& column : row) {
+            for (const auto& tile : column) {
+                ecs::ecs.entity().ret(tile);
+            }
+        }        
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 namespace wfc
 {
+
+////////////////////////////////////////////////////////////////////////////////
+
     TileMeta::TileMeta(
         float weight, 
         std::string ssheet,
@@ -392,6 +800,8 @@ namespace wfc
         coefficients{coefficients} 
     {        
     }
+
+////////////////////////////////////////////////////////////////////////////////
 
     TileBuilder::TileBuilder(
         float weight, 
@@ -415,7 +825,17 @@ namespace wfc
         return *this;
     }
 
-    TileBuilder& TileBuilder::coefficient(const std::string& tile, float weight)
+    TileBuilder& TileBuilder::omni(std::initializer_list<std::string> tiles)
+    {
+        for (const auto& tile : tiles) {
+            omni(tile);
+        }
+        return *this;
+    }
+
+    TileBuilder& TileBuilder::coefficient(
+            const std::string& tile, 
+            float weight)
     {
         _coefficients[tile] = weight;
         return *this;
@@ -425,6 +845,8 @@ namespace wfc
     {
         return {_weight,_ssheet,_rules,_coefficients};
     }
+
+////////////////////////////////////////////////////////////////////////////////
 
     Cell::Cell(
         const v2i& pos, 
@@ -445,44 +867,24 @@ namespace wfc
         return !state.empty();
     }
 
-    Grid::Grid(
-        Vec2<u16> size, 
-        const std::unordered_set<std::string>& states)
-        : 
-        size_{size} 
-    {
-        cells_.reserve(size[0] * size[1]);
-        for (int i {0}; i < size[0]; i++) {
-            for (int j {0}; j < size[1]; j++) {
-                cells_.emplace_back(v2i(i,j),states);
-            }
-        }
-    }
+////////////////////////////////////////////////////////////////////////////////
 
-    Vec2<u16> Grid::size() const
-    {
-        return size_;
-    }
+    Grid::Grid(const v2u& size) : size{size} {}
 
     Cell* Grid::get(v2i pos)
     {
         if (pos[0] >= 0 && 
-            pos[0] < size_[0] && 
+            pos[0] < size[0] && 
             pos[1] >= 0 && 
-            pos[1] < size_[1]) {
-            return &cells_[pos[0] * size_[0] + pos[1]];
+            pos[1] < size[1]) {
+            return &cells[pos[0] * size[0] + pos[1]];
         }
         return nullptr;
     }
 
-    std::vector<Cell>& Grid::cells()
-    {
-        return cells_;
-    }
-
     bool Grid::collapsed()
     {
-        for (auto& cell : cells_) {
+        for (auto& cell : cells) {
             if(!cell.collapsed()) {
                 return false;
             }
@@ -490,9 +892,11 @@ namespace wfc
         return true;
     }
 
+////////////////////////////////////////////////////////////////////////////////
+
     TilePriorityQueue::TilePriorityQueue(Grid& grid)
     {
-        for (auto& cell : grid.cells()) {
+        for (auto& cell : grid.cells) {
             _queue.push_back(&cell);
         }
         std::shuffle(_queue.begin(),_queue.end(),generator);
@@ -560,6 +964,8 @@ namespace wfc
         return cell;
     }
 
+////////////////////////////////////////////////////////////////////////////////
+
     WaveFunction::WaveFunction(
         Grid& grid, 
         std::unordered_map<std::string,TileMeta>& tiles) 
@@ -567,10 +973,17 @@ namespace wfc
         _grid{grid}, 
         _tiles{tiles}, 
         _queue{grid} {
-        std::vector<std::string> states;
+        std::unordered_set<std::string> states;
         for (auto& pair : _tiles)
-            states.push_back(pair.first);
+            states.insert(pair.first);
+        grid.cells.reserve(grid.size[1] * grid.size[0]);
+        for (i32 i = 0; i < grid.size[1]; i++) {
+            for (i32 j = 0; j < grid.size[0]; j++) {
+                grid.cells.emplace_back(v2i{i,j}, states);
+            }
+        }
         _queue = {grid};
+        this->run();
     }
 
     v2i _shift_vector(u16 dir, const v2i& vec) {
@@ -587,9 +1000,9 @@ namespace wfc
             auto shift = pos + dirs[i];
             auto cell = _grid.get(shift);
             if (shift[0] >= 0 && 
-                shift[0] < _grid.size()[0] && 
+                shift[0] < _grid.size[0] && 
                 shift[1] >= 0 && 
-                shift[1] < _grid.size()[1] && 
+                shift[1] < _grid.size[1] && 
                 cell->collapsed()) {
                 if (meta.coefficients.find(cell->state) != 
                         meta.coefficients.end()) {
@@ -606,7 +1019,6 @@ namespace wfc
         float cumulative_weight {0};
         std::vector<std::pair<std::string,float>> state_weights;
         for (auto& state : c->states) {
-
             auto it = _tiles.find(state);
             if (it != _tiles.end()) {
                 auto weight = _calculateTileWeight(c->pos, it->second);
@@ -647,15 +1059,15 @@ namespace wfc
                     auto t1 = _tiles.find(*it);
                     auto t1_rules = t1->second.rules[j];
                     
-                    auto s1 = std::find(
+                    auto s1 = std::count(
                         t2_rules.begin(),
                         t2_rules.end(),
-                        *it) != t2_rules.end();
+                        *it);
 
-                    auto s2 = std::find(
+                    auto s2 = std::count(
                         t1_rules.begin(),
                         t1_rules.end(),
-                        c2->state) != t1_rules.end();
+                        c2->state);
 
                     bool compatible = s1 && s2;
 
@@ -684,6 +1096,9 @@ namespace wfc
             _propagate(cell);
         }
     }
+
+////////////////////////////////////////////////////////////////////////////////
+
 }
 
 namespace ecs
@@ -691,6 +1106,8 @@ namespace ecs
     ECS ecs;
 
     Entity::Entity(u32 i, cmask m) : id(i), mask(m) {}
+
+////////////////////////////////////////////////////////////////////////////////
 
     ComponentPool::ComponentPool(u32 size) : _size {size}
     {
@@ -726,7 +1143,7 @@ namespace ecs
         return &entities[idx];
     }
 
-    void EntityManager::ret(Entity* e_ptr)
+    void EntityManager::ret(const Entity* e_ptr)
     {
         e_ptr->mask.reset();
         _free.push_back(e_ptr->id);
@@ -744,11 +1161,22 @@ namespace ecs
     {
         return _entity_manager;
     }
+    
+    bool EntityManager::isFree(const Entity* e_ptr)
+    {
+        return std::count(_free.begin(),_free.end(),e_ptr->id);
+    }
 
     ComponentManager &ECS::component()
     {
         return _component_manager;
     }
+
+    std::unordered_map<u32,Transform*> transforms;
+    std::unordered_map<u32,Sprite*> sprites;
+    std::unordered_map<u32,Physics*> physics;
+    std::unordered_map<u32,Collider*> colliders;
+
 
     PhysicsSystem::PhysicsSystem(ECS& ecs, float sample_delta) 
     :
@@ -760,8 +1188,9 @@ namespace ecs
     {
         for (auto& entity : _entities) {
             DINFOF("applying physics to entity (%d)\n",entity->id);
-            auto tc = ecs.component().fetch<TRANSFORM>(entity);
-            auto pc = ecs.component().fetch<PHYSICS>(entity);
+            auto [tc,pc] = ecs.component().fetch<Transform,Physics>(entity);
+            if (!pc || !tc)
+                continue; // b
             if (pc->enabled) {
                 pc->vel += pc->acc * dt;
                 tc->pos += pc->vel * dt;
@@ -778,9 +1207,10 @@ namespace ecs
     void RenderSystem::sample()
     {
         _entities = _ecs.query<SPRITE,TRANSFORM>();
-        std::sort(_entities.begin(), _entities.end(), [this](const Entity* a, const Entity* b) {
-            auto as = _ecs.component().fetch<SPRITE>(a);
-            auto bs = _ecs.component().fetch<SPRITE>(b);
+        std::sort(_entities.begin(), _entities.end(), 
+            [this](const Entity* a, const Entity* b) {
+            auto [as] = _ecs.component().fetch<SPRITE>(a);
+            auto [bs] = _ecs.component().fetch<SPRITE>(b);
             if (as == nullptr && bs == nullptr)
                 return false;
             if (as == nullptr)
@@ -790,23 +1220,53 @@ namespace ecs
             return as->render_order < bs->render_order;
         });
     }
+    
+    struct CompareEntity
+    {
+        bool operator()(const Entity* e1, const Entity* e2)
+        {
+            auto [s1] = ecs::ecs.component().fetch<SPRITE>(e1);
+            auto [s2] = ecs::ecs.component().fetch<SPRITE>(e2);
+            return s1->render_order > s2->render_order;
+        }
+    };
 
+    void renderHelper(std::vector<const Entity*>& entities, 
+        std::priority_queue<const Entity*, std::vector<const Entity*>, 
+            CompareEntity>& visible, 
+        std::mutex& mutex, u32 start, u32 end)
+    {
+        std::vector<const Entity*> local_visible;
+        local_visible.reserve(end - start);
+        for (i32 i {static_cast<i32>(start)}; i < static_cast<i32>(end); ++i) {
+            auto e = entities[i];
+            auto [transform] = ecs::ecs.component().fetch<Transform>(e);
+            if ((c->visible(transform->pos))) {
+                local_visible.emplace_back(e);
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(mutex);
+        for (auto& entity : local_visible) {
+            visible.push(entity);
+        }
+    }
+  
     void RenderSystem::update([[maybe_unused]]float dt)
     {
-        for (auto& entity : _entities) {
-            auto tc = _ecs.component().fetch<TRANSFORM>(entity);
-            if (!c->visible(tc->pos)) {
+        for (auto& entity :  _entities) {
+            auto [transform,sprite] = _ecs.component().fetch<TRANSFORM,SPRITE>(entity);
+            if (!c->visible(transform->pos)) {
                 DINFO("entity was skipped");
                 continue;
             }
-            auto ec = _ecs.component().fetch<SPRITE>(entity);
-            if (ec->ssheet.empty()) {
+            if (sprite->ssheet.empty()) {
                 DWARNF("animation key was empty for entity (%d)\n", 
                         entity->id);
                 continue;
             }
             
-            auto ssheet = ssheets[ec->ssheet];
+            auto ssheet = ssheets[sprite->ssheet];
             if (ssheet == nullptr) {
                 DWARNF("animation from animation key: %s was null\n", 
                         ec->ssheet.c_str());
@@ -816,14 +1276,231 @@ namespace ecs
             if (ssheet->tex == nullptr) {
                 continue;
             }
-            ssheet->render(ec->frame,tc->pos, tc->scale, ec->invert_y);
+            ssheet->render(sprite->frame, transform->pos, transform->scale, sprite->invert_y);
             if (ssheet->animated) {
-                ec->frame++;
+                sprite->frame++;
                 auto f = ssheet->frame_dim;
-                if (ec->frame >= f[0] * f[1]) {
-                    ec->frame = 0;
+                if (sprite->frame >= f[0] * f[1]) {
+                    sprite->frame = 0;
                 }
+            }
+            if (_ecs.component().has<NAME>(entity)) {
+                auto [name] = _ecs.component().fetch<NAME>(entity);
+                Rect r;
+                switch(name->alignment) {
+                    case 0:
+                        r.left = transform->pos[0];
+                        r.bot = transform->pos[1];
+                        break;
+                    case 1:
+                    case 2:
+                        break;
+                }
+                r.left += name->offset[0];
+                r.bot += name->offset[1];
+                ggprint8b(&r,0,name->cref,name->name.c_str());
             }
         }
     }
 }
+
+ThreadPool::ThreadPool(u32 nthreads) : stop_{false}, size_{nthreads}
+{
+    workers_.reserve(nthreads);
+    for (u32 i {0}; i < nthreads; ++i) {
+        workers_.emplace_back(&ThreadPool::workerThread, this);
+    }
+}
+
+ThreadPool::~ThreadPool()
+{
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        stop_ = true;
+    }
+
+    task_available_.notify_all();
+
+    for (auto& worker : workers_) {
+        worker.join();
+    }
+}
+
+void ThreadPool::enqueue(std::function<void()> task)
+{
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        task_queue_.push(task);
+    }
+
+    task_available_.notify_one();
+}
+
+void ThreadPool::workerThread()
+{
+    while (1) {
+        std::function<void()> current_task = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex_);
+            task_available_.wait(lock, [this] { return stop_ || !task_queue_.empty(); });
+            
+            if (stop_ && task_queue_.empty()) {
+                return;
+            }
+
+            current_task = std::move(task_queue_.front());
+            task_queue_.pop();
+        }
+
+        if (current_task) {
+            current_task();
+        }
+    }
+}
+
+u32 ThreadPool::size() const
+{
+    return size_;
+}
+
+//https://singlelunch.com/2018/09/26/programming-trick-cantor-pairing-perfect-hashing-of-two-integers/
+u64 cantor_hash(u32 a, u32 b) 
+{
+	return ((a + b) * (a + b + 1) >> 1) + b; 
+}
+
+bool collided(TRANSFORM* ta, TRANSFORM* tb, COLLIDER* ca, COLLIDER* cb)
+{
+	const v2f pa = ta->pos + ca->offset;
+	const v2f pb = tb->pos + cb->offset;
+
+	return (pa[0] - ca->dim[0] * 0.5f < pb[0] + cb->dim[0] * 0.5f) &&
+	(pa[0] + ca->dim[0] * 0.5f > pb[0] - cb->dim[0] * 0.5f) &&
+	(pa[1] + ca->dim[1] * 0.5f > pb[1] - cb->dim[1] * 0.5f) &&
+	(pa[1] - ca->dim[1] * 0.5f < pb[1] + cb->dim[1] * 0.5f);
+}
+
+struct PairHash {
+    template <class T1, class T2>
+    std::size_t operator ()(const std::pair<T1, T2>& p) const {
+        auto h1 = std::hash<T1>{}(p.first);
+        auto h2 = std::hash<T2>{}(p.second);
+        return h1 ^ (h2 << 1);
+    }
+};
+
+std::vector<Collision> findCollisions(
+	std::vector<const ecs::Entity*>& visible_entities) 
+{
+	std::vector<Collision> collisions;
+    std::unordered_set<std::pair<u32,u32>,PairHash> seen;
+	for (const auto& a : visible_entities) {
+		for (const auto& b : visible_entities) {
+			if (a->id == b->id)
+				continue;
+            u32 min = std::min({a->id,b->id});
+            u32 max = std::max({a->id,b->id});
+            if (seen.count({min,max})) {
+                continue;
+            }
+            seen.insert({min,max});        
+            auto [ta, ca] = ecs::ecs.component().fetch<TRANSFORM,COLLIDER>(a);
+            auto [tb, cb] = ecs::ecs.component().fetch<TRANSFORM,COLLIDER>(b);
+            if (collided(ta,tb,ca,cb)) {
+                collisions.push_back({a, b});
+            }
+    
+		}
+	}
+    return collisions;
+}
+
+std::unordered_map<u32, v2f> previous_position;
+void handleCollisions(std::vector<Collision>& collisions)
+{
+    
+    for (auto& collision : collisions) {
+        auto [ta, ca] = ecs::ecs.component()
+            .fetch<TRANSFORM, COLLIDER>(collision.a);
+        auto [tb, cb] = ecs::ecs.component()
+            .fetch<TRANSFORM, COLLIDER>(collision.b);
+        if (!ca->passable && previous_position.count(collision.b->id))
+            tb->pos = previous_position[collision.b->id];
+        if (!cb->passable && previous_position.count(collision.a->id))
+            ta->pos = previous_position[collision.a->id];
+        try {
+            if (ca->callback) {
+                ca->callback(collision.b, collision.a);
+            }
+            if (cb->callback) {
+                cb->callback(collision.a, collision.b);
+            }
+        } catch (const std::bad_function_call& e) {
+            std::cout << e.what() << '\n';
+        }
+    }
+}
+
+
+void collisions(const Camera& camera, ThreadPool& pool)
+{
+	while (!done) {
+		std::vector<const ecs::Entity*> entities = 
+            ecs::ecs.query<COLLIDER,TRANSFORM>();
+		std::vector<const ecs::Entity*> visible_entities = 
+            camera.findVisible(entities,pool);
+        std::vector<Collision> collisions = 
+            findCollisions(visible_entities);
+        handleCollisions(collisions);
+        for (const auto& entity : entities) {
+            auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(entity);
+            previous_position[entity->id] = transform->pos;
+        }
+		usleep(1000);
+	}
+}
+
+Collision::Collision(const ecs::Entity* a, const ecs::Entity* b) : a{a}, b{b} {}
+
+
+void bfs(
+    std::vector<std::vector<const ecs::Entity*>> tiles, 
+    int x, 
+    int y, 
+    std::unordered_set<std::pair<int,int>,PairHash>& visited) 
+{
+    int rows = tiles.size();
+    int cols = tiles[0].size();
+    int area = 1;
+    std::queue<std::pair<int,int>> q;
+    q.push({x,y});
+    visited.insert({x,y});
+    int dirs[4][2] = {{1,0},{0,1},{0,-1},{-1,0}};
+    while (!q.empty()) {
+        std::pair<int,int> current = q.front();
+        q.pop();
+        for (const auto& dir: dirs) {
+            int rx = current.first + dir[0];
+            int ry = current.second + dir[1];
+            
+            if (rx < 0 || rx >= rows || ry < 0 || ry >= cols)
+                continue;
+            
+            std::pair<int,int> neighbor = {rx,ry};
+            if (visited.find(neighbor) != visited.end())
+                continue;
+
+            const ecs::Entity* tile = tiles[rx][ry];
+            if (tile == nullptr)
+                continue;
+            
+            auto [collider] = ecs::ecs.component().fetch<COLLIDER>(tile);
+            if (collider != nullptr && !collider->passable)
+                continue;
+            q.push(neighbor);
+            visited.insert(neighbor);
+            area++;
+        }
+    }
+}
+
