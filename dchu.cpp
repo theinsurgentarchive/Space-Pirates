@@ -382,11 +382,10 @@ float AStar::heuristics(Node* a, Node* b)
 void initEnemy(ecs::Entity* foe)
 {
     //Initialize Components
-    auto health = ecs::ecs.component().assign<HEALTH>(foe);
-    auto sprite = ecs::ecs.component().assign<SPRITE>(foe);
-    auto transform = ecs::ecs.component().assign<TRANSFORM>(foe);
-    auto physics = ecs::ecs.component().assign<PHYSICS>(foe);
-    auto navigate = ecs::ecs.component().assign<NAVIGATE>(foe);
+    auto [health, sprite, transform, physics, navigate] = 
+    ecs::ecs.component().assign<HEALTH, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(
+        foe
+    );
 
     //Set Component Variables
     health->max = 50.0f;
@@ -400,8 +399,8 @@ void initEnemy(ecs::Entity* foe)
 
 void moveTo(ecs::Entity* ent, v2f target)
 {
-    auto physics = ecs::ecs.component().fetch<PHYSICS>(ent);
-    auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
+    auto [physics, transform] = 
+                            ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
     v2f dif {target[0] - transform->pos[0], target[1] - transform->pos[1]};
     //if The Difference is Within 0.5 Error Zero Velocity & Accel, & Return
     if ((dif[0] < 0.5f && dif[0] > -0.5f) &&
@@ -465,7 +464,7 @@ void moveTo(ecs::Entity* ent, v2f target)
 
 void moveTo(ecs::Entity* ent, ecs::Entity* target)
 {
-    auto tar = ecs::ecs.component().fetch<TRANSFORM>(target);
+    auto [tar] = ecs::ecs.component().fetch<TRANSFORM>(target);
     if (tar == nullptr) {
         DWARNF(
             "Error, entity %d does not have a transform component\n",
