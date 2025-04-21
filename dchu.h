@@ -8,6 +8,9 @@
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
+//Return a Float that Represents the Distance Between 2 Vectors
+float v2fDist(v2f, v2f);
+
 //Returns Unit Vector representing the Direction of The Vector
 //(Used to Calculate The Change in XY of an Entity)
 v2f v2fNormal(v2f);
@@ -31,12 +34,11 @@ class Node
         
         //Node Directly Preceding & Proceeding Current Node
         Node* parent {nullptr};
-        Node* child {nullptr};
         //Constructor
         Node();
         Node(bool);
 
-        //Functions
+        //Function
         v2f getWorld();
         void setWorld(v2f);
         v2u getLocal();
@@ -45,10 +47,21 @@ class Node
 
 namespace ecs
 {
-    struct Navigate
+    class Navigate
     {
-        v2f dist = {0.0f, 0.0f};
-        Node* next {nullptr};
+        private:
+            std::vector<v2f> nodes;
+            u16 current;
+            ecs::Entity* self;
+        public:
+            //Constructor
+            Navigate();
+
+            //Function
+            v2f getCurrent();
+            void genPath(Node*);
+            void reset();
+            void moveToCurrent();
     };
 }
 
@@ -78,22 +91,16 @@ class AStar
         //Get The Node Grid's Size
         v2u size();
 
-        //Retrieves a Pointer to The Node
         Node* getNode(u16, u16);
 
-        //Initializes The Node Grid
         void initGrid(v2f dim = {1.0f, 1.0f});
 
-        //Generate All Neighbors for Each Node
         void genNeighbors();
-
-        //Check If The Passed Node has Neighbors
         bool hasNeighbors(Node*);
 
         //A* Search Algorithm
         Node* aStar(v2u, v2u);
 
-        //Node Refresh
         void resetNodes();
 
         //Calculates The Distance From One Node to The Next
@@ -103,21 +110,18 @@ class AStar
         float heuristics(Node*, Node*);
 };
 
-//Enemy Types Enumeration
+//Enemy Generation
 enum EnemyT 
 {
     DEFAULT,  //0
     BANDIT,   //1
-    ALIEN    //2
+    ALIEN     //2
 };
-
-//Enemy 
 void initEnemy(ecs::Entity*);
 void loadEnemyTex(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
 );
 
-//Move an Entity's Position
+//Move an Entity to a Position or Entity with a Transform
 void moveTo(ecs::Entity*, v2f);
 void moveTo(ecs::Entity*, ecs::Entity*);
-//Node* genPath(Node*);

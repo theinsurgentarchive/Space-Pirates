@@ -25,6 +25,16 @@ bool canRender(ecs::Entity* ent)
     return display;
 }
 
+//Calcuate The Distance Between 2 Vectors
+float v2fDist(v2f v1, v2f v2)
+{
+    return sqrtf(
+        ((v1[0] - v2[0]) * (v1[0] - v2[0])) +
+        ((v1[1] - v2[1]) * (v1[1] - v2[1]))
+    );
+}
+
+//Generate a Normal from a Vector
 v2f v2fNormal(v2f vec)
 {
     //Calculate The Magnitude of The Vector
@@ -200,7 +210,6 @@ void AStar::initGrid(v2f dim)
             node_grid[x][y].obstacle = false;
             node_grid[x][y].visited = false;
             node_grid[x][y].parent = nullptr;
-            node_grid[x][y].child = nullptr;
         }
     }
 
@@ -319,7 +328,6 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
                     (neighbor->parent != start)
                 ) {
                     neighbor->parent = current;
-                    current->child = neighbor;
                     neighbor->local_dist = potential_low_goal;
 
                     //The global_dist is a Measure of local_dist
@@ -397,47 +405,57 @@ void moveTo(ecs::Entity* ent, v2f target)
 {
     auto physics = ecs::ecs.component().fetch<PHYSICS>(ent);
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
-    v2f dif = {target[0] - transform->pos[0], target[1] - transform->pos[1]};
-    v2f dir = v2fNormal(dif);
-    std::cout << dif[0] << ", " << dif[1] << std::endl;
-    std::cout << dir[0] << ", " << dir[1] << std::endl;
-
-    //Exit Early if the dif is lower than 0.1
-    if ((dif[0] < 0.1f && dif[0] > -0.1f) &&
-        (dif[1] < 0.1f && dif[1] > -0.1f)
+    v2f dif {target[0] - transform->pos[0], target[1] - transform->pos[1]};
+    //if The Difference is Within 0.5 Error Zero Velocity & Accel, & Return
+    if ((dif[0] < 0.5f && dif[0] > -0.5f) &&
+        (dif[1] < 0.5f && dif[1] > -0.5f)
     ) {
         physics->acc = {0.0f, 0.0f};
         physics->vel = {0.0f, 0.0f};
         return;
     }
 
-    //Set Velocities for X & Y
-    physics->acc[0] = (10.0f * dir[0]);
-    physics->acc[1] = (10.0f * dir[1]);
+    //Set Acceleration
+    float dist = v2fDist(target, transform->pos);
+    float reduce = 1.0f;
+    if (dist < 10.0f) {
+        reduce = dist / 10.0f;
+    }
+    v2f dir = v2fNormal(dif);
+    v2f move {((10.0f * dir[0]) * reduce), ((10.0f * dir[1]) * reduce)};
+    physics->acc[0] = move[0];
+    physics->acc[1] = move[1];
 
-    //Set Velocity to 0 if The Entity Axis is Within Target Area
+    //Set Acceleration to 0 if The Entity Axis is Within Target
     if (
-        (transform->pos[0] > target[0] - (10.0f * dir[0])) &&
-        (transform->pos[0] < target[0] + (10.0f * dir[0]))
+        (transform->pos[0] > target[0] - move[0]) &&
+        (transform->pos[0] < target[0] + move[0])
     ) {
         DINFOF("%d Entity within Target X Range.\n", ent->id);
         physics->acc[0] = 0.0f;
     }
 
     if (
-        (transform->pos[1] > target[1] - (10.0f * dir[1])) &&
-        (transform->pos[1] < target[1] + (10.0f * dir[1]))
+        (transform->pos[1] > target[1] - move[1]) &&
+        (transform->pos[1] < target[1] + move[1])
     ) {
         DINFOF("%d Entity within Target Y Range.\n", ent->id);
         physics->acc[1] = 0.0f;
     }
 
     //Speed Limit
-    if (physics->vel[0] >= 50.0f) {
-        physics->vel[0] = 50.0f;
+    float top_speed = 50.0f;
+    if (physics->vel[0] > top_speed) {
+        physics->vel[0] = top_speed;
     }
-    if (physics->vel[1] >= 50.0f) {
-        physics->vel[1] = 50.0f;
+    if (physics->vel[0] < -top_speed) {
+        physics->vel[0] = -top_speed;
+    }
+    if (physics->vel[1] > top_speed) {
+        physics->vel[1] = top_speed;
+    }
+    if (physics->vel[1] < -top_speed) {
+        physics->vel[1] = -top_speed;
     }
 }
 
@@ -445,7 +463,7 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
 {
     auto tar = ecs::ecs.component().fetch<TRANSFORM>(target);
     if (tar == nullptr) {
-        DERRORF(
+        DWARNF(
             "Error, ent %d does not have a transform Component",
             target->id
         );
@@ -459,20 +477,53 @@ void loadEnemyTex(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
 )
 {}
-
-Node* genPath(Node* chain)
+*/
+ecs::Navigate::Navigate()
 {
-    if (chain->child == nullptr) {
+    current = 0;
+    node.resize(1, nullptr);
+}
+
+v2f ecs::Navigate::NodePos()
+{
+    if (current >= nodes.size()) {
+        DWARN("Path Overshoot, Returning Default Value");
+        return {0.0f, 0.0f};
+    }
+    return nodes[current];
+}
+
+void ecs::Navigate::genPath(Node* chain)
+{
+    if (chain->parent == nullptr) {
         return nullptr;
     }
+
     //Initialize Variables
     bool flag = true;
-    Node* current = chain->child;
-    std::list<Node*> parents;
-    parents.push_back(current);
+    Node* current = chain->parent;
+    std::vector<Node*> temp;
+    temp.push_back(current);
     while (flag) {
-        
+        flag = false;
+        if (current->parent != nullptr) {
+            current = current->parent;
+            flag = true;
+            temp.push_back(current);
+        }
     }
-    return parents.back();
+
+    //Set Path Nodes
+    std::vector<Node*>::reverse_iterator r = temp.rbegin();
+    u16 i = 0;
+    for (; r != temp.rend(); ++r) {
+        Node t = *r;
+        nodes[i++] = t.getWorld();
+    }
 }
-*/
+
+void ecs::Navigate::reset()
+{
+    current = 0;
+    nodes.clear();
+}
