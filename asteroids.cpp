@@ -368,7 +368,7 @@ int main()
 		if (dur.count() >= ps.sample_delta) {
 			ps.sample();
 		}
-		moveTo(gl.dummy, {200, 200});
+		moveTo(gl.dummy, {200, 350});
 		//clear screen just once at the beginning
 		glClear(GL_COLOR_BUFFER_BIT); 
 		// Update audio system each frame
