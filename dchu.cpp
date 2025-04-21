@@ -517,6 +517,7 @@ void ecs::Navigate::genPath(Node* chain)
             current = current->parent;
             flag = true;
             temp.push_back(current);
+            std::cout << current << std::endl;
         }
     }
     std::cout << "Finished Loading Chain.\n";
