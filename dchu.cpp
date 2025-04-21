@@ -499,46 +499,9 @@ v2f ecs::Navigate::nodePos()
     return nodes[current];
 }
 
-void ecs::Navigate::genPath(Node* chain)
+void ecs::Navigate::genPath()
 {
     reset();
-    if (chain->parent == nullptr) {
-        DWARN("Node has No Parent, Cannot Generate Path.\n");
-        return;
-    }
-
-    //Initialize Variables
-    bool flag = true;
-    Node* current = chain->parent;
-    Node* prev = chain;
-    std::vector<Node*> temp;
-    temp.push_back(current);
-    while (flag) {
-        if ((prev == current->parent)   ||
-            (prev == current)
-        ) {
-            std::cout << "Error, Infinite Loop Detected\n";
-            break;
-        } else {
-            prev = current;
-        }
-        flag = false;
-        if (current->parent != nullptr) {
-            current = current->parent;
-            flag = true;
-            temp.push_back(current);
-            std::cout << current << std::endl;
-        }
-    }
-    std::cout << "Finished Loading Chain.\n";
-    //Set Path Nodes
-    u16 size = temp.size();
-    nodes[0] = temp[size - 1]->getWorld();
-    std::cout << &nodes[0] << std::endl;
-    //for (u16 i = 1; i < size - 1; i++) {
-    //    nodes[i] = temp[size - i]->getWorld();
-    //    std::cout << &nodes[i] << std::endl;
-    //}
 }
 
 void ecs::Navigate::reset()
