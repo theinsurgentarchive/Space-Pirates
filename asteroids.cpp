@@ -368,7 +368,8 @@ int main()
 		if (dur.count() >= ps.sample_delta) {
 			ps.sample();
 		}
-		moveTo(gl.dummy, {200, 350});
+		auto c_trans = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+		moveTo(gl.dummy, c_trans->pos);
 		//clear screen just once at the beginning
 		glClear(GL_COLOR_BUFFER_BIT); 
 		// Update audio system each frame

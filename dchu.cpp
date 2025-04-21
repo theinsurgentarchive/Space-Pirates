@@ -35,21 +35,21 @@ v2f v2fNormal(v2f vec)
     return norm;
 }
 
-float floatRand(uint16_t max, uint16_t min)
+float floatRand(int16_t max, int16_t min)
 {
     //Initialize Variables
-    uint16_t d_max = 99;
-    uint16_t d_min = 0;
+    int16_t d_max = 99;
+    int16_t d_min = 0;
     float random = 0.0f;
 
     //Generate Whole Number
-    uint16_t whole = (rand() % (max - min + 1) - min);
+    int16_t whole = (rand() % (max - min + 1) - min);
     if (whole >= max) {
         return (float)max;
     }
 
     //Generate Decimal
-    uint16_t decimal = (rand() % (d_max - d_min + 1) - d_min);
+    int16_t decimal = (rand() % (d_max - d_min + 1) - d_min);
     
     //Generate & Return Float Number Using whole & decimal
     random += ((float)whole + (((float)decimal) / 100.0f));
@@ -401,7 +401,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     v2f dir = v2fNormal(dif);
     std::cout << dif[0] << ", " << dif[1] << std::endl;
     std::cout << dir[0] << ", " << dir[1] << std::endl;
-    
+
     if ((dif[0] < 0.1f && dif[0] < 0.1f) &&
         (dif[1] < 0.1f && dif[1] < 0.1f)
     ) {
@@ -414,20 +414,33 @@ void moveTo(ecs::Entity* ent, v2f target)
 
     //Set Velocity to 0 if The Entity Axis is Within Target Area
     if (
-        (transform->pos[0] > target[0] - 10.0f) &&
-        (transform->pos[0] < target[0] + 10.0f)
+        (transform->pos[0] > target[0] - (10.0f * dir[0])) &&
+        (transform->pos[0] < target[0] + (10.0f * dir[0]))
     ) {
         std::cout << "Entity within Target X.\n";
         physics->vel[0] = 0.0f;
     }
 
     if (
-        (transform->pos[1] > target[1] - 10.0f) &&
-        (transform->pos[1] < target[1] + 10.0f)
+        (transform->pos[1] > target[1] - (10.0f * dir[1])) &&
+        (transform->pos[1] < target[1] + (10.0f * dir[1]))
     ) {
         std::cout << "Entity within Target Y.\n";
         physics->vel[1] = 0.0f;
     }
+}
+
+void moveTo(ecs::Entity* ent, ecs::Entity* target)
+{
+    auto tar = ecs::ecs.component.fetch<TRANSFORM>(target);
+    if (tar == nullptr) {
+        DERRORF(
+            "Error, ent %d does not have a transform Component",
+            target->id
+        );
+        return;
+    }
+    moveTo(ent, tar->pos);
 }
 
 /*

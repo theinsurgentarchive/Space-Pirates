@@ -13,9 +13,9 @@ bool canRender(ecs::Entity*);
 v2f v2fNormal(v2f);
 
 //Generate a Randomized Float Number Between 2 Integers
-float floatRand(uint16_t, uint16_t);
+float floatRand(int16_t, int16_t);
 
-//A* Pathfinding Algorithm Class
+//A* Pathfinding Nodes, Connects The Grid
 class Node
 {
     private:
@@ -111,9 +111,13 @@ enum EnemyT
     ALIEN    //2
 };
 
+//Enemy 
 void initEnemy(ecs::Entity*);
 void loadEnemyTex(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
 );
+
+//Move an Entity's Position
 void moveTo(ecs::Entity*, v2f);
+void moveTo(ecs::Entity*, ecs::Entity*);
 //Node* genPath(Node*);
