@@ -418,11 +418,11 @@ void moveTo(ecs::Entity* ent, v2f target)
     //Set Acceleration
     float dist = v2fDist(target, transform->pos);
     float reduce = 1.0f;
-    if (dist < 50.0f) {
-        reduce = dist / 50.0f;
+    if (dist < 150.0f) {
+        reduce = dist / 150.0f;
     }
     v2f dir = v2fNormal(dif);
-    v2f move {((50.0f * dir[0]) * reduce), ((50.0f * dir[1]) * reduce)};
+    v2f move {((150.0f * dir[0]) * reduce), ((150.0f * dir[1]) * reduce)};
     physics->vel[0] = move[0];
     physics->vel[1] = move[1];
 
@@ -444,7 +444,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
 
     //Speed Limit
-    float top_speed = 50.0f;
+    float top_speed = 150.0f;
     if (physics->vel[0] > top_speed) {
         physics->vel[0] = top_speed;
     }
