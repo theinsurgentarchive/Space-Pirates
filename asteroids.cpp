@@ -374,7 +374,8 @@ int main()
             done = check_keys(&e, &tstar, gl.dummy);
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
-        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        moveTo(gl.dummy, ptr);
+		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
 		physics();
