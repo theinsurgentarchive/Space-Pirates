@@ -349,7 +349,7 @@ int main()
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
 	clock_gettime(CLOCK_REALTIME, &timeStart);
-	moveEntity(gl.dummy, {200, 200});
+	moveTo(gl.dummy, {200, 200});
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	done = 0;

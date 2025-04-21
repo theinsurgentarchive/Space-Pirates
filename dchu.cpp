@@ -25,6 +25,16 @@ bool canRender(ecs::Entity* ent)
     return display;
 }
 
+v2f v2fNormal(v2f vec)
+{
+    //Calculate The Magnitude of The Vector
+    float mag = sqrtf((vec[0] * vec[0]) + (vec[1] * vec[1]));
+    
+    //Calculate & Return The Normalized Vector
+    v2f norm {(vec[0] / mag), (vec[1] / mag)};
+    return norm;
+}
+
 float floatRand(uint16_t max, uint16_t min)
 {
     //Initialize Variables
@@ -383,37 +393,33 @@ void initEnemy(ecs::Entity* foe)
     physics->vel = {0.0f, 0.0f};
 }
 
-void moveEntity(ecs::Entity* ent, v2f target)
+void moveto(ecs::Entity* ent, v2f target)
 {
     auto physics = ecs::ecs.component().fetch<PHYSICS>(ent);
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
     v2f dif = {target[0] - transform->pos[0], target[1] - transform->pos[1]};
+    v2f dir = v2fNormal(dif);
+    std::cout << dif[0] << ", " << dif[1] << std::endl;
+    std::cout << dir[0] << ", " << dir[1] << std::endl;
     bool negative[2] = {false};
-    if (dif[0] == 0.0f && dif[1] == 0.0f) {
+    if ((dif[0] < 0.1f && dif[0] < 0.1f) &&
+        (dif[1] < 0.1f && dif[1] < 0.1f)
+    ) {
         return;
     }
 
-    if (dif[0] < 0.0f) {
-        negative[0] = true;
-        dif[0] *= -1.0f;
-    }
-    if (dif[1] < 0.0f) {
-        negative[1] = true;
-        dif[1] *= -1.0f;
-    }
-
-    if (dif[0] != 0.0f) {
-        if (negative[0]) {
-            physics->acc[0] = -5.0f;
+    if (dir[0] != 0.0f) {
+        if (dir[0] < 0) {
+            physics->vel[0] = -10.0f;
         } else {
-            physics->acc[0] = 5.0f;
+            physics->vel[0] = 10.0f;
         }
     }
-    if (dif[1] != 0.0f) {
-        if (negative[1]) {
-            physics->acc[1] = -5.0f;
+    if (dir[1] != 0.0f) {
+        if (dir[1] < 0) {
+            physics->vel[1] = -10.0f;
         } else {
-            physics->acc[1] = 5.0f;
+            physics->vel[1] = 10.0f;
         }
     }
 }

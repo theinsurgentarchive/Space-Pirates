@@ -8,6 +8,10 @@
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
+//Returns Unit Vector representing the Direction of The Vector
+//(Used to Calculate The Change in XY of an Entity)
+v2f v2fNormal(v2f);
+
 //Generate a Randomized Float Number Between 2 Integers
 float floatRand(uint16_t, uint16_t);
 
@@ -111,5 +115,5 @@ void initEnemy(ecs::Entity*);
 void loadEnemyTex(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
 );
-void moveEntity(ecs::Entity*, v2f);
+void moveTo(ecs::Entity*, v2f);
 //Node* genPath(Node*);
