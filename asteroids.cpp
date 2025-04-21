@@ -273,7 +273,7 @@ public:
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity*);
+int check_keys(XEvent *e, AStar *as, ecs::Entity*);
 void physics();
 void render();
 // For transparent title.png background
@@ -341,7 +341,7 @@ int main()
 		transform->pos,
 		gl.res
 	};
-  auto tstar = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
+  auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
 	Node* testing = tstar.aStar({0, 0}, {23, 23});
 	auto navc = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
 	navc->genPath(testing);
@@ -371,7 +371,7 @@ int main()
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
-            done = check_keys(&e, &w, &tstar, gl.dummy);
+            done = check_keys(&e, &tstar, gl.dummy);
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         timeSpan = timeDiff(&timeStart, &timeCurrent);
@@ -635,13 +635,7 @@ int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity* ent)
 					} else {
 						auto cn = as->getNode(0, 0)->getWorld();
 						cout << cn[0] << ", " << cn[1] << "\n\n";
-						auto ct = w->cells();
-						auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[0][0]);
-						if (tct == nullptr) {
-							cout << "Error, Cannot Find Tile Transform\n";
-						} else {
-							cout << tct->pos[0] << ", " << tct->pos[1] << endl;
-						}
+						cout << "0, 0\n\n";
 					}
 					break;
 			}
