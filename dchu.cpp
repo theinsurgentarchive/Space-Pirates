@@ -397,6 +397,10 @@ void moveTo(ecs::Entity* ent, v2f target)
 {
     auto physics = ecs::ecs.component().fetch<PHYSICS>(ent);
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
+    if (transform->pos[0] > 200.1f && transform->pos[1] > 200.1f) {
+        std::cout << "A Problem Has Occurred" << std::endl;
+        return;
+    }
     v2f dif = {target[0] - transform->pos[0], target[1] - transform->pos[1]};
     v2f dir = v2fNormal(dif);
     std::cout << dif[0] << ", " << dif[1] << std::endl;
@@ -407,7 +411,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         return;
     }
-
+    if ()
     if (dir[0] != 0.0f) {
         if (dir[0] < 0) {
             physics->vel[0] = -10.0f;
