@@ -501,6 +501,7 @@ v2f ecs::Navigate::nodePos()
 
 void ecs::Navigate::genPath(Node* chain)
 {
+    reset();
     if (chain->parent == nullptr) {
         DWARN("Node has No Parent, Cannot Generate Path.\n");
         return;
@@ -517,7 +518,7 @@ void ecs::Navigate::genPath(Node* chain)
             (prev == current)
         ) {
             std::cout << "Error, Infinite Loop Detected\n";
-            return;
+            break;
         } else {
             prev = current;
         }
