@@ -550,7 +550,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity* ent)
+int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;
