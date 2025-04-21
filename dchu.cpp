@@ -438,8 +438,8 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
 
     if (
-        (transform->pos[1] > target[1] - move[1]) &&
-        (transform->pos[1] < target[1] + move[1])
+        (transform->pos[1] > target[1] - move[1] + 0.25f) &&
+        (transform->pos[1] < target[1] + move[1] + 0.25f)
     ) {
         DINFOF("%d Entity within Target Y Range.\n", ent->id);
         physics->acc[1] = 0.0f;
