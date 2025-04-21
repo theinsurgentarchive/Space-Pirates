@@ -286,7 +286,6 @@ ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const v2u wrd_size = {50, 50};
 const World* world;
-const AStar* astar;
 const Camera* c;
 bool move_to = false;
 int done;
@@ -341,8 +340,7 @@ int main()
 	auto w = World{{0,0},grid,tile_map};
 	auto tstar = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
 	world = &w;
-	astar = &tstar;
-	Node* testing = astar->aStar({0, 0}, {23, 23});
+	Node* testing = tstar.aStar({0, 0}, {23, 23});
 	auto navc = ecs.ecs.component().fetch<NAVIGATE>(gl.dummy);
 	navc->genPath(testing);
 	rs.sample();
