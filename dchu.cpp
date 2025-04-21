@@ -393,7 +393,7 @@ void initEnemy(ecs::Entity* foe)
     physics->vel = {0.0f, 0.0f};
 }
 
-void moveto(ecs::Entity* ent, v2f target)
+void moveTo(ecs::Entity* ent, v2f target)
 {
     auto physics = ecs::ecs.component().fetch<PHYSICS>(ent);
     auto transform = ecs::ecs.component().fetch<TRANSFORM>(ent);
