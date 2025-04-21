@@ -526,7 +526,7 @@ void ecs::Navigate::genPath(Node* chain)
     for (; r != temp.rend(); ++r) {
         Node t = *r;
         nodes[i++] = t.getWorld();
-        std::cout << nodes[i - 1] << std::endl;
+        std::cout << &nodes[i - 1] << std::endl;
     }
 }
 
