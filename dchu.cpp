@@ -509,15 +509,22 @@ void ecs::Navigate::genPath(Node* chain)
     //Initialize Variables
     bool flag = true;
     Node* current = chain->parent;
+    Node* prev = chain;
     std::vector<Node*> temp;
     temp.push_back(current);
+    u16 attempts = 0;
     while (flag) {
+        if (attempts > UINT16_MAX / 2 || prev == current->parent) {
+            DERROR("Error, Infinite Loop Detected");
+            return;
+        }
         flag = false;
         if (current->parent != nullptr) {
             current = current->parent;
             flag = true;
             temp.push_back(current);
             std::cout << current << std::endl;
+            attempts++;
         }
     }
     std::cout << "Finished Loading Chain.\n";
