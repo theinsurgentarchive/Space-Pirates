@@ -416,15 +416,16 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
 
     //Set Acceleration
+    float accel = 50.0f;
     float dist = v2fDist(target, transform->pos);
     float reduce = 1.0f;
-    if (dist < 75.0f) {
-        reduce = dist / 75.0f;
+    if (dist < accel) {
+        reduce = dist / accel;
     }
     v2f dir = v2fNormal(dif);
-    v2f move {((75.0f * dir[0]) * reduce), ((75.0f * dir[1]) * reduce)};
-    physics->vel[0] = move[0];
-    physics->vel[1] = move[1];
+    v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
+    physics->acc[0] = move[0];
+    physics->acc[1] = move[1];
 
     //Set Acceleration to 0 if The Entity Axis is Within Target
     if (
@@ -432,7 +433,7 @@ void moveTo(ecs::Entity* ent, v2f target)
         (transform->pos[0] < target[0] + move[0])
     ) {
         DINFOF("%d Entity within Target X Range.\n", ent->id);
-        physics->vel[0] = 0.0f;
+        physics->acc[0] = 0.0f;
     }
 
     if (
@@ -440,22 +441,26 @@ void moveTo(ecs::Entity* ent, v2f target)
         (transform->pos[1] < target[1] + move[1])
     ) {
         DINFOF("%d Entity within Target Y Range.\n", ent->id);
-        physics->vel[1] = 0.0f;
+        physics->acc[1] = 0.0f;
     }
 
     //Speed Limit
-    float top_speed = 75.0f;
+    float top_speed = 50.0f;
     if (physics->vel[0] > top_speed) {
         physics->vel[0] = top_speed;
+        physics->acc[0] = 0.0f
     }
     if (physics->vel[0] < -top_speed) {
         physics->vel[0] = -top_speed;
+        physics->acc[0] = 0.0f
     }
     if (physics->vel[1] > top_speed) {
         physics->vel[1] = top_speed;
+        physics->acc[1] = 0.0f
     }
     if (physics->vel[1] < -top_speed) {
         physics->vel[1] = -top_speed;
+        physics->acc[1] = 0.0f
     }
 }
 
