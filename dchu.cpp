@@ -408,18 +408,10 @@ void moveTo(ecs::Entity* ent, v2f target)
         return;
     }
     if (dir[0] != 0.0f) {
-        if (dir[0] < 0) {
-            physics->vel[0] = -10.0f;
-        } else {
-            physics->vel[0] = 10.0f;
-        }
+        physics->vel[0] = (10.0f * dir[0]);
     }
     if (dir[1] != 0.0f) {
-        if (dir[1] < 0) {
-            physics->vel[1] = -10.0f;
-        } else {
-            physics->vel[1] = 10.0f;
-        }
+        physics->vel[1] = (10.0f * dir[1]);
     }
 }
 
