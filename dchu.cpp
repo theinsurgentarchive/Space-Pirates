@@ -401,7 +401,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     v2f dir = v2fNormal(dif);
     std::cout << dif[0] << ", " << dif[1] << std::endl;
     std::cout << dir[0] << ", " << dir[1] << std::endl;
-    bool negative[2] = {false};
+    
     if ((dif[0] < 0.1f && dif[0] < 0.1f) &&
         (dif[1] < 0.1f && dif[1] < 0.1f)
     ) {
@@ -415,7 +415,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     //Set Velocity to 0 if The Entity Axis is Within Target Area
     if (
         (transform->pos[0] > target[0] - 10.0f) &&
-        (transform->pos[0] < target[0] + 10.0f) &&
+        (transform->pos[0] < target[0] + 10.0f)
     ) {
         std::cout << "Entity within Target X.\n";
         physics->vel[0] = 0.0f;
@@ -423,7 +423,7 @@ void moveTo(ecs::Entity* ent, v2f target)
 
     if (
         (transform->pos[1] > target[1] - 10.0f) &&
-        (transform->pos[1] < target[1] + 10.0f) &&
+        (transform->pos[1] < target[1] + 10.0f)
     ) {
         std::cout << "Entity within Target Y.\n";
         physics->vel[1] = 0.0f;
