@@ -519,13 +519,14 @@ void ecs::Navigate::genPath(Node* chain)
             temp.push_back(current);
         }
     }
-
+    std::cout << "Finished Loading Chain.\n";
     //Set Path Nodes
     std::vector<Node*>::reverse_iterator r = temp.rbegin();
     u16 i = 0;
     for (; r != temp.rend(); ++r) {
         Node t = *r;
         nodes[i++] = t.getWorld();
+        std::cout << nodes[i - 1] << std::endl;
     }
 }
 
