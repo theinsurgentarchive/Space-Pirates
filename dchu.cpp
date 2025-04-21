@@ -402,9 +402,12 @@ void moveTo(ecs::Entity* ent, v2f target)
     std::cout << dif[0] << ", " << dif[1] << std::endl;
     std::cout << dir[0] << ", " << dir[1] << std::endl;
 
-    if ((dif[0] < 0.1f && dif[0] < 0.1f) &&
-        (dif[1] < 0.1f && dif[1] < 0.1f)
+    //Exit Early if the dif is lower than 0.1
+    if ((dif[0] < 0.1f && dif[0] > -0.1f) &&
+        (dif[1] < 0.1f && dif[1] > -0.1f)
     ) {
+        physics->acc = {0.0f, 0.0f};
+        physics->vel = {0.0f, 0.0f};
         return;
     }
 
@@ -414,19 +417,29 @@ void moveTo(ecs::Entity* ent, v2f target)
 
     //Set Velocity to 0 if The Entity Axis is Within Target Area
     if (
-        (transform->pos[0] > target[0] - (10.0f * dir[0])) &&
-        (transform->pos[0] < target[0] + (10.0f * dir[0]))
+        ((transform->pos[0] > target[0] - (10.0f * dir[0])) &&
+        (transform->pos[0] < target[0] + (10.0f * dir[0]))) ||
+        
     ) {
-        std::cout << "Entity within Target X.\n";
+        DINFOF("%d Entity within Target X Range.\n", ent->id);
         physics->acc[0] = 0.0f;
     }
 
     if (
-        (transform->pos[1] > target[1] - (10.0f * dir[1])) &&
-        (transform->pos[1] < target[1] + (10.0f * dir[1]))
+        ((transform->pos[1] > target[1] - (10.0f * dir[1])) &&
+        (transform->pos[1] < target[1] + (10.0f * dir[1]))) ||
+        
     ) {
-        std::cout << "Entity within Target Y.\n";
+        DINFOF("%d Entity within Target Y Range.\n", ent->id);
         physics->acc[1] = 0.0f;
+    }
+
+    //Speed Limit
+    if (physics->vel[0] >= 50.0f) {
+        physics->vel[0] = 50.0f;
+    }
+    if (physics->vel[1] >= 50.0f) {
+        physics->vel[1] = 50.0f;
     }
 }
 
