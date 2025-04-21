@@ -515,7 +515,7 @@ void ecs::Navigate::genPath(Node* chain)
     u16 attempts = 0;
     while (flag) {
         if (attempts > UINT16_MAX / 2 || prev == current->parent) {
-            DERROR("Error, Infinite Loop Detected");
+            std::cout << "Error, Infinite Loop Detected\n";
             return;
         }
         flag = false;
