@@ -417,18 +417,16 @@ void moveTo(ecs::Entity* ent, v2f target)
 
     //Set Velocity to 0 if The Entity Axis is Within Target Area
     if (
-        ((transform->pos[0] > target[0] - (10.0f * dir[0])) &&
-        (transform->pos[0] < target[0] + (10.0f * dir[0]))) ||
-        
+        (transform->pos[0] > target[0] - (10.0f * dir[0])) &&
+        (transform->pos[0] < target[0] + (10.0f * dir[0]))
     ) {
         DINFOF("%d Entity within Target X Range.\n", ent->id);
         physics->acc[0] = 0.0f;
     }
 
     if (
-        ((transform->pos[1] > target[1] - (10.0f * dir[1])) &&
-        (transform->pos[1] < target[1] + (10.0f * dir[1]))) ||
-        
+        (transform->pos[1] > target[1] - (10.0f * dir[1])) &&
+        (transform->pos[1] < target[1] + (10.0f * dir[1]))
     ) {
         DINFOF("%d Entity within Target Y Range.\n", ent->id);
         physics->acc[1] = 0.0f;
