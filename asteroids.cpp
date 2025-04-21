@@ -342,6 +342,9 @@ int main()
 	auto tstar = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
 	world = &w;
 	astar = &tstar;
+	Node* testing = astar->aStar({0, 0}, {23, 23});
+	auto navc = ecs.ecs.component().fetch<NAVIGATE>(gl.dummy);
+	navc->genPath(testing);
 	rs.sample();
 	ps.sample();
 	init_opengl();
