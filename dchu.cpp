@@ -512,11 +512,14 @@ void ecs::Navigate::genPath(Node* chain)
     Node* prev = chain;
     std::vector<Node*> temp;
     temp.push_back(current);
-    u16 attempts = 0;
     while (flag) {
-        if (attempts > UINT16_MAX / 2 || prev == current->parent) {
+        if ((prev == current->parent)   ||
+            (prev == current)
+        ) {
             std::cout << "Error, Infinite Loop Detected\n";
             return;
+        } else {
+            prev = current;
         }
         flag = false;
         if (current->parent != nullptr) {
