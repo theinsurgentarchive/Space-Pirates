@@ -407,15 +407,26 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         return;
     }
-    if (dir[0] != 0.0f && !(transform->pos[0] == target[0])) {
-        physics->vel[0] = (10.0f * dir[0]);
+    float move_x = (10.0f * dir[0]);
+    float move_y = (10.0f * dir[1]);
+    if (
+        !(transform->pos[0] > target[0] - (10.0f * dir[0])) &&
+        !(transform->pos[0] < target[0] + (10.0f * dir[0])) &&
+        (dir[0] != 0.0f)
+    ) {
+        physics->vel[0] = move_x;
     } else {
         physics->vel[0] = 0.0f;
     }
-    if (dir[1] != 0.0f && !(transform->pos[1] == target[1])) {
-        physics->vel[1] = (10.0f * dir[1]);
+
+    if (
+        !(transform->pos[1] > target[1] - (10.0f * dir[1])) &&
+        !(transform->pos[1] < target[1] + (10.0f * dir[1])) &&
+        (dir[1] != 0.0f)
+    ) {
+        physics->vel[1] = move_y;
     } else {
-       physics->vel[1] = 0.0f;
+        physics->vel[1] = 0.0f;
     }
 }
 
