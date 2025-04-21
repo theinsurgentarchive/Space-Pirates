@@ -417,6 +417,7 @@ void moveTo(ecs::Entity* ent, v2f target)
         (transform->pos[0] > target[0] - 10.0f) &&
         (transform->pos[0] < target[0] + 10.0f) &&
     ) {
+        std::cout << "Entity within Target X.\n";
         physics->vel[0] = 0.0f;
     }
 
@@ -424,6 +425,7 @@ void moveTo(ecs::Entity* ent, v2f target)
         (transform->pos[1] > target[1] - 10.0f) &&
         (transform->pos[1] < target[1] + 10.0f) &&
     ) {
+        std::cout << "Entity within Target Y.\n";
         physics->vel[1] = 0.0f;
     }
 }
