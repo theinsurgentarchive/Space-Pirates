@@ -527,7 +527,6 @@ void ecs::Navigate::genPath(Node* chain)
             flag = true;
             temp.push_back(current);
             std::cout << current << std::endl;
-            attempts++;
         }
     }
     std::cout << "Finished Loading Chain.\n";
