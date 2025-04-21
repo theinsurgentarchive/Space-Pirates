@@ -411,7 +411,6 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         return;
     }
-    if ()
     if (dir[0] != 0.0f) {
         if (dir[0] < 0) {
             physics->vel[0] = -10.0f;
