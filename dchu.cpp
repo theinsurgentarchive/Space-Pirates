@@ -123,10 +123,10 @@ AStar::AStar()
 AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
 {
     //Initialize Variables
-    grid_size[0] = grid_dim[0] * 4;
-    grid_size[1] = grid_dim[1] * 4;
+    grid_size[0] = grid_dim[0];
+    grid_size[1] = grid_dim[1];
     origin_pos = origin;
-    v2f node_dim = {tile_dim[0] / 4.0f, tile_dim[1] / 4.0f};
+    v2f node_dim = {tile_dim[0], tile_dim[1]};
     //Initialize Grid Nodes
     initGrid(node_dim);
     DINFO("Completed World A* Node Generation\n");
