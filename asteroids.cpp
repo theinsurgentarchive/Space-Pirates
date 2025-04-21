@@ -349,7 +349,6 @@ int main()
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
 	clock_gettime(CLOCK_REALTIME, &timeStart);
-	moveTo(gl.dummy, {200, 200});
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	done = 0;
@@ -369,6 +368,7 @@ int main()
 		if (dur.count() >= ps.sample_delta) {
 			ps.sample();
 		}
+		moveTo(gl.dummy, {200, 200});
 		//clear screen just once at the beginning
 		glClear(GL_COLOR_BUFFER_BIT); 
 		// Update audio system each frame
