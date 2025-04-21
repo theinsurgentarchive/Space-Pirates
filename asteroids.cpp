@@ -77,6 +77,7 @@ public:
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
 	ecs::Entity* spaceship;
+	ecs::Entity* dummy;
 	Global() {
 		res[0] = 720;
 		res[1] = 480;
@@ -341,7 +342,6 @@ int main()
 		gl.res
 	};
   auto tstar = AStar{{0, 0}, wrd_size, {16.0f, 16.0f}};
-	world = &w;
 	Node* testing = tstar.aStar({0, 0}, {23, 23});
 	auto navc = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
 	navc->genPath(testing);
@@ -635,7 +635,7 @@ int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity* ent)
 					} else {
 						auto cn = as->getNode(0, 0)->getWorld();
 						cout << cn[0] << ", " << cn[1] << "\n\n";
-						auto ct = w->tiles();
+						auto ct = w->cells();
 						auto tct = ecs::ecs.component().fetch<TRANSFORM>(ct[0][0]);
 						if (tct == nullptr) {
 							cout << "Error, Cannot Find Tile Transform\n";
@@ -643,7 +643,6 @@ int check_keys(XEvent *e, World *w, AStar *as, ecs::Entity* ent)
 							cout << tct->pos[0] << ", " << tct->pos[1] << endl;
 						}
 					}
-					move_to = true;
 					break;
 			}
 		}
