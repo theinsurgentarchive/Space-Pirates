@@ -464,7 +464,7 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     auto tar = ecs::ecs.component().fetch<TRANSFORM>(target);
     if (tar == nullptr) {
         DWARNF(
-            "Error, ent %d does not have a transform Component",
+            "Error, entity %d does not have a transform component\n",
             target->id
         );
         return;
@@ -481,13 +481,13 @@ void loadEnemyTex(
 ecs::Navigate::Navigate()
 {
     current = 0;
-    node.resize(1, nullptr);
+    nodes.resize(1, nullptr);
 }
 
 v2f ecs::Navigate::NodePos()
 {
     if (current >= nodes.size()) {
-        DWARN("Path Overshoot, Returning Default Value");
+        DWARN("Path Overshoot, Returning Default Value.\n");
         return {0.0f, 0.0f};
     }
     return nodes[current];
@@ -496,7 +496,8 @@ v2f ecs::Navigate::NodePos()
 void ecs::Navigate::genPath(Node* chain)
 {
     if (chain->parent == nullptr) {
-        return nullptr;
+        DWARN("Node has No Parent, Cannot Generate Path.\n");
+        return;
     }
 
     //Initialize Variables

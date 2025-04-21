@@ -58,7 +58,7 @@ namespace ecs
             Navigate();
 
             //Function
-            v2f getCurrent();
+            v2f nodePos();
             void genPath(Node*);
             void reset();
             void moveToCurrent();
