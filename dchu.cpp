@@ -499,7 +499,7 @@ v2f ecs::Navigate::nodePos()
     return nodes[current];
 }
 
-void ecs::Navigate::genPath()
+void ecs::Navigate::genPath(Node* chain)
 {
     reset();
 }
