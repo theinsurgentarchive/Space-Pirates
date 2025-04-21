@@ -533,7 +533,9 @@ void ecs::Navigate::genPath(Node* chain)
     std::cout << "Finished Loading Chain.\n";
     //Set Path Nodes
     u16 size = temp.size();
-    for (u16 i = 0; i < size - 1; i++) {
+    nodes[0] = temp[size]->getWorld();
+    std::cout << &nodes[i] << std::endl;
+    for (u16 i = 1; i < size - 1; i++) {
         nodes[i] = temp[size - i]->getWorld();
         std::cout << &nodes[i] << std::endl;
     }
