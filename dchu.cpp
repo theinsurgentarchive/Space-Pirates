@@ -432,7 +432,7 @@ void moveTo(ecs::Entity* ent, v2f target)
 
 void moveTo(ecs::Entity* ent, ecs::Entity* target)
 {
-    auto tar = ecs::ecs.component.fetch<TRANSFORM>(target);
+    auto tar = ecs::ecs.component().fetch<TRANSFORM>(target);
     if (tar == nullptr) {
         DERRORF(
             "Error, ent %d does not have a transform Component",
