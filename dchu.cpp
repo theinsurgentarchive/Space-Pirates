@@ -484,7 +484,7 @@ ecs::Navigate::Navigate()
     nodes.resize(1, nullptr);
 }
 
-v2f ecs::Navigate::NodePos()
+v2f ecs::Navigate::nodePos()
 {
     if (current >= nodes.size()) {
         DWARN("Path Overshoot, Returning Default Value.\n");
