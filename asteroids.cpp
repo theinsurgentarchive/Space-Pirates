@@ -28,6 +28,7 @@
 #include "balrowhany.h"
 #include "jsandoval.h"
 #include "mchitorog.h"
+#include "dchu.h"
 #define GAME_TITLE "Space Pirates"
 #define _TEXTURES "./textures"
 using namespace std; 
@@ -76,6 +77,7 @@ public:
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
 	ecs::Entity* spaceship;
+	ecs::Entity* dummy;
 	Global() {
 		res[0] = 720;
 		res[1] = 480;
@@ -271,7 +273,7 @@ public:
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent *e);
+int check_keys(XEvent *e, AStar *as, ecs::Entity*);
 void physics();
 void render();
 // For transparent title.png background
@@ -307,7 +309,9 @@ int main()
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
-	initializeEntity(gl.spaceship); 
+	initializeEntity(gl.spaceship);
+	gl.dummy = ecs::ecs.entity().checkout();
+	initEnemy(gl.dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
@@ -337,6 +341,10 @@ int main()
 		transform->pos,
 		gl.res
 	};
+  auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
+	Node* testing = tstar.aStar({0, 0}, {23, 23});
+	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
+	navc->genPath(testing);
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
@@ -347,7 +355,6 @@ int main()
 	health->max = 100;
 	loadTextures(ssheets);
 	c = &camera;
-
 	World w {settings};
 	rs.sample();
 	ps.sample();
@@ -364,10 +371,11 @@ int main()
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
-            done = check_keys(&e);
+            done = check_keys(&e, &tstar, gl.dummy);
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
-        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        moveTo(gl.dummy, ptr);
+		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
 		physics();
@@ -543,7 +551,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e)
+int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;
@@ -619,6 +627,17 @@ int check_keys(XEvent *e)
 					break;
 				case XK_a:
 					done = 1;
+					break;
+				case XK_c:
+					v2u grid_size = as->size();
+					cout << grid_size[0] << ", " << grid_size[1] << "\n\n";
+					if (as->getNode(0, 0) == nullptr) {
+						cout << "Error, Cannot Find Node\n";
+					} else {
+						auto cn = as->getNode(0, 0)->getWorld();
+						cout << cn[0] << ", " << cn[1] << "\n\n";
+						cout << "0, 0\n\n";
+					}
 					break;
 			}
 		}
@@ -867,6 +886,5 @@ void render() {
 			break; 
 
 	}
-
 }
 			
