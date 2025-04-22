@@ -382,10 +382,15 @@ float AStar::heuristics(Node* a, Node* b)
 void initEnemy(ecs::Entity* foe)
 {
     //Initialize Components
-    auto [health, sprite, transform, physics, navigate] = 
-    ecs::ecs.component().assign<HEALTH, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(
-        foe
-    );
+    auto [health, collide, sprite, transform, physics, navigate] = 
+    ecs::ecs.component().assign<
+    HEALTH,
+    COLLIDER,
+    SPRITE,
+    TRANSFORM,
+    PHYSICS,
+    NAVIGATE
+    >(foe);
 
     //Set Component Variables
     health->max = 50.0f;
@@ -395,6 +400,8 @@ void initEnemy(ecs::Entity* foe)
     transform->pos = {0.0f, 0.0f};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
+    collide->passable = false;
+    collide->dim = {16, 16};
 }
 
 void moveTo(ecs::Entity* ent, v2f target)
