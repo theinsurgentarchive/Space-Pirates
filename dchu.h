@@ -126,8 +126,9 @@ class Enemy
 {
     private:
         ecs::Entity* ent;
-        u16 attackTimerMax;
-        u16 pathTimerMax;
+        u16 atk_Timer_Max;
+        u16 path_Timer_Max;
+        timespec creation;
     public:
         //Constructor
         Enemy(ecs::Entity*);
@@ -140,6 +141,6 @@ class Enemy
         void action();
 
         //Variable
-        u16 attackTimer;
-        u16 pathTimer;
+        u16 atk_Timer;
+        u16 path_Timer;
 };

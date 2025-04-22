@@ -461,7 +461,11 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
 
 Enemy::Enemy(ecs::Entity* ent)
 {
-    attackTimer = 5;
+    atk_Timer_Max = 5;
+    atk_Timer = 0;
+    path_Timer_Max = 5;
+    path_Timer = 0;
+    clock_gettime(CLOCK_REALTIME, create_time)
     this->ent = ent;
     initEnemy();
 }
@@ -498,21 +502,25 @@ void Enemy::loadEnemyTex(
 */
 void Enemy::action()
 {
+    
     auto [p_collide, p_transform] = ecs::ecs.component().fetch<
     COLLIDER,
     TRANSFORM
     >(player);
-    auto [s_collide, s_transform] = ecs::ecs.component().fetch<
+    auto [s_collide, s_transform, health] = ecs::ecs.component().fetch<
     COLLIDER,
-    TRANSFORM
+    TRANSFORM,
+    HEALTH
     >(ent);
 
     moveTo(ent, player);
     if (collided(p_transform, s_transform, p_collide, s_collide)) {
-        auto [health] = ecs::ecs.component().fetch<HEALTH>(ent);
-        if (!attackTimer % attackTimerMax && health->health > 0){
+        if (!(atk_Timer % atk_Timer_Max + 1) && (health->health > 0)){
             health->health -= 1;
+            atk_Timer = 1;
         }
+        if ()
+            atk_Timer++;
     }
 }
 
