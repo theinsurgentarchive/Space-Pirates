@@ -5,6 +5,8 @@
 #include <string>
 #include <ctime>
 
+extern ecs::Entity* player;
+
 //Renderability Check
 bool canRender(ecs::Entity* ent)
 {
@@ -379,31 +381,6 @@ float AStar::heuristics(Node* a, Node* b)
     return distance(a, b);
 }
 
-void initEnemy(ecs::Entity* foe)
-{
-    //Initialize Components
-    auto [health, collide, sprite, transform, physics, navigate] = 
-    ecs::ecs.component().assign<
-    HEALTH,
-    COLLIDER,
-    SPRITE,
-    TRANSFORM,
-    PHYSICS,
-    NAVIGATE
-    >(foe);
-
-    //Set Component Variables
-    health->max = 50.0f;
-    health->health = health->max;
-    sprite->ssheet = "placeholder";
-    sprite->render_order = 14;
-    transform->pos = {0.0f, 0.0f};
-    physics->acc = {0.0f, 0.0f};
-    physics->vel = {0.0f, 0.0f};
-    collide->passable = false;
-    collide->dim = {16, 16};
-}
-
 void moveTo(ecs::Entity* ent, v2f target)
 {
     auto [physics, transform] = 
@@ -482,12 +459,63 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
+Enemy::Enemy(ecs::Entity* ent)
+{
+    attackTimer = 5;
+    this->ent = ent;
+    initEnemy();
+}
+
+void Enemy::initEnemy()
+{
+    //Initialize Components
+    auto [health, collide, sprite, transform, physics, navigate] = 
+    ecs::ecs.component().assign<
+    HEALTH,
+    COLLIDER,
+    SPRITE,
+    TRANSFORM,
+    PHYSICS,
+    NAVIGATE
+    >(ent);
+
+    //Set Component Variables
+    health->max = 50.0f;
+    health->health = health->max;
+    sprite->ssheet = "placeholder";
+    sprite->render_order = 14;
+    transform->pos = {0.0f, 0.0f};
+    physics->acc = {0.0f, 0.0f};
+    physics->vel = {0.0f, 0.0f};
+    collide->passable = true;
+    collide->dim = {16, 16};
+}
 /*
-void loadEnemyTex(
+void Enemy::loadEnemyTex(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
 )
 {}
 */
+void Enemy::action()
+{
+    auto [p_collide, p_transform] = ecs::ecs.component().fetch<
+    COLLIDER,
+    TRANSFORM
+    >(player);
+    auto [s_collide, s_transform] = ecs::ecs.component().fetch<
+    COLLIDER,
+    TRANSFORM
+    >(ent);
+
+    moveTo(ent, player);
+    if (collided(p_transform, s_transform, p_collide, s_collide)) {
+        auto [health] = ecs::ecs.component().fetch<HEALTH>(ent);
+        if (!attackTimer % attackTimerMax && health->health > 0){
+            health->health -= 1;
+        }
+    }
+}
+
 ecs::Navigate::Navigate()
 {
     current = 0;

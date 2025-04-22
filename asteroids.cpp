@@ -283,7 +283,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 //==========================================================================
 // M A I N
 //==========================================================================
-ecs::Entity* ptr;
+ecs::Entity* player;
 
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
@@ -311,7 +311,7 @@ int main()
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
 	gl.dummy = ecs::ecs.entity().checkout();
-	initEnemy(gl.dummy);
+	Enemy foe(gl.dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
@@ -334,9 +334,9 @@ int main()
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
 
-    // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
-	ptr = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(ptr);
+    // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(player);
+	player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
 	Camera camera = {
 		transform->pos,
 		gl.res
@@ -374,7 +374,8 @@ int main()
             done = check_keys(&e, &tstar, gl.dummy);
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
-        moveTo(gl.dummy, ptr);
+        //moveTo(gl.dummy, player);
+		foe.action();		
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();

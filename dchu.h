@@ -110,6 +110,10 @@ class AStar
         float heuristics(Node*, Node*);
 };
 
+//Move an Entity to a Position or Entity with a Transform
+void moveTo(ecs::Entity*, v2f);
+void moveTo(ecs::Entity*, ecs::Entity*);
+
 //Enemy Generation
 enum EnemyT 
 {
@@ -117,11 +121,25 @@ enum EnemyT
     BANDIT,   //1
     ALIEN     //2
 };
-void initEnemy(ecs::Entity*);
-void loadEnemyTex(
-    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
-);
 
-//Move an Entity to a Position or Entity with a Transform
-void moveTo(ecs::Entity*, v2f);
-void moveTo(ecs::Entity*, ecs::Entity*);
+class Enemy
+{
+    private:
+        ecs::Entity* ent;
+        u16 attackTimerMax;
+        u16 pathTimerMax;
+    public:
+        //Constructor
+        Enemy(ecs::Entity*);
+        
+        //Function
+        void initEnemy();
+        void loadEnemyTex(
+            std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
+        );
+        void action();
+
+        //Variable
+        u16 attackTimer;
+        u16 pathTimer;
+}
