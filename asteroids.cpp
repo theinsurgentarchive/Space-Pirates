@@ -16,6 +16,9 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+#include <csignal>
+#include <thread>
+#include <future>
 
 #include "image.h"
 #include "log.h"
@@ -57,54 +60,49 @@ extern void timeCopy(struct timespec *dest, struct timespec *source);
 //-----------------------------------------------------------------------------
 
 class Global {
-	public:
-		int xres, yres;
-		char keys[65536];
-		int mouse_cursor_on;
-		GLuint walkTexture;
-		GLuint titleTexture;
-		GLfloat lightAmbient[4];
-		GLfloat lightDiffuse[4];
-		GLfloat lightSpecular[4];
-		GLfloat lightPosition[4];
-		float planetPos[3];
-		float planetRot[3];
-		float planetAng[3];
+public:
+	v2u res;
+	char keys[65536];
+	int mouse_cursor_on;
+	GLuint walkTexture;
+	GLuint titleTexture;
+	GLfloat lightAmbient[4];
+	GLfloat lightDiffuse[4];
+	GLfloat lightSpecular[4];
+	GLfloat lightPosition[4];
+	float planetPos[3];
+	float planetRot[3];
+	float planetAng[3];
+	GameState state; 
+	int selected_option; // 0 = start, 1 = controls, 2 = exit
+	ecs::Entity* spaceship;
+	Global() {
+		res[0] = 720;
+		res[1] = 480;
+		memset(keys, 0, 65536);
+		// mouse value 1 = true = mouse is a regular mouse.
+		state = MENU; // default 
+		mouse_cursor_on = 1;
 
+		//planet shadow
+		//GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
+		GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
+		GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
 
+		GLfloat lp[] = { 100.0f, 60.0f, -140.0f, 1.0f };
+		lp[0] = rnd() * 200.0 - 100.0;
+		lp[1] = rnd() * 100.0 + 20.0;
+		lp[2] = rnd() * 300.0 - 150.0;
+		memcpy(lightPosition, lp, sizeof(GLfloat)*4);
+		memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
+		memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
+		memcpy(lightPosition, lp, sizeof(GLfloat)*4);
 
-		GameState state; 
-		int selected_option; // 0 = start, 1 = controls, 2 = exit
-		ecs::Entity* spaceship;
-
-		Global() {
-			xres = 1280;
-			yres = 960;
-			titleTexture = 0;
-			memset(keys, 0, 65536);
-			// mouse value 1 = true = mouse is a regular mouse.
-			state = MENU; // default 
-			mouse_cursor_on = 1;
-
-			//planet shadow
-			//GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
-			GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
-			GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
-
-			GLfloat lp[] = { 100.0f, 60.0f, -140.0f, 1.0f };
-			lp[0] = rnd() * 200.0 - 100.0;
-			lp[1] = rnd() * 100.0 + 20.0;
-			lp[2] = rnd() * 300.0 - 150.0;
-			memcpy(lightPosition, lp, sizeof(GLfloat)*4);
-			memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
-			memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
-			memcpy(lightPosition, lp, sizeof(GLfloat)*4);
-
-			float bp[3]={0.0,2.0,-7.0};
-			float ba[3]={0.0,0.0,0.0};
-			memcpy(planetPos, bp, sizeof(float)*3);
-			memcpy(planetRot, ba, sizeof(float)*3);
-			memcpy(planetAng, ba, sizeof(float)*3);
+		float bp[3]={0.0,2.0,-7.0};
+		float ba[3]={0.0,0.0,0.0};
+		memcpy(planetPos, bp, sizeof(float)*3);
+		memcpy(planetRot, ba, sizeof(float)*3);
+		memcpy(planetAng, ba, sizeof(float)*3);
 		}
 }; 
 Global gl;
@@ -136,61 +134,61 @@ class Game {
 
 //X Windows variables
 class X11_wrapper {
-	private:
-		Display *dpy;
-		Window win;
-		GLXContext glc;
-	public:
-		X11_wrapper() { }
-		X11_wrapper(int w, int h) {
-			GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
-			//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
-			XSetWindowAttributes swa;
-			setup_screen_res(gl.xres, gl.yres);
-			dpy = XOpenDisplay(NULL);
-			if (dpy == NULL) {
-				std::cout << "\n\tcannot connect to X server" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			Window root = DefaultRootWindow(dpy);
-			XWindowAttributes getWinAttr;
-			XGetWindowAttributes(dpy, root, &getWinAttr);
-			int fullscreen = 0;
-			gl.xres = w;
-			gl.yres = h;
-			if (!w && !h) {
-				//Go to fullscreen.
-				gl.xres = getWinAttr.width;
-				gl.yres = getWinAttr.height;
-				//When window is fullscreen, there is no client window
-				//so keystrokes are linked to the root window.
-				XGrabKeyboard(dpy, root, False,
-						GrabModeAsync, GrabModeAsync, CurrentTime);
-				fullscreen=1;
-			}
-			XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
-			if (vi == NULL) {
-				std::cout << "\n\tno appropriate visual found\n" << std::endl;
-				exit(EXIT_FAILURE);
-			} 
-			Colormap cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
-			swa.colormap = cmap;
-			swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask |
-				PointerMotionMask | MotionNotify | ButtonPress | ButtonRelease |
-				StructureNotifyMask | SubstructureNotifyMask;
-			unsigned int winops = CWBorderPixel|CWColormap|CWEventMask;
-			if (fullscreen) {
-				winops |= CWOverrideRedirect;
-				swa.override_redirect = True;
-			}
-			win = XCreateWindow(dpy, root, 0, 0, gl.xres, gl.yres, 0,
-					vi->depth, InputOutput, vi->visual, winops, &swa);
-			//win = XCreateWindow(dpy, root, 0, 0, gl.xres, gl.yres, 0,
-			//vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
-			set_title();
-			glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
-			glXMakeCurrent(dpy, win, glc);
-			show_mouse_cursor(0);
+private:
+	Display *dpy;
+	Window win;
+	GLXContext glc;
+public:
+	X11_wrapper() { }
+	X11_wrapper(int w, int h) {
+		GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+		//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
+		XSetWindowAttributes swa;
+		setup_screen_res(gl.res[0],gl.res[1]);
+		dpy = XOpenDisplay(NULL);
+		if (dpy == NULL) {
+			std::cout << "\n\tcannot connect to X server" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		Window root = DefaultRootWindow(dpy);
+		XWindowAttributes getWinAttr;
+		XGetWindowAttributes(dpy, root, &getWinAttr);
+		int fullscreen = 0;
+		gl.res[0] = w;
+		gl.res[1] = h;
+		if (!w && !h) {
+			//Go to fullscreen.
+			gl.res[0] = getWinAttr.width;
+			gl.res[1] = getWinAttr.height;
+			//When window is fullscreen, there is no client window
+			//so keystrokes are linked to the root window.
+			XGrabKeyboard(dpy, root, False,
+				GrabModeAsync, GrabModeAsync, CurrentTime);
+			fullscreen=1;
+		}
+		XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
+		if (vi == NULL) {
+			std::cout << "\n\tno appropriate visual found\n" << std::endl;
+			exit(EXIT_FAILURE);
+		} 
+		Colormap cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
+		swa.colormap = cmap;
+		swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask |
+			PointerMotionMask | MotionNotify | ButtonPress | ButtonRelease |
+			StructureNotifyMask | SubstructureNotifyMask;
+		unsigned int winops = CWBorderPixel|CWColormap|CWEventMask;
+		if (fullscreen) {
+			winops |= CWOverrideRedirect;
+			swa.override_redirect = True;
+		}
+		win = XCreateWindow(dpy, root, 0, 0, gl.res[0], gl.res[1], 0,
+				vi->depth, InputOutput, vi->visual, winops, &swa);
+		//win = XCreateWindow(dpy, root, 0, 0, gl.res[0], gl.res[1], 0,
+		//vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
+		set_title();
+		glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
+		glXMakeCurrent(dpy, win, glc);
+		show_mouse_cursor(0);
 		}
 		~X11_wrapper() {
 			XDestroyWindow(dpy, win);
@@ -207,7 +205,7 @@ class X11_wrapper {
 			if (e->type != ConfigureNotify)
 				return;
 			XConfigureEvent xce = e->xconfigure;
-			if (xce.width != gl.xres || xce.height != gl.yres) {
+			if (xce.width != gl.res[0] || xce.height != gl.res[1]) {
 				//Window size did change.
 				reshape_window(xce.width, xce.height);
 			}
@@ -218,13 +216,15 @@ class X11_wrapper {
 			glViewport(0, 0, (GLint)width, (GLint)height);
 			glMatrixMode(GL_PROJECTION); glLoadIdentity();
 			glMatrixMode(GL_MODELVIEW); glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+			gl.res[0] = width;
+			gl.res[1] = height;
 			set_title();
 		}
 		void setup_screen_res(const int w, const int h) {
-			gl.xres = w;
-			gl.yres = h;
-		}
+			gl.res[0] = w;
+			gl.res[1] = h;
+		} 
 		void swapBuffers() {
 			glXSwapBuffers(dpy, win);
 		}
@@ -263,7 +263,9 @@ class X11_wrapper {
 			//it will undo the last change done by XDefineCursor
 			//(thus do only use ONCE XDefineCursor and then XUndefineCursor):
 		}
-} x11(gl.xres, gl.yres);
+	} x11(gl.res[0],gl.res[1]);
+		
+			// glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 // ---> for fullscreen x11(0, 0);
 
 //function prototypes
@@ -280,80 +282,113 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
+
+ecs::Entity* planetPtr;
+ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
-const World* world;
 const Camera* c;
 const Camera* spaceCamera; 
-int done;
+
+
+
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
-
+std::vector<Collision> cols;
+atomic<bool> done = false;
+void sig_handle(int sig)
+{
+	done = true;
+	std::exit(0);
+}
 // load space sheets
 std::unordered_map<std::string, std::shared_ptr<SpriteSheet>> shipAndAsteroidsSheets;
 void loadShipAndAsteroids(std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
-
-
-
 int main()
 {
+	ThreadPool tp {4};
+	std::signal(SIGINT,sig_handle);
+	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
-	[[maybe_unused]]int* PlanetSeed;
-	// [[maybe_unused]]auto character = ecs::character_x(); 
-	PlanetSeed = PlanetSeedGenerator();
-	// Initialize audio system
-	auto biome = selectBiome(30.0f,0.5f);
-	std::cout << biome.type << ' ' << biome.description << '\n';
-	initAudioSystem();
+	planetPtr = ecs::GeneratePlanet();
+	planetPtr2 = ecs::GeneratePlanet();
 
-	// Set initial music according to game state (starting in MENU state)
-	updateAudioState(gl.state);
+	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
+
 
 	ptr = ecs::ecs.entity().checkout();
-	ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
+	//ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
 
 	 // player camera 
-	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-	Camera camera {
-		tc->pos,
-			{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
-	};
-	c = &camera;
+	//auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	//Camera camera {
+	//	tc->pos,
+	//		{static_cast<u16>(gl.res[0]), static_cast<u16>(gl.res[1])}
+	//};
+	//c = &camera;
 
 	// spaceship camera 
 
-	auto spaceshipCamera = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+	auto [spaceshipCamera] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+	//Camera space_Camera {
+	//	spaceshipCamera->pos, 
+	//			{static_cast<u16>(gl.res[0]), static_cast<u16>(gl.res[1])}
+//	};
+	//new format 
 	Camera space_Camera {
-		spaceshipCamera->pos, 
-				{static_cast<u16>(gl.xres), static_cast<u16>(gl.yres)}
+		spaceshipCamera->pos,
+		gl.res
 	};
 
 	spaceCamera = &space_Camera; 
-
-	auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
-	sc->ssheet = "player-front";
-	sc->render_order = 15;
+	
+	auto [sc] = ecs::ecs.component().fetch<SPRITE>(ptr);
+	if (sc) {
+		sc->ssheet = "player-front";
+		sc->render_order = 15;
+	} else {
+		DINFO("SPRITE component not found on player entity (ptr)!\n");
+	}
 	Vec2<uint16_t> v {50,50};
 
-	loadTextures(ssheets);  //load planet textures
-	loadShipAndAsteroids(shipAndAsteroidsSheets); // load ship and asteroids
+	WorldGenerationSettings settings {
+		planetAttr->temperature,
+		planetAttr->humidity,
+		static_cast<u16>(planetAttr->size * 50),
+		static_cast<u32>(2)};
+	settings.origin = {0,0};
 
-	std::unordered_map<std::string,wfc::TileMeta> tile_map;
-	tile_map.insert({"A",wfc::TileBuilder{0.6,"grass"}.omni("A").omni("C").coefficient("A",3).coefficient("_",-0.2).build()});
-	tile_map.insert({"_",wfc::TileBuilder{0.6,"water"}.omni("C").omni("_").coefficient("_",5).build()});
-	tile_map.insert({"C",wfc::TileBuilder{0.3,"sand"}.omni("_").coefficient("C",3).omni("C").omni("A").build()});
-	std::unordered_set<std::string> tiles;
-	for (auto& pair : tile_map) {
-		tiles.insert(pair.first);
-	}
-	wfc::Grid grid {v, tiles};
-	wfc::WaveFunction wf {grid,tile_map};
-	wf.run();
-	auto w = World{{0,0},grid,tile_map};
-	world = &w;
+    // Initialize audio system
+    initAudioSystem();
+	loadTextures(ssheets);  //load planet textures
+	loadShipAndAsteroids(ssheets); // load ship and asteroids
+    
+    // Set initial music according to game state (starting in MENU state)
+    updateAudioState(gl.state);
+
+    // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
+	ptr = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(ptr);
+	Camera camera = {
+		transform->pos,
+		gl.res
+	};
+	name->name = "Simon";
+	name->offset = {0,-25};
+	sprite->ssheet = "player-idle";
+	sprite->render_order = 15;
+	collider->offset = {0.0f,-8.0f};
+	collider->dim = v2u {5,4};
+	health->health = 50;
+	health->max = 100;
+	loadTextures(ssheets);
+	c = &camera;
+
+	World w {settings};
 	rs.sample();
 	ps.sample();
 	init_opengl();
@@ -363,42 +398,32 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	done = 0;
-	while (!done) {
-		while (x11.getXPending()) {
-			XEvent e = x11.getXNextEvent();
-			x11.check_resize(&e);
-			check_mouse(&e);
-			done = check_keys(&e);
+	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
+    while (!done) {
+        while (x11.getXPending()) {
+            XEvent e = x11.getXNextEvent();
+            x11.check_resize(&e);
+            check_mouse(&e);
+            done = check_keys(&e);
 		}
-		clock_gettime(CLOCK_REALTIME, &timeCurrent);
-		timeSpan = timeDiff(&timeStart, &timeCurrent);
-		timeCopy(&timeStart, &timeCurrent);
-
-		auto current = std::chrono::high_resolution_clock::now();
-		auto dur = std::chrono::duration_cast<std::chrono::seconds>(current - ps.lastSampled());
-		if (dur.count() >= ps.sample_delta) {
-			ps.sample();
-		}
-		//clear screen just once at the beginning
-		glClear(GL_COLOR_BUFFER_BIT); 
-		// Update audio system each frame
-		getAudioManager()->update();
-		ps.update((float) 1/20);
+        clock_gettime(CLOCK_REALTIME, &timeCurrent);
+        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        timeCopy(&timeStart, &timeCurrent);
+        getAudioManager()->update();
+		physics();
 		render();
-		physics(); 
-		x11.swapBuffers();
-		usleep(10000);
-	}
-	shutdownAudioSystem();
-	cleanup_fonts();
-	logClose();
-	return 0;
+        x11.swapBuffers();
+        usleep(1000);
+    }
+    shutdownAudioSystem();
+    cleanup_fonts();
+    logClose();
+    return 0;
 }
 GLuint tex;
 void init_opengl(void)
 {
-	glViewport(0, 0, gl.xres, gl.yres);
+	glViewport(0, 0, gl.res[0],gl.res[1]);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glEnable(GL_TEXTURE_2D);
 
@@ -534,7 +559,6 @@ void check_mouse(XEvent *e)
 	[[maybe_unused]] static int savey = 0;
 	//
 	[[maybe_unused]] static int ct=0;
-	//std::cout << "m" << std::endl << std::flush;
 	if (e->type == ButtonRelease) {
 		return;
 	}
@@ -572,7 +596,6 @@ int check_keys(XEvent *e)
 	if (e->type != KeyRelease && e->type != KeyPress) {
 		return exit_request;
 	}
-
 	int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 
 	if (e->type == KeyPress) {
@@ -591,10 +614,10 @@ int check_keys(XEvent *e)
 			return 0;
 		}
 
-		auto fuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
+		auto [fuel] = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
 		if (fuel && fuel->fuel > 0.0f){
 			fuel->fuel -= 0.2f; //decrment 
-			if(fuel->fuel < 0.0f) { 
+			if (fuel->fuel < 0.0f) { 
 				fuel->fuel = 0.0f;
 				gl.state = GAMEOVER;
 			}
@@ -616,8 +639,7 @@ int check_keys(XEvent *e)
 		if (!ecs::ecs.component().has<PHYSICS>(ptr)) {
 			return 0;
 		}
-		auto pc = ecs::ecs.component().fetch<PHYSICS>(ptr);
-		auto sc = ecs::ecs.component().fetch<SPRITE>(ptr);
+		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(ptr);
 		if (e->type == KeyRelease) {
 			if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
 				sc->ssheet = "player-idle";
@@ -664,9 +686,7 @@ int check_keys(XEvent *e)
 	}
 
 	if (gl.state == SPACE) {
-		[[maybe_unused]] auto transform = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
-		auto sprite = ecs::ecs.component().fetch<SPRITE>(gl.spaceship);
-		auto physics = ecs::ecs.component().fetch<PHYSICS>(gl.spaceship);
+		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
 		if (e->type == KeyPress) {
 			static float movement_mag = 300.0;
 			switch(key) {
@@ -705,9 +725,15 @@ int check_keys(XEvent *e)
 
 void physics()
 {
-	ps.update(1/20);
-	gl.planetAng[2] += 1.0;
-
+	ps.update((float)1/20);
+	if (gl.state == MENU){
+		gl.planetAng[2] += 1.0;
+	}
+	else if (gl.state == SPACE) {
+		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+		traits-> AngY += 1.0f;
+		// ecs::updatePlanetSpin();
+	}
 }
 
  void SampleSpaceEntities() //chatgpt 
@@ -727,24 +753,24 @@ void render() {
 
 	Rect r;
 	r.left = 100;
-	r.bot = gl.yres - 20;
-	auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	r.bot = gl.res[1] - 20;
+	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
-
 	switch(gl.state) {
 		case MENU:
 			// Setup for 2D rendering (menu interface)
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix(); // PUSH 1
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); // PUSH 2
 			glLoadIdentity();
 
-			render_menu_screen(gl.xres, gl.yres, menuBackgroundTexture, gl.titleTexture, gl.selected_option); 
+			render_menu_screen(gl.res[0], gl.res[1], menuBackgroundTexture, gl.titleTexture, gl.selected_option); 
 
 			glPopMatrix(); // POP 2
 			glMatrixMode(GL_PROJECTION);
@@ -754,7 +780,7 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix(); // PUSH 3
 			glLoadIdentity();
-			gluPerspective(45.0f, (GLfloat)gl.xres / (GLfloat)gl.yres, 0.1f, 100.0f);
+			gluPerspective(45.0f, (GLfloat) gl.res[0] / (GLfloat) gl.res[1], 0.1f, 100.0f);
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); // PUSH 4
@@ -763,21 +789,21 @@ void render() {
 
 			// Draw planets
 			glPushMatrix(); // PUSH 5
-			DrawPlanet(
+			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] - 4.5, gl.planetPos[1] - 3,
 					gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1
 				  );
 			glPopMatrix(); // POP 5
 
 			glPushMatrix(); // PUSH 6
-			DrawPlanet(
+			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] + 5.5, gl.planetPos[1],
 					gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0
 				  );
 			glPopMatrix(); // POP 6
 
 			glPushMatrix(); // PUSH 7
-			DrawPlanet(
+			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] + 1.4, gl.planetPos[1] - 7,
 					gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 1
 				  );
@@ -792,31 +818,31 @@ void render() {
 			// Reset GL state completely for controls screen
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
-
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-
-			render_control_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			render_control_screen(gl.res[0], gl.res[1], menuBackgroundTexture);
 			break;
 
 		case CREDITS:
 			// Reset GL state completely for credits screen
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 
-			render_credits_screen(gl.xres, gl.yres, menuBackgroundTexture);
+			render_credits_screen(gl.res[0], gl.res[1], menuBackgroundTexture);
 			break;
 
 		case PLAYING:
 			// Reset for game state
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			glPushMatrix();
@@ -826,11 +852,11 @@ void render() {
 
 			DisableFor2D();
 			if (ptr) {   //player health bar
-				auto playerHealth = ecs::ecs.component().fetch<ecs::Health>(ptr);
+				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(ptr);
 				playerHealth->health = 100.0f; 
 				playerHealth -> max = 100.0f;
 				if (playerHealth) 
-					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.yres - 50, 0xF00FF00);
+					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
 			}
 
 			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
@@ -841,7 +867,22 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix(); 
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			gluPerspective(45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1], 0.1f, 100.0f);
+
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix(); // PUSH 4
+			glLoadIdentity();
+			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+			EnableFor3D();
+			glPushMatrix();
+			DrawPlanet(traits-> AngY, traits-> PosX, traits-> PosY, traits-> 
+				PosZ, gl.lightPosition, traits->size, traits->rotationX, 
+				traits->rotationY, traits->smooth, traits->temperature);
+			glPopMatrix();
+
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); 
 			glLoadIdentity();
@@ -858,7 +899,7 @@ void render() {
 				
 			}
 		
-			spawnAsteroids(gl.spaceship, gl.xres, gl.yres); 
+			spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
 			//c->update(); // update camera
 			//spaceRenderer.sample(); // sample space entities
 			SampleSpaceEntities(); //chat: update entity list w/ asteroids
@@ -869,7 +910,7 @@ void render() {
 			glMatrixMode(GL_PROJECTION); //fix health from not moving 
 			glPushMatrix();
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1);
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
@@ -878,7 +919,7 @@ void render() {
 
 
 			if (gl.spaceship) {
-				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+				auto [spaceshipHealth] = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
 				if (spaceshipHealth->health <= 0.0f) {
 					gl.state = GAMEOVER; 
 					return; 
@@ -887,22 +928,18 @@ void render() {
 			
 
 			if (gl.spaceship) { //draw ui space bars
-				auto spaceshipHealth = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
-				auto spaceshipOxygen = ecs::ecs.component().fetch<ecs::Oxygen>(gl.spaceship);
-				auto spaceshipFuel = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship);
-			
+				auto [spaceshipHealth,oxygen,fuel] = ecs::ecs.component().fetch<ecs::Health,ecs::Oxygen,ecs::Fuel>(gl.spaceship);			
 				if (spaceshipHealth) {
-					drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.yres - 50, 0xF00FF00);
+					drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
 				}
-			
-				if (spaceshipOxygen) {
-					drawUIBar("Oxygen", spaceshipOxygen->oxygen, spaceshipOxygen->max, 20, gl.yres - 90, 0x00FFFF);
+				if (oxygen) {
+					drawUIBar("Oxygen", oxygen->oxygen, oxygen->max, 20, gl.res[1] - 90, 0x00FFFF);
 				}
-			
-				if (spaceshipFuel) {
-					drawUIBar("Fuel", spaceshipFuel->fuel, spaceshipFuel->max, 20, gl.yres - 130, 0xFF9900);
+				if (fuel) {
+					drawUIBar("Fuel", fuel->fuel, fuel->max, 20, gl.res[1] - 130, 0xFF9900);
 				}
 			}
+
 
 			// ---- restore ---- 
 			glMatrixMode(GL_MODELVIEW);
@@ -910,6 +947,25 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
 			
+			// merge into ssheets global in space mode
+			// static bool spaceSheetsLoaded = false;
+			// if (!spaceSheetsLoaded) {
+    		// 	ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
+   			// 	spaceSheetsLoaded = true; 
+				
+			// }
+		
+			spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
+			c->update(); // update camera
+			//spaceRenderer.sample(); // sample space entities
+			SampleSpaceEntities(); //chat: update entity list w/ asteroids
+			spaceRenderer.update((float)1/10); // update space render system
+			//cout << "SpaceRenderer updated" << endl;
+
+	
+			DisableFor2D();
+			ggprint8b(&r, 0, 0xFFFFFF, "Welcome to SPACE mode 🚀");
+
 			break;
 			
 		}
@@ -919,7 +975,7 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
 			glLoadIdentity();
-			glOrtho(0, gl.xres, 0, gl.yres, -1, 1); 
+			glOrtho(0, gl.res[1], 0, gl.res[0], -1, 1); 
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
@@ -928,8 +984,8 @@ void render() {
 
 			
 			Rect r;
-			r.left = gl.xres / 2;
-			r.bot = gl.yres / 2;
+			r.left = gl.res[0] / 2;
+			r.bot = gl.res[1] / 2;
 			r.center = 1;
 			ggprint40(&r, 40, 0xFF0000, "GAME OVER");
 			

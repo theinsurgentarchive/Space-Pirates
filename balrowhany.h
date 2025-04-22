@@ -55,7 +55,7 @@ void drawUIBar(const char* label, float current, float max, float x, float y, un
 //Asteroids
 void SampleSpaceEntities();
 ecs::Entity* createAsteroid(float x, float y);
-void generateAsteroids(int count, [[maybe_unused]]int xres, [[maybe_unused]]int yres);
+void generateAsteroids(int count, [[maybe_unused]]int xres, [[maybe_unused]]int yres, ecs::Entity* spaceship);
 bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* asteroid); 
 void moveAsteroids(ecs::Entity* spaceship);
 void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres);
