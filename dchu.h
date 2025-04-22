@@ -142,4 +142,4 @@ class Enemy
         //Variable
         u16 attackTimer;
         u16 pathTimer;
-}
+};
