@@ -596,10 +596,10 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 
 	// Playing state handling
 	if (gl.state == PLAYING) {
-		if (!ecs::ecs.component().has<PHYSICS>(ptr)) {
+		if (!ecs::ecs.component().has<PHYSICS>(player)) {
 			return 0;
 		}
-		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(ptr);
+		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
 		if (e->type == KeyRelease) {
 			if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
 				sc->ssheet = "player-idle";
@@ -713,7 +713,7 @@ void render() {
 	Rect r;
 	r.left = 100;
 	r.bot = gl.res[1] - 20;
-	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(player);
 	auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
@@ -810,8 +810,8 @@ void render() {
 			glPopMatrix();
 
 			DisableFor2D();
-			if (ptr) {   //player health bar
-				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(ptr);
+			if (player) {   //player health bar
+				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(player);
 				playerHealth->health = 100.0f; 
 				playerHealth -> max = 100.0f;
 				if (playerHealth) 
