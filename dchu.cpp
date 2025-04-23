@@ -465,7 +465,7 @@ Enemy::Enemy(ecs::Entity* ent)
     atk_Timer = 0;
     path_Timer_Max = 5;
     path_Timer = 0;
-    clock_gettime(CLOCK_REALTIME, create_time)
+    t_loop = std::chrono::high_resolution_clock::now();
     this->ent = ent;
     initEnemy();
 }
@@ -502,7 +502,6 @@ void Enemy::loadEnemyTex(
 */
 void Enemy::action()
 {
-    
     auto [p_collide, p_transform] = ecs::ecs.component().fetch<
     COLLIDER,
     TRANSFORM
@@ -512,15 +511,21 @@ void Enemy::action()
     TRANSFORM,
     HEALTH
     >(ent);
-
+    auto current = std::chrono::high_resolution_clock::now();
     moveTo(ent, player);
     if (collided(p_transform, s_transform, p_collide, s_collide)) {
         if (!(atk_Timer % atk_Timer_Max + 1) && (health->health > 0)){
             health->health -= 1;
             atk_Timer = 1;
         }
-        if ()
+        std::chrono::seconds dif = std::chrono::duration_cast<
+            std::chrono::seconds
+        >(current - t_loop);
+        if ((dif + t_dif) >= 1) {
             atk_Timer++;
+            t_dif = 0;
+            t_loop = std::chrono::high_resolution_clock::now();
+        }
     }
 }
 
