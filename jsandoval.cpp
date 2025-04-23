@@ -463,3 +463,24 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
     glEnd();
     glPopMatrix();
 }
+
+
+//Planet Collision
+// bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* Planet) {
+//     auto [spaceshipTransform] = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+//     auto [planetTransform] = ecs::ecs.component().fetch<ecs::Planet>(Planet);
+
+//     if (!spaceshipTransform || !planetTransform){
+//         DINFOF("We are missing components for collision");
+//         return false; 
+//     }
+
+//     float dx = spaceshipTransform->pos[0] - planetTransform->PosX;
+//     float dy = spaceshipTransform->pos[1] - planetTransform->PosY;
+//     float distance = sqrt(pow(dx, 2) + pow(dy, 2)); 
+
+//     float spaceshipRadius = 30.0f;  
+//     float asteroidRadius = 20.0f; // temp, get real size / 2
+
+//     return distance < (spaceshipRadius + asteroidRadius); //circle collision formula
+// }
