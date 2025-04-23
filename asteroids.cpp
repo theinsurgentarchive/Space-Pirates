@@ -311,7 +311,21 @@ int main()
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
-	initializeEntity(gl.spaceship); 
+	initializeEntity(gl.spaceship);
+	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+	Camera space_Camera = {
+		SpaceTransform->pos,
+		gl.res
+	};
+
+	spaceCamera = &space_Camera; 
+	
+
+	//rs.sample();
+	ps.sample();
+	//ps.update();
+
+
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
@@ -333,19 +347,6 @@ int main()
 
 	// spaceship camera 
 
-	auto [spaceshipCamera] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
-	//Camera space_Camera {
-	//	spaceshipCamera->pos, 
-	//			{static_cast<u16>(gl.res[0]), static_cast<u16>(gl.res[1])}
-//	};
-	//new format 
-	Camera space_Camera {
-		spaceshipCamera->pos,
-		gl.res
-	};
-
-	spaceCamera = &space_Camera; 
-	
 	auto [sc] = ecs::ecs.component().fetch<SPRITE>(ptr);
 	if (sc) {
 		sc->ssheet = "player-front";
@@ -693,20 +694,27 @@ int check_keys(XEvent *e)
 				case XK_Right:
 					sprite->ssheet = "ship-right";
 					physics->vel = {movement_mag,0};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
 				case XK_Left:
 					sprite->invert_y = true;
 					sprite->ssheet = "ship-right";
 					physics->vel = {-movement_mag,0};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
+
 				case XK_Up:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,movement_mag};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
+
 				case XK_Down:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,-movement_mag};
+					decrementResources(gl.state, gl.spaceship); 
 					break;
+
 				case XK_a:
 					done = 1;
 					break;
@@ -719,7 +727,7 @@ int check_keys(XEvent *e)
 			}
 
 		} return exit_request;
-	} //bracket fix
+	} 
 
 
 
@@ -883,28 +891,37 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+			
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); 
 			glLoadIdentity();
 
-			spaceCamera->update();
-			// make c camera space camera to solve jlo visability check 
-			const_cast<Camera*&>(c) = const_cast<Camera*>(spaceCamera); 
 
-			// merge into ssheets global in space mode
+			//applying camera
+	
+			spaceCamera->update(); 
+			c = spaceCamera;  
+			
+			// merge space sprites into ssheets once
 			static bool spaceSheetsLoaded = false;
 			if (!spaceSheetsLoaded) {
     			ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
    				spaceSheetsLoaded = true; 
 				
 			}
-		
+
 			spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
-			//c->update(); // update camera
-			//spaceRenderer.sample(); // sample space entities
-			SampleSpaceEntities(); //chat: update entity list w/ asteroids
-			spaceRenderer.update((float)1/10); // update space render system
-			//cout << "SpaceRenderer updated" << endl;
+
+			//sample only asteroid and ship entities 
+			SampleSpaceEntities();
+			spaceRenderer.update((float)1/10);
+
+
+			glPopMatrix();  
+			
+
+			
 
 			// ==== ui bar render === // 
 			glMatrixMode(GL_PROJECTION); //fix health from not moving 
@@ -915,6 +932,8 @@ void render() {
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
 			glLoadIdentity();
+
+
 			DisableFor2D();
 
 
@@ -944,27 +963,14 @@ void render() {
 			// ---- restore ---- 
 			glMatrixMode(GL_MODELVIEW);
 			glPopMatrix();
+			
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
 			
-			// merge into ssheets global in space mode
-			// static bool spaceSheetsLoaded = false;
-			// if (!spaceSheetsLoaded) {
-    		// 	ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
-   			// 	spaceSheetsLoaded = true; 
-				
-			// }
 		
-			spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
-			c->update(); // update camera
-			//spaceRenderer.sample(); // sample space entities
-			SampleSpaceEntities(); //chat: update entity list w/ asteroids
-			spaceRenderer.update((float)1/10); // update space render system
-			//cout << "SpaceRenderer updated" << endl;
 
-	
 			DisableFor2D();
-			ggprint8b(&r, 0, 0xFFFFFF, "Welcome to SPACE mode 🚀");
+			
 
 			break;
 			
