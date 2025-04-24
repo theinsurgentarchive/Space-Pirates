@@ -351,8 +351,8 @@ int main()
 	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
-	health->health = 50;
-	health->max = 100;
+	health->health = 100.0f;
+	health->max = 100.0f;
 	loadTextures(ssheets);
 	c = &camera;
 	World w {settings};
@@ -812,8 +812,6 @@ void render() {
 			DisableFor2D();
 			if (player) {   //player health bar
 				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(player);
-				playerHealth->health = 100.0f; 
-				playerHealth -> max = 100.0f;
 				if (playerHealth) 
 					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
 			}
