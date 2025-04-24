@@ -11,12 +11,9 @@ extern ecs::Entity* player;
 //Render Game Over Screen
 void renderGameOver(v2u res)
 {
-    DisableFor2D();
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    // Setup for 2D rendering
-	glMatrixMode(GL_PROJECTION);
 	glPushMatrix(); // PUSH 1
-	glColor3ub(0, 0, 0);
+	glColor3ub(0.0f, 0.0f, 0.0f);
     glBegin(GL_QUADS);
 		glVertex2f(0     , 0     );
 		glVertex2f(0     , res[1]);
