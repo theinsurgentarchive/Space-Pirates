@@ -77,7 +77,6 @@ public:
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
 	ecs::Entity* spaceship;
-	ecs::Entity* dummy;
 	Global() {
 		res[0] = 720;
 		res[1] = 480;
@@ -284,8 +283,9 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 ecs::Entity* player;
-gl.dummy = ecs::ecs.entity().checkout();
-Enemy foe(gl.dummy);
+ecs::Entity* dummy;
+dummy = ecs::ecs.entity().checkout();
+Enemy foe(dummy);
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
