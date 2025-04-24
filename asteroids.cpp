@@ -284,7 +284,8 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 ecs::Entity* player;
-
+gl.dummy = ecs::ecs.entity().checkout();
+Enemy foe(gl.dummy);
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
@@ -310,8 +311,6 @@ int main()
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
-	gl.dummy = ecs::ecs.entity().checkout();
-	Enemy foe(gl.dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
