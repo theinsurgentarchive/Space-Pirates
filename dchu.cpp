@@ -16,9 +16,9 @@ void renderGameOver(v2u res)
 	glColor3ub(0.0f, 0.0f, 0.0f);
     glBegin(GL_QUADS);
 		glVertex2f(0     , 0     );
-		glVertex2f(0     , res[1]);
-		glVertex2f(res[0], res[1]);
-		glVertex2f(res[0], 0     );
+		glVertex2f(0     , 100);//-res[1]);
+		glVertex2f(100, 100);//-res[0], -res[1]);
+		glVertex2f(100, 0);//-res[0], 0     );
 	glEnd();
     glPopMatrix();
     sleep(5);
