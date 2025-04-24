@@ -381,6 +381,11 @@ int main()
 		render();
         x11.swapBuffers();
         usleep(1000);
+		if (health->health <= 0.0f) {
+			done = true;
+			DINFO("Player Died, GAME OVER...");
+			cout << "GAME OVER\n";
+		}
     }
     shutdownAudioSystem();
     cleanup_fonts();
