@@ -1,5 +1,6 @@
 #pragma once
 #include "jlo.h"
+#include "jsandoval.h"
 
 //Define Alias for ecs Components
 #define COMBAT ecs::Combat
