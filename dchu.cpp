@@ -511,6 +511,7 @@ void Enemy::action()
     if (collided(p_transform, s_transform, p_collide, s_collide)) {
         if ((health->health > 0)){
             health->health -= 1;
+            std::cout << health->health << std::endl;
             //atk_Timer = 1;
         }
         //auto dif = std::chrono::duration_cast<std::chrono::seconds>(current - t_loop);
