@@ -502,10 +502,10 @@ void Enemy::loadEnemyTex(
 */
 void Enemy::action()
 {
-    auto [p_collide, p_transform] = ecs::ecs.component().fetch
-                                                <COLLIDER, TRANSFORM>(player);
-    auto [s_collide, s_transform, health] = ecs::ecs.component().fetch
-                                            <COLLIDER, TRANSFORM, HEALTH>(ent);
+    auto [p_collide, p_transform, health] = ecs::ecs.component().fetch
+                                        <COLLIDER, TRANSFORM, HEALTH>(player);
+    auto [s_collide, s_transform] = ecs::ecs.component().fetch
+                                                    <COLLIDER, TRANSFORM>(ent);
     //auto current = std::chrono::high_resolution_clock::now();
     moveTo(ent, player);
     if (collided(p_transform, s_transform, p_collide, s_collide)) {

@@ -283,8 +283,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 ecs::Entity* player;
-ecs::Entity* dummy = ecs::ecs.entity().checkout();
-Enemy foe(dummy);
+ecs::Entity* dummy;
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
@@ -310,6 +309,8 @@ int main()
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
+	dummy = ecs::ecs.entity().checkout();
+	Enemy foe(dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
@@ -376,7 +377,7 @@ int main()
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
-		physics();
+		physics(foe);
 		render();
         x11.swapBuffers();
         usleep(1000);
@@ -679,16 +680,19 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 
 
 
-void physics()
+void physics(Enemy foe)
 {
 	ps.update((float)1/20);
 	if (gl.state == MENU){
 		gl.planetAng[2] += 1.0;
-	}
-	else if (gl.state == SPACE) {
+	} else if (gl.state == SPACE) {
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		traits-> AngY += 1.0f;
 		// ecs::updatePlanetSpin();
+	} else if (gl.state == PLAYING) {
+		if(dummy) {
+			foe.action();
+		}
 	}
 }
 
@@ -812,9 +816,6 @@ void render() {
 				cout << playerHealth->health << endl;
 				if (playerHealth) 
 					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
-			}
-			if(dummy) {
-				foe.action();
 			}
 			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
 			break; 
