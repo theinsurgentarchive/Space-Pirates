@@ -488,7 +488,7 @@ void Enemy::initEnemy()
     health->health = health->max;
     sprite->ssheet = "placeholder";
     sprite->render_order = 14;
-    transform->pos = {0.0f, 0.0f};
+    transform->pos = {1000.0f, 1000.0f};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
