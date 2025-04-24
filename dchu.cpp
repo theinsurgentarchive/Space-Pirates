@@ -17,8 +17,6 @@ void renderGameOver(v2u res)
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix(); // PUSH 1
 	glColor3ub(0, 0, 0);
-    glLoadIdentity();
-	glOrtho(0, res[0], 0, res[1], -1, 1);
     glBegin(GL_QUADS);
 		glVertex2f(0     , 0     );
 		glVertex2f(0     , res[1]);
