@@ -514,14 +514,14 @@ void Enemy::action()
             atk_Timer = 1;
         }
         //auto dif = std::chrono::duration_cast<std::chrono::seconds>(current - t_loop);
-        if ((dif.count() + t_dif.count()) >= 1) {
+        //if ((dif.count() + t_dif.count()) >= 1) {
             atk_Timer++;
             //auto zero = std::chrono::seconds::duration(0);
             //t_dif = zero;
-        } else {
+        //} else {
             //t_dif += dif;
 
-        }
+        //}
     }
     //t_loop = std::chrono::high_resolution_clock::now();
 }
