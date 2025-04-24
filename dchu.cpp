@@ -11,17 +11,7 @@ extern ecs::Entity* player;
 //Render Game Over Screen
 void renderGameOver(v2u res)
 {
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	glPushMatrix(); // PUSH 1
-	glColor3ub(0.0f, 0.0f, 0.0f);
-    glBegin(GL_QUADS);
-		glVertex2f(0     , 0     );
-		glVertex2f(0     , 100);//-res[1]);
-		glVertex2f(100, 100);//-res[0], -res[1]);
-		glVertex2f(100, 0);//-res[0], 0     );
-	glEnd();
-    glPopMatrix();
-    sleep(5);
+    sleep(2);
 }
 
 //Renderability Check
