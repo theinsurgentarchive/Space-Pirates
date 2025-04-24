@@ -283,8 +283,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 ecs::Entity* player;
-ecs::Entity* dummy;
-dummy = ecs::ecs.entity().checkout();
+ecs::Entity* dummy = ecs::ecs.entity().checkout();
 Enemy foe(dummy);
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
@@ -342,7 +341,7 @@ int main()
 	};
   auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
 	Node* testing = tstar.aStar({0, 0}, {23, 23});
-	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
+	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->genPath(testing);
 	name->name = "Simon";
 	name->offset = {0,-25};
@@ -370,7 +369,7 @@ int main()
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
-            done = check_keys(&e, &tstar, gl.dummy);
+            done = check_keys(&e, &tstar, dummy);
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         //moveTo(gl.dummy, player);		
@@ -814,7 +813,7 @@ void render() {
 				if (playerHealth) 
 					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
 			}
-			if(gl.dummy) {
+			if(dummy) {
 				foe.action();
 			}
 			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
