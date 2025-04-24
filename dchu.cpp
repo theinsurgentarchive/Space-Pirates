@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <string>
 #include <ctime>
+#include <unistd.h>
 
 extern ecs::Entity* player;
 
