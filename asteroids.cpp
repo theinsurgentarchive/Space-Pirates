@@ -386,7 +386,6 @@ int main()
 			DINFO("Player Died, GAME OVER...");
 			cout << "GAME OVER\n";
 			renderGameOver(gl.res);
-			usleep(5000);
 		}
     }
     shutdownAudioSystem();

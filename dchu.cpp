@@ -25,6 +25,7 @@ void renderGameOver(v2u res)
 		glVertex2f(res[0], 0     );
 	glEnd();
     glPopMatrix();
+    sleep(5);
 }
 
 //Renderability Check
