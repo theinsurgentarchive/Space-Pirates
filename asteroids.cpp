@@ -374,8 +374,7 @@ int main()
             done = check_keys(&e, &tstar, gl.dummy);
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
-        //moveTo(gl.dummy, player);
-		foe.action();		
+        //moveTo(gl.dummy, player);		
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
@@ -812,10 +811,13 @@ void render() {
 			DisableFor2D();
 			if (player) {   //player health bar
 				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(player);
+				cout << playerHealth->health << endl;
 				if (playerHealth) 
 					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
 			}
-
+			if(gl.dummy) {
+				foe.action();
+			}
 			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
 			break; 
 
