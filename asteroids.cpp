@@ -666,7 +666,7 @@ int check_keys(XEvent *e)
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
-			static float movement_mag = 300.0;
+			static float movement_mag = 15.0;
 			switch(key) {
 				case XK_Right:
 					sc->ssheet = "player-right";
@@ -707,29 +707,29 @@ int check_keys(XEvent *e)
 	if (gl.state == SPACE) {
 		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
 		if (e->type == KeyPress) {
-			static float movement_mag = 600.0; //ship speed
+			static float space_movement_mag = 600.0; //ship speed
 			switch(key) {
 				case XK_Right:
 					sprite->ssheet = "ship-right";
-					physics->vel = {movement_mag,0};
+					physics->vel = {space_movement_mag ,0};
 					decrementResources(gl.state, gl.spaceship); 
 					break;
 				case XK_Left:
 					sprite->invert_y = true;
 					sprite->ssheet = "ship-right";
-					physics->vel = {-movement_mag,0};
+					physics->vel = {-space_movement_mag ,0};
 					decrementResources(gl.state, gl.spaceship); 
 					break;
 
 				case XK_Up:
 					sprite->ssheet = "ship-front-back";
-					physics->vel = {0,movement_mag};
+					physics->vel = {0,space_movement_mag };
 					decrementResources(gl.state, gl.spaceship); 
 					break;
 
 				case XK_Down:
 					sprite->ssheet = "ship-front-back";
-					physics->vel = {0,-movement_mag};
+					physics->vel = {0,-space_movement_mag };
 					decrementResources(gl.state, gl.spaceship); 
 					break;
 
