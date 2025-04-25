@@ -393,9 +393,9 @@ void moveTo(ecs::Entity* ent, v2f target)
     auto [physics, transform] = 
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
     v2f dif {target[0] - transform->pos[0], target[1] - transform->pos[1]};
-    //if The Difference is Within 0.5 Error Zero Velocity & Accel, & Return
-    if ((dif[0] < 0.5f && dif[0] > -0.5f) &&
-        (dif[1] < 0.5f && dif[1] > -0.5f)
+    //if The Difference is Within 0.3 Error Zero Velocity & Accel, & Return
+    if ((dif[0] < 0.3f && dif[0] > -0.3f) &&
+        (dif[1] < 0.3f && dif[1] > -0.3f)
     ) {
         physics->acc = {0.0f, 0.0f};
         physics->vel = {0.0f, 0.0f};
@@ -411,8 +411,10 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
     v2f dir = v2fNormal(dif);
     v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
-    physics->acc[0] = move[0];
-    physics->acc[1] = move[1];
+    //physics->acc[0] = move[0];
+    //physics->acc[1] = move[1];
+    physics->vel[0] = move[0];
+    physics->vel[1] = move[1];
 
     //Set Acceleration to 0 if The Entity Axis is Within Target
     if (
