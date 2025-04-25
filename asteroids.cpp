@@ -289,10 +289,8 @@ ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
-
 const Camera* c;
 const Camera* spaceCamera; 
-
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<Collision> cols;
@@ -318,7 +316,6 @@ int main()
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
-
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
 
@@ -328,7 +325,6 @@ int main()
 		static_cast<u16>(planetAttr->size * 50),
 		static_cast<u32>(2)};
 	settings.origin = {0,0};
-
     // Initialize audio system
     initAudioSystem();
 	loadTextures(ssheets);  //load planet textures
@@ -336,7 +332,6 @@ int main()
     
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
-
     // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
 	ptr = ecs::ecs.entity().checkout();
 	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(ptr);
@@ -389,7 +384,6 @@ int main()
             check_mouse(&e);
             done = check_keys(&e, &tstar, gl.dummy);
 		}
-
 		switch (gl.state){ //camera switch 
 			case SPACE:
 				c = spaceCamera; 
@@ -402,7 +396,6 @@ int main()
 				c = nullptr;
 				break; 
 		}
-
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         moveTo(gl.dummy, ptr);
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
@@ -866,7 +859,6 @@ void render() {
 			glPushMatrix(); // PUSH 3
 			glLoadIdentity();
 			gluPerspective(45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1], 0.1f, 100.0f);
-
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); // PUSH 4
 			glLoadIdentity();
@@ -890,8 +882,6 @@ void render() {
 	
 			c->update();
 
-			
-			
 			// merge space sprites into ssheets once
 			static bool spaceSheetsLoaded = false;
 			if (!spaceSheetsLoaded) {
@@ -923,7 +913,6 @@ void render() {
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
 			glLoadIdentity();
-
 
 			DisableFor2D();
 
@@ -1002,6 +991,5 @@ void render() {
 			break; 
 
 	}
-
 }
 			

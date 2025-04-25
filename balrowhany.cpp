@@ -270,7 +270,7 @@ void loadShipAndAsteroids(
 {
     SpriteSheetLoader loader {shipAndAsteroidsSheets};  
     //loader instance using custom map defined above
-    	DINFOF("Loading asteroid base.png sprites...\n") 
+    DINFOF("Loading asteroid base.png sprites...\n") 
     loader
     
 
@@ -454,7 +454,6 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
     auto [asteroidTransform] = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
 
 
-
     if (!spaceshipTransform || !asteroidTransform){
         DINFOF("We are missing components for collision");
         return false; 
@@ -482,8 +481,6 @@ void moveAsteroids(ecs::Entity* spaceship)
     }
 
     float dt = getDeltaTime(); 
-
-
 
 
     auto asteroids = ecs::ecs.query<ecs::Asteroid, ecs::Transform>(); 
