@@ -28,6 +28,7 @@
 #include "balrowhany.h"
 #include "jsandoval.h"
 #include "mchitorog.h"
+#include "dchu.h"
 #define GAME_TITLE "Space Pirates"
 #define _TEXTURES "./textures"
 using namespace std; 
@@ -76,6 +77,7 @@ public:
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
 	ecs::Entity* spaceship;
+	ecs::Entity* dummy;
 	Global() {
 		res[0] = 720;
 		res[1] = 480;
@@ -271,7 +273,7 @@ public:
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent *e);
+int check_keys(XEvent *e, AStar *as, ecs::Entity*);
 void physics();
 void render();
 // For transparent title.png background
@@ -287,10 +289,9 @@ ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
+
 const Camera* c;
 const Camera* spaceCamera; 
-
-
 
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
@@ -312,51 +313,14 @@ int main()
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
-	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
-	Camera space_Camera = {
-		SpaceTransform->pos,
-		gl.res
-	};
-
-	
-	spaceCamera = &space_Camera; 
-	
-
-	//rs.sample();
-	ps.sample();
-	//ps.update();
-
-	float dt = getDeltaTime(); 
-
+	gl.dummy = ecs::ecs.entity().checkout();
+	initEnemy(gl.dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
 
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
-
-
-	ptr = ecs::ecs.entity().checkout();
-	//ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH>(ptr);
-
-	 // player camera 
-	//auto tc = ecs::ecs.component().fetch<TRANSFORM>(ptr);
-	//Camera camera {
-	//	tc->pos,
-	//		{static_cast<u16>(gl.res[0]), static_cast<u16>(gl.res[1])}
-	//};
-	//c = &camera;
-
-	// spaceship camera 
-
-	auto [sc] = ecs::ecs.component().fetch<SPRITE>(ptr);
-	if (sc) {
-		sc->ssheet = "player-front";
-		sc->render_order = 15;
-	} else {
-		DINFO("SPRITE component not found on player entity (ptr)!\n");
-	}
-	Vec2<uint16_t> v {50,50};
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
@@ -380,6 +344,23 @@ int main()
 		transform->pos,
 		gl.res
 	};
+
+	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+	Camera space_Camera = {
+		SpaceTransform->pos,
+		gl.res
+	};
+	spaceCamera = &space_Camera; 
+	
+
+	
+	ps.sample();
+
+	float dt = getDeltaTime(); 
+  auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
+	Node* testing = tstar.aStar({0, 0}, {23, 23});
+	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
+	navc->genPath(testing);
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
@@ -390,7 +371,6 @@ int main()
 	health->max = 100;
 	loadTextures(ssheets);
 	c = &camera;
-
 	World w {settings};
 	rs.sample();
 	ps.sample();
@@ -407,10 +387,10 @@ int main()
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
-            done = check_keys(&e);
+            done = check_keys(&e, &tstar, gl.dummy);
 		}
 
-		switch (gl.state){
+		switch (gl.state){ //camera switch 
 			case SPACE:
 				c = spaceCamera; 
 				break; 
@@ -419,20 +399,19 @@ int main()
 				break; 
 
 			default: 
-				c = nullptr; //camera disabled non playing state 
+				c = nullptr;
 				break; 
 		}
 
-		
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
-        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        moveTo(gl.dummy, ptr);
+		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
 		physics();
 		render();
         x11.swapBuffers();
         usleep(1000);
-		
     }
     shutdownAudioSystem();
     cleanup_fonts();
@@ -602,7 +581,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e)
+int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;
@@ -632,15 +611,8 @@ int check_keys(XEvent *e)
 			gl.state = MENU;
 			return 0;
 		}
+		
 
-		auto [fuel] = ecs::ecs.component().fetch<ecs::Fuel>(gl.spaceship); 
-		if (fuel && fuel->fuel > 0.0f){
-			fuel->fuel -= 0.2f; //decrment 
-			if (fuel->fuel < 0.0f) { 
-				fuel->fuel = 0.0f;
-				gl.state = GAMEOVER;
-			}
-		}
 
 		if (key == XK_Escape && gl.state == SPACE) {  // TEMP FOR EASE
 			gl.state = MENU; 
@@ -666,39 +638,38 @@ int check_keys(XEvent *e)
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
-			static float movement_mag = 15.0;
+			static float movement_mag = 20.0;
 			switch(key) {
 				case XK_Right:
 					sc->ssheet = "player-right";
 					pc->vel = {movement_mag,0};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
-
 				case XK_Left:
 					sc->invert_y = true;
 					sc->ssheet = "player-right";
 					pc->vel = {-movement_mag,0};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
-
 				case XK_Up:
 					sc->ssheet = "player-back";
 					pc->vel = {0,movement_mag};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
-
 				case XK_Down:
 					sc->ssheet = "player-front";
 					pc->vel = {0,-movement_mag};
-
-					decrementResources(gl.state, gl.spaceship); 
 					break;
-
 				case XK_a:
 					done = 1;
+					break;
+				case XK_c:
+					v2u grid_size = as->size();
+					cout << grid_size[0] << ", " << grid_size[1] << "\n\n";
+					if (as->getNode(0, 0) == nullptr) {
+						cout << "Error, Cannot Find Node\n";
+					} else {
+						auto cn = as->getNode(0, 0)->getWorld();
+						cout << cn[0] << ", " << cn[1] << "\n\n";
+						cout << "0, 0\n\n";
+					}
 					break;
 			}
 		}
@@ -707,30 +678,31 @@ int check_keys(XEvent *e)
 	if (gl.state == SPACE) {
 		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
 		if (e->type == KeyPress) {
-			static float space_movement_mag = 600.0; //ship speed
+			static float space_movement_mag = 600.0;
 			switch(key) {
 				case XK_Right:
 					sprite->ssheet = "ship-right";
-					physics->vel = {space_movement_mag ,0};
-					decrementResources(gl.state, gl.spaceship); 
+					physics->vel = {space_movement_mag,0};
+					decrementResources(gl.state, gl.spaceship);
 					break;
+
 				case XK_Left:
 					sprite->invert_y = true;
 					sprite->ssheet = "ship-right";
-					physics->vel = {-space_movement_mag ,0};
-					decrementResources(gl.state, gl.spaceship); 
+					physics->vel = {-space_movement_mag,0};
+					decrementResources(gl.state, gl.spaceship);
 					break;
 
 				case XK_Up:
 					sprite->ssheet = "ship-front-back";
-					physics->vel = {0,space_movement_mag };
-					decrementResources(gl.state, gl.spaceship); 
+					physics->vel = {0,space_movement_mag};
+					decrementResources(gl.state, gl.spaceship);
 					break;
 
 				case XK_Down:
 					sprite->ssheet = "ship-front-back";
-					physics->vel = {0,-space_movement_mag };
-					decrementResources(gl.state, gl.spaceship); 
+					physics->vel = {0,-space_movement_mag};
+					decrementResources(gl.state, gl.spaceship);
 					break;
 
 				case XK_a:
@@ -745,7 +717,7 @@ int check_keys(XEvent *e)
 			}
 
 		} return exit_request;
-	} 
+	} //bracket fix
 
 
 
@@ -863,14 +835,14 @@ void render() {
 			break;
 
 		case PLAYING:
-			
+			// Reset for game state
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
-
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
+
 			glPushMatrix();
 			c->update();
 			rs.update((float)1/10);
@@ -891,7 +863,7 @@ void render() {
 		case SPACE:
 		{
 			glMatrixMode(GL_PROJECTION);
-			glPushMatrix(); 
+			glPushMatrix(); // PUSH 3
 			glLoadIdentity();
 			gluPerspective(45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1], 0.1f, 100.0f);
 
@@ -910,7 +882,6 @@ void render() {
 			glLoadIdentity();
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
-			
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); 
 			glLoadIdentity();

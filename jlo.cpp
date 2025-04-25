@@ -179,6 +179,9 @@ void loadTextures(
     .loadStatic("grass-005",
         loadTexture(
             "./resources/textures/tiles/grass-005.webp",false))
+    .loadStatic("placeholder",
+        loadTexture(
+            "./resources/placeholder.webp", true))
     .loadStatic("flower-001",
         loadTexture(
             "./resources/textures/tiles/flower-001.webp",false))
