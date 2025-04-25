@@ -13,7 +13,8 @@ enum GameState {
     CONTROLS,   // 2 
     CREDITS,    // 3
     SPACE,      // 4
-    EXIT        // 5
+    GAMEOVER,   // 5 
+    EXIT        // 6
 };
 
 //ecs Components
@@ -34,6 +35,11 @@ namespace ecs {
         float health; 
         float movementSpeed;
         bool exploding = false;
+
+    };
+
+    struct SpawnPoint {
+        int direction; // 1-4 directions 5-8 corners  
     };
 }
 
@@ -49,8 +55,12 @@ void drawUIBar(const char* label, float current, float max, float x, float y, un
 //Asteroids
 void SampleSpaceEntities();
 ecs::Entity* createAsteroid(float x, float y);
-void generateAsteroids(int count, int xres, int yres);
+void generateAsteroids(int count, [[maybe_unused]]int xres, [[maybe_unused]]int yres, ecs::Entity* spaceship);
 bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* asteroid); 
 void moveAsteroids(ecs::Entity* spaceship);
 void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres);
+
+void decrementResources(GameState &state, ecs::Entity* spaceship); 
+
+float getDeltaTime(); 
 
