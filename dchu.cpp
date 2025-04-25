@@ -411,10 +411,10 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
     v2f dir = v2fNormal(dif);
     v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
-    //physics->acc[0] = move[0];
-    //physics->acc[1] = move[1];
-    physics->vel[0] = move[0];
-    physics->vel[1] = move[1];
+    physics->acc[0] = move[0];
+    physics->acc[1] = move[1];
+    //physics->vel[0] = move[0];
+    //physics->vel[1] = move[1];
 
     //Set Acceleration to 0 if The Entity Axis is Within Target
     if (
