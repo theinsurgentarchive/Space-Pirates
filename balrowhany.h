@@ -61,3 +61,6 @@ void moveAsteroids(ecs::Entity* spaceship);
 void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres);
 
 void decrementResources(GameState &state, ecs::Entity* spaceship); 
+
+float getDeltaTime(); 
+

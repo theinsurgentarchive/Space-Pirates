@@ -318,6 +318,7 @@ int main()
 		gl.res
 	};
 
+	
 	spaceCamera = &space_Camera; 
 	
 
@@ -325,6 +326,7 @@ int main()
 	ps.sample();
 	//ps.update();
 
+	float dt = getDeltaTime(); 
 
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
@@ -407,6 +409,21 @@ int main()
             check_mouse(&e);
             done = check_keys(&e);
 		}
+
+		switch (gl.state){
+			case SPACE:
+				c = spaceCamera; 
+				break; 
+			case PLAYING:
+				c = &camera; 
+				break; 
+
+			default: 
+				c = nullptr; //camera disabled non playing state 
+				break; 
+		}
+
+		
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
@@ -415,6 +432,7 @@ int main()
 		render();
         x11.swapBuffers();
         usleep(1000);
+		
     }
     shutdownAudioSystem();
     cleanup_fonts();
@@ -689,7 +707,7 @@ int check_keys(XEvent *e)
 	if (gl.state == SPACE) {
 		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
 		if (e->type == KeyPress) {
-			static float movement_mag = 300.0;
+			static float movement_mag = 600.0; //ship speed
 			switch(key) {
 				case XK_Right:
 					sprite->ssheet = "ship-right";
@@ -845,7 +863,7 @@ void render() {
 			break;
 
 		case PLAYING:
-			// Reset for game state
+			
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
@@ -897,11 +915,11 @@ void render() {
 			glPushMatrix(); 
 			glLoadIdentity();
 
-
 			//applying camera
 	
-			spaceCamera->update(); 
-			c = spaceCamera;  
+			c->update();
+
+			
 			
 			// merge space sprites into ssheets once
 			static bool spaceSheetsLoaded = false;
@@ -915,8 +933,10 @@ void render() {
 
 			//sample only asteroid and ship entities 
 			SampleSpaceEntities();
-			spaceRenderer.update((float)1/10);
-
+			//spaceRenderer.update((float)1/10);
+			float dt = getDeltaTime(); 
+			spaceRenderer.update(dt);
+			
 
 			glPopMatrix();  
 			
@@ -981,7 +1001,8 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
 			glLoadIdentity();
-			glOrtho(0, gl.res[1], 0, gl.res[0], -1, 1); 
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);  //chat 
+
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();

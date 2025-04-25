@@ -5,9 +5,11 @@
 #include "balrowhany.h"
 #include "mchitorog.h"
 #include "jsandoval.h"
-//?
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
+
 extern const Camera* spaceCamera; //spaceCamera in main
 
 
@@ -304,16 +306,16 @@ ecs::Entity* createAsteroid(float x, float y)
     }
 
     //assign Asteroid properties
-    float size = (float)(rand() % 3 + 1); // random size between 1.0 and 3.0
+    float size = (float)(rand() % 10 + 1); // random size between 1.0 and 10.0
     auto [singleAsteroid,transform,sprite] = ecs::ecs.component().assign<ecs::Asteroid,ecs::Transform,ecs::Sprite>(asteroid);
     singleAsteroid->health = size * 2; // based on size
     singleAsteroid->size = size; // 1, 2, or 3
 
     //singleAsteroid->rotationSpeed = (rand() % 100) / 100.0f; // random rotation speed between 0 and 1
-    singleAsteroid->movementSpeed = static_cast<float>((rand() % 10) + 5); // random movement speed between 5 and 15
+    singleAsteroid->movementSpeed = static_cast<float>((rand() % 600) + 50); // speed range 50-549
 
     // assign Transform properties
-    float scaleSize = static_cast<float>((rand() % 5) + 1); // 1 to 5
+    float scaleSize = static_cast<float>((rand() % 8) + 1); // 1 to 8
     transform->pos = {x, y};
     transform->scale = {scaleSize, scaleSize}; //{size, size};
     transform->rotation = 0.0f;
@@ -334,9 +336,15 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
     float CameraX = transform->pos[0];
     float CameraY = transform->pos[1];
 
+   
+    std::cout << "Camera pos: (" << CameraX << ", " << CameraY << ")\n";
+
+
+
     for (int i = 0; i < count; i++) {
         float x = 0.0f; 
         float y = 0.0f; 
+        
 
         int directionRandomizer = (rand() % 8) + 1; // 1 to 4 
         
@@ -387,6 +395,7 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
                 break;         
         }
         //create Asteroid entity with it's properties in x, y position
+        std::cout << "Spawning asteroid at: (" << x << ", " << y << ")\n"; //test1
         ecs::Entity* asteroid = createAsteroid(x, y); 
 
         // assign that Asteroid with spawnPoint for randomized direction 
@@ -395,6 +404,7 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
 
         DINFOF("Spawning asteroid at x: %.2f, y: %.2f (dir %d)\n", x, y, 
                                             directionRandomizer);
+
 
 
        
@@ -411,12 +421,9 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
 			
 			if (secondsPassed.count() >= 3) {  
 				DINFOF("Spawning Asteroids \n");
-                auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
-                //generateAsteroids(transform->pos); // passing position now 
-
-				generateAsteroids(rand() % 2 + 8, xres, yres, spaceship); 
-                //rand 0-1, 7-8 asteroids 
-				// random 0-1 + 4 asteroids
+                cout << "Spawning asteroid" << endl;
+                [[maybe_unused]]auto transform = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
+				generateAsteroids(rand() % 2 + 4, xres, yres, spaceship); //spawn count 
 				lastAsteroidSpawn = current; //reset timer
 			}
             // set asteroids w/ asteroid sprite
@@ -474,50 +481,46 @@ void moveAsteroids(ecs::Entity* spaceship)
         return; 
     }
 
+    float dt = getDeltaTime(); 
+
+
+
 
     auto asteroids = ecs::ecs.query<ecs::Asteroid, ecs::Transform>(); 
-                    //query asteroid w/ transform
-    for (auto* asteroid: asteroids) { 
-                    // chat: how loop to through all asteroids. 
-       
-
+    for (auto* asteroid: asteroids) {  // chat: how loop to through all asteroids. 
         auto [transform, asteroidComp, sprite, spawnDirection] =
     ecs::ecs.component().fetch<ecs::Transform, ecs::Asteroid, ecs::Sprite, 
     ecs::SpawnPoint>(asteroid);
-
-
-
-    
 
         if (!transform || !asteroidComp || !sprite || !spawnDirection)
             continue; 
             // chat did the math 
         switch (spawnDirection->direction){
-            case 1: transform->pos[1] -= asteroidComp->movementSpeed; break; 
+            case 1: transform->pos[1] -= asteroidComp->movementSpeed * dt ; break; 
                 // top->down
-            case 2: transform->pos[0] -= asteroidComp->movementSpeed; break; 
+            case 2: transform->pos[0] -= asteroidComp->movementSpeed * dt; break; 
                 // right-left
-            case 3: transform->pos[1] += asteroidComp->movementSpeed; break;
+            case 3: transform->pos[1] += asteroidComp->movementSpeed * dt; break;
                 // bottom-up
-            case 4: transform->pos[0] += asteroidComp->movementSpeed; break; 
+            case 4: transform->pos[0] += asteroidComp->movementSpeed * dt; break; 
                 // left-right
 
             // corners 
             case 5: // top-left -> move down-right //chat formula 
-                transform->pos[0] += asteroidComp->movementSpeed * 0.6f;
-                transform->pos[1] -= asteroidComp->movementSpeed * 0.6f;
+                transform->pos[0] += asteroidComp->movementSpeed * 0.6f * dt;
+                transform->pos[1] -= asteroidComp->movementSpeed * 0.6f * dt;
                 break;
             case 6:  // top-right -> move down-left
-                transform->pos[0] -= asteroidComp->movementSpeed * 0.6f;
-                transform->pos[1] -= asteroidComp->movementSpeed * 0.6f;
+                transform->pos[0] -= asteroidComp->movementSpeed * 0.6f * dt;
+                transform->pos[1] -= asteroidComp->movementSpeed * 0.6f * dt;
                 break;
             case 7: // bottom-left -> move up-right
-                transform->pos[0] += asteroidComp->movementSpeed * 0.6f;
-                transform->pos[1] += asteroidComp->movementSpeed * 0.6f;
+                transform->pos[0] += asteroidComp->movementSpeed * 0.6f * dt;
+                transform->pos[1] += asteroidComp->movementSpeed * 0.6f * dt;
                 break;
             case 8: // bottom-right -> move up-left
-                transform->pos[0] -= asteroidComp->movementSpeed * 0.6f;
-                transform->pos[1] += asteroidComp->movementSpeed * 0.6f;
+                transform->pos[0] -= asteroidComp->movementSpeed * 0.6f * dt;
+                transform->pos[1] += asteroidComp->movementSpeed * 0.6f * dt;
                 break;
             
         }
@@ -538,10 +541,6 @@ void moveAsteroids(ecs::Entity* spaceship)
             continue; //skip
         }
 
-        
-        //transform->pos[0] -= asteroidComp->movementSpeed; 
-                    // move asteroids left
-
             // collision check and health reduction
         if (checkCircleCollision(spaceship, asteroid)) {
             if (asteroidComp->exploding == false) { 
@@ -552,7 +551,6 @@ void moveAsteroids(ecs::Entity* spaceship)
                 if (asteroidComp->exploding) {
                     sprite->frame++; // begin incrementing sprite frame 
                     DINFOF("Exploding frame is: %d\n", sprite->frame);
-
                 }
 
                 auto [shipHealth] = ecs::ecs.component().fetch<HEALTH>(spaceship);
@@ -593,6 +591,16 @@ void decrementResources(GameState &state, ecs::Entity* spaceship)
 
 }
 
+
+float getDeltaTime() { //used for smooth movement 
+
+    static auto last = steady_clock::now(); 
+    auto old = last;
+    last = steady_clock::now(); 
+    auto frameTime = last - old; 
+    return duration_cast<duration<float>>(frameTime).count(); 
+
+}
 
 
 
