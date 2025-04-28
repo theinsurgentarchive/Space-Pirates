@@ -467,8 +467,6 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
-Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {1.2f, 3.0f}) {}
-
 Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
 {
     atk_Timer = (u16)(t_mod[0] * 1000.0f);

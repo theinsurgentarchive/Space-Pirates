@@ -135,7 +135,6 @@ class Enemy
         bool can_damage;
     public:
         //Constructor
-        Enemy(ecs::Entity*);
         Enemy(ecs::Entity*, v2f);
         
         //Function
