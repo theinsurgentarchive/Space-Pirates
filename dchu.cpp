@@ -480,9 +480,7 @@ Enemy::Enemy(ecs::Entity* ent)
 Enemy::Enemy(ecs::Entity* ent, u16 atk, u16 path)
 {
     atk_Timer_Max = atk;
-    atk_Timer = 0;
     path_Timer_Max = path;
-    path_Timer = 0;
     do_damage = true;
     this->ent = ent;
     initEnemy();
