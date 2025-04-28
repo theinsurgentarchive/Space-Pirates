@@ -504,7 +504,7 @@ void Enemy::initEnemy()
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
     collide->dim = {16, 16};
-    atk_loop = std::chrono::steady_clock::now();
+    atk_loop = std::chrono::high_resolution_clock::now();
 }
 /*
 void Enemy::loadEnemyTex(
@@ -527,10 +527,10 @@ void Enemy::action()
                 health->health -= 1;
                 std::cout << health->health << std::endl;
             }
-            atk_loop = std::chrono::steady_clock::now();
+            atk_loop = std::chrono::high_resolution_clock::now();
         }
     } else {
-        auto current = std::chrono::steady_clock::now();
+        auto current = std::chrono::high_resolution_clock::now();
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
             current - atk_loop
         );
