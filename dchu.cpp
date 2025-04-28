@@ -537,7 +537,7 @@ void Enemy::action()
             can_damage = false;
             std::cout << "Has Damaged\n";
         }
-        (can_damage) ? std::cout << "True\n" : std::cout << "False\n";
+        //(can_damage) ? std::cout << "True\n" : std::cout << "False\n";
     } else {
         auto current = std::chrono::high_resolution_clock::now();
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
