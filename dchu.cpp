@@ -468,10 +468,10 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
 }
 
 
-Enemy::Enemy(ecs::Entity* ent, u16 atk, u16 path)
+Enemy::Enemy(ecs::Entity* ent, float atk, float path)
 {
-    atk_Timer_Max = atk;
-    path_Timer_Max = path;
+    atk_Timer_Max = (u16)(atk * 1000);
+    path_Timer_Max = (u16)(path * 1000);
     can_damage = true;
     std::cout << can_damage << std::endl << std::flush;
     this->ent = ent;
@@ -529,13 +529,29 @@ void Enemy::action()
         }
     } else {
         auto current = std::chrono::high_resolution_clock::now();
-        auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
+        auto t_elasped = std::chrono::duration_cast<std::chrono::milliseconds>(
             current - last_time
         );
-        if (t_elasped.count() >= atk_Timer_Max) {
+        if (t_elasped.count() >= atk_Timer) {
             can_damage = true;
         }
     }
+}
+
+
+u16 Enemy::getAtkTimer()
+{
+    return atk_Timer;
+}
+
+u16 Enemy::getPathTimer()
+{
+    return path_Timer;
+}
+
+bool Enemy::getCanDamage()
+{
+    return can_damage;
 }
 
 ecs::Navigate::Navigate()

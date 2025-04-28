@@ -130,12 +130,12 @@ class Enemy
 {
     private:
         ecs::Entity* ent;
-        u16 atk_Timer_Max;
-        u16 path_Timer_Max;
+        u16 atk_Timer;
+        u16 path_Timer;
         bool can_damage;
     public:
         //Constructor
-        Enemy(ecs::Entity*, u16 atk = 5, u16 path = 5);
+        Enemy(ecs::Entity*, float atk = 1.2, float path = 3);
         
         //Function
         void initEnemy();
@@ -145,5 +145,9 @@ class Enemy
         bool doDamage(ecs::Entity*, ecs::Entity*);
         void action();
 
-        //Variable
+        //Getter
+        u16 getAtkTimer();
+        u16 getPathTimer();
+        bool getCanDamage();
+
 };
