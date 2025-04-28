@@ -135,7 +135,7 @@ class Enemy
         bool can_damage;
     public:
         //Constructor
-        Enemy(ecs::Entity* ent, float atk = 1.2f, float path = 3.0f);
+        Enemy(ecs::Entity*, float atk = 1.2f, float path = 3.0f);
         
         //Function
         void initEnemy();
