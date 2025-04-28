@@ -539,7 +539,7 @@ void Enemy::action()
                 do_damage = true;
                 std::cout << t_elasped.count() << std::endl;
             }
-        }
+        //}
     }
 }
 
