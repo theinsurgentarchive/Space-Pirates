@@ -136,7 +136,7 @@ class Enemy
     public:
         //Constructor
         Enemy();
-        Enemy(ecs::Entity*);
+        // Enemy(ecs::Entity*);
         Enemy(ecs::Entity*, u16 atk = 5, u16 path = 5);
         
         //Function
