@@ -519,7 +519,6 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
     if (collided(p_transform, s_transform, p_collide, s_collide)) {
         if ((health->health > 0)){
             health->health -= 1;
-            std::cout << health->health << std::endl;
         }
     }
     return false;

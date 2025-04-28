@@ -698,7 +698,7 @@ void physics(Enemy foe)
 	} else if (gl.state == PLAYING) {
 		if(dummy) {
 			foe.action();
-			cout << foe.can_damage << endl;
+			(foe.can_damage) ? std::cout << "True\n" : std::cout << "False\n";
 		}
 	}
 }
