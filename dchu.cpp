@@ -505,7 +505,6 @@ void Enemy::initEnemy()
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
     collide->dim = {16, 16};
-    //atk_loop = std::chrono::high_resolution_clock::now();
 }
 /*
 void Enemy::loadEnemyTex(
@@ -526,7 +525,6 @@ void Enemy::action()
             health->health -= 1;
             std::cout << health->health << std::endl;
             do_damage = false;
-            //atk_loop = std::chrono::high_resolution_clock::now();
         } else {
             static auto last_time = std::chrono::high_resolution_clock::now();
             auto current = std::chrono::high_resolution_clock::now();
