@@ -132,6 +132,7 @@ class Enemy
         ecs::Entity* ent;
         u16 atk_Timer_Max;
         u16 path_Timer_Max;
+        bool can_damage;
     public:
         //Constructor
         Enemy(ecs::Entity*, u16 atk = 5, u16 path = 5);
@@ -145,5 +146,4 @@ class Enemy
         void action();
 
         //Variable
-        bool can_damage;
 };

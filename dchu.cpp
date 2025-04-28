@@ -482,6 +482,7 @@ Enemy::Enemy(ecs::Entity* ent, u16 atk, u16 path)
     atk_Timer_Max = atk;
     path_Timer_Max = path;
     can_damage = true;
+    std::cout << can_damage << std::endl;
     this->ent = ent;
     initEnemy();
 }
@@ -530,10 +531,10 @@ void Enemy::action()
     static std::chrono::high_resolution_clock::time_point last_time;
     moveTo(ent, player);
     //Check if The Enemy has Hit The Player
-    if (!can_damage) {
+    if (can_damage) {
         if(doDamage(ent, player)) {
             last_time = std::chrono::high_resolution_clock::now();
-            can_damage = true;
+            can_damage = false;
             std::cout << "Has Damaged\n";
         }
         (can_damage) ? std::cout << "True\n" : std::cout << "False\n";
@@ -544,7 +545,7 @@ void Enemy::action()
         );
         std::cout << t_elasped.count() << std::endl;
         if (t_elasped.count() >= atk_Timer_Max) {
-            can_damage = false;
+            can_damage = true;
             std::cout << "can Damage\n";
         } else {
             std::cout << "Cannot Damage\n";
