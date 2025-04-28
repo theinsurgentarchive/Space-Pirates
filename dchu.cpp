@@ -411,10 +411,8 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
     v2f dir = v2fNormal(dif);
     v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
-    physics->acc[0] = move[0];
-    physics->acc[1] = move[1];
-    //physics->vel[0] = move[0];
-    //physics->vel[1] = move[1];
+    physics->vel[0] = move[0];
+    physics->vel[1] = move[1];
 
     //Set Acceleration to 0 if The Entity Axis is Within Target
     if (
@@ -423,7 +421,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         DINFOF("%d Entity within Target X Range.\n", ent->id);
         physics->acc[0] = 0.0f;
-        physics->vel[0] *= 0.9f;
+        physics->vel[0] *= 0.99f;
     }
 
     if (
@@ -432,9 +430,9 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         DINFOF("%d Entity within Target Y Range.\n", ent->id);
         physics->acc[1] = 0.0f;
-        physics->vel[1] *= 0.9f;
+        physics->vel[1] *= 0.99f;
     }
-
+    /*
     //Speed Limit
     float top_speed = 50.0f;
     if (physics->vel[0] > top_speed) {
@@ -453,6 +451,7 @@ void moveTo(ecs::Entity* ent, v2f target)
         physics->vel[1] = -top_speed;
         physics->acc[1] = 0.0f;
     }
+    */
 }
 
 void moveTo(ecs::Entity* ent, ecs::Entity* target)
@@ -467,14 +466,23 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     }
     moveTo(ent, tar->pos);
 }
-
+/*
 Enemy::Enemy(ecs::Entity* ent)
 {
     atk_Timer_Max = 5;
     atk_Timer = 0;
     path_Timer_Max = 5;
     path_Timer = 0;
-    //t_loop = std::chrono::high_resolution_clock::now();
+    this->ent = ent;
+    initEnemy();
+}
+*/
+Enemy::Enemy(ecs::Entity* ent, u16 atk, u16 path)
+{
+    atk_Timer_Max = atk;
+    atk_Timer = 0;
+    path_Timer_Max = path;
+    path_Timer = 0;
     this->ent = ent;
     initEnemy();
 }
@@ -483,14 +491,8 @@ void Enemy::initEnemy()
 {
     //Initialize Components
     auto [health, collide, sprite, transform, physics, navigate] = 
-    ecs::ecs.component().assign<
-    HEALTH,
-    COLLIDER,
-    SPRITE,
-    TRANSFORM,
-    PHYSICS,
-    NAVIGATE
-    >(ent);
+    ecs::ecs.component().assign
+                <HEALTH, COLLIDER, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(ent);
 
     //Set Component Variables
     health->max = 50.0f;
@@ -502,6 +504,7 @@ void Enemy::initEnemy()
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
     collide->dim = {16, 16};
+    t_loop = std::chrono::high_resolution_clock::now();
 }
 /*
 void Enemy::loadEnemyTex(
@@ -515,25 +518,26 @@ void Enemy::action()
                                         <COLLIDER, TRANSFORM, HEALTH>(player);
     auto [s_collide, s_transform] = ecs::ecs.component().fetch
                                                     <COLLIDER, TRANSFORM>(ent);
-    //auto current = std::chrono::high_resolution_clock::now();
     moveTo(ent, player);
-    if (collided(p_transform, s_transform, p_collide, s_collide)) {
-        if ((health->health > 0)){
-            health->health -= 1;
-            std::cout << health->health << std::endl;
-            //atk_Timer = 1;
+    //Check if The Enemy has Hit The Player
+    if (do_damage) {
+        if (collided(p_transform, s_transform, p_collide, s_collide)) {
+            do_damage = false;
+            if ((health->health > 0)){
+                health->health -= 1;
+                std::cout << health->health << std::endl;
+            }
         }
-        //auto dif = std::chrono::duration_cast<std::chrono::seconds>(current - t_loop);
-        //if ((dif.count() + t_dif.count()) >= 1) {
-            //atk_Timer++;
-            //auto zero = std::chrono::seconds::duration(0);
-            //t_dif = zero;
-        //} else {
-            //t_dif += dif;
-
-        //}
+    } else {
+        auto current = std::chrono::high_resolution_clock::now();
+        auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
+            current - t_loop
+        );
+        if (t_elasped.count() >= atk_Timer_Max) {
+            t_loop = current;
+            do_damage = true;
+        }
     }
-    //t_loop = std::chrono::high_resolution_clock::now();
 }
 
 ecs::Navigate::Navigate()

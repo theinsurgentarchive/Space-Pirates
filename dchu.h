@@ -132,10 +132,11 @@ class Enemy
         ecs::Entity* ent;
         u16 atk_Timer_Max;
         u16 path_Timer_Max;
-        //std::chrono::steady_clock::time_point t_loop;
+        bool do_damage;
+        std::chrono::steady_clock::time_point t_loop;
     public:
         //Constructor
-        Enemy(ecs::Entity*);
+        Enemy(ecs::Entity*, u16 atk = 5, u16 path = 5);
         
         //Function
         void initEnemy();
