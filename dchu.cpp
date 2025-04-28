@@ -467,10 +467,6 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
-Enemy::Enemy()
-{
-    std::cout << "Called Default Constructor.\n";
-}
 
 Enemy::Enemy(ecs::Entity* ent, u16 atk, u16 path)
 {
