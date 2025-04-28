@@ -686,7 +686,7 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 
 
 
-void physics(Enemy foe)
+void physics(Enemy& foe)
 {
 	ps.update((float)1/20);
 	if (gl.state == MENU){
