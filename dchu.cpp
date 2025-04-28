@@ -472,16 +472,6 @@ Enemy::Enemy()
     std::cout << "Called Default Constructor.\n";
 }
 
-// Enemy::Enemy(ecs::Entity* ent)
-// {
-//     atk_Timer_Max = 5;
-//     path_Timer_Max = 5;
-//     can_damage = true;
-//     std::cout << can_damage << std::endl << std::flush;
-//     this->ent = ent;
-//     initEnemy();
-// }
-
 Enemy::Enemy(ecs::Entity* ent, u16 atk, u16 path)
 {
     atk_Timer_Max = atk;
@@ -540,9 +530,7 @@ void Enemy::action()
         if(doDamage(ent, player)) {
             last_time = std::chrono::high_resolution_clock::now();
             can_damage = false;
-            std::cout << "Has Damaged\n";
         }
-        //(can_damage) ? std::cout << "True\n" : std::cout << "False\n";
     } else {
         auto current = std::chrono::high_resolution_clock::now();
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
@@ -551,9 +539,6 @@ void Enemy::action()
         std::cout << t_elasped.count() << std::endl;
         if (t_elasped.count() >= atk_Timer_Max) {
             can_damage = true;
-            std::cout << "can Damage\n";
-        } else {
-            std::cout << "Cannot Damage\n";
         }
     }
 }
