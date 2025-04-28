@@ -510,6 +510,21 @@ void Enemy::loadEnemyTex(
 )
 {}
 */
+bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
+{
+    auto [p_collide, p_transform, health] = ecs::ecs.component().fetch
+                                        <COLLIDER, TRANSFORM, HEALTH>(ent2);
+    auto [s_collide, s_transform] = ecs::ecs.component().fetch
+                                                    <COLLIDER, TRANSFORM>(ent);
+    if (collided(p_transform, s_transform, p_collide, s_collide)) {
+        if ((health->health > 0)){
+            health->health -= 1;
+            std::cout << health->health << std::endl;
+        }
+    }
+    return false;
+}
+
 void Enemy::action()
 {
     auto [p_collide, p_transform, health] = ecs::ecs.component().fetch
@@ -518,20 +533,23 @@ void Enemy::action()
                                                     <COLLIDER, TRANSFORM>(ent);
     moveTo(ent, player);
     //Check if The Enemy has Hit The Player
-    static auto last_time = std::chrono::high_resolution_clock::now();
-    auto current = std::chrono::high_resolution_clock::now();
-    auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
-        current - last_time
-    );
-    if (!(t_elasped.count() % atk_Timer_Max)) {
-        if (collided(p_transform, s_transform, p_collide, s_collide)) {
-            if (do_damage && (health->health > 0)){
-                health->health -= 1;
-                std::cout << health->health << std::endl;
-            }
+    if (!can_damage) {
+        static auto last_time = std::chrono::high_resolution_clock::now();
+        auto current = std::chrono::high_resolution_clock::now();
+        auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
+            current - last_time
+        );
+        if (!(t_elasped.count() % atk_Timer_Max)) {
+            can_damage = true;
+            std::cout << t_elasped.count() << std::endl;
         }
-        std::cout << t_elasped.count() << std::endl;
+        goto skip_doDamage;
     }
+    if(doDamage(ent, player)) {
+        can_damage = false;
+    }
+
+    skip_doDamage:
 }
 
 ecs::Navigate::Navigate()

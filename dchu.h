@@ -141,8 +141,9 @@ class Enemy
         void loadEnemyTex(
             std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
         );
+        bool doDamage(ecs::Entity*, ecs::Entity*);
         void action();
 
         //Variable
-        bool do_damage;
+        bool can_damage;
 };
