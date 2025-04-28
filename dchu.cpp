@@ -550,6 +550,7 @@ void Enemy::action()
     }
 
     skip_doDamage:
+        std::cout << "Skipped doDamage\n";
 }
 
 ecs::Navigate::Navigate()
