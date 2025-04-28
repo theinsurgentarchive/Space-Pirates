@@ -819,7 +819,6 @@ void render() {
 			DisableFor2D();
 			if (player) {   //player health bar
 				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(player);
-				cout << playerHealth->health << endl;
 				if (playerHealth) 
 					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
 			}
