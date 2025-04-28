@@ -534,7 +534,7 @@ void Enemy::action()
         static auto last_time = std::chrono::high_resolution_clock::now();
         auto current = std::chrono::high_resolution_clock::now();
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
-            current - last_time;
+            current - last_time
         );
         std::cout << t_elasped.count() << std::endl;
         if (t_elasped.count() >= atk_Timer_Max) {
