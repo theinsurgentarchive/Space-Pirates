@@ -147,3 +147,10 @@ class Enemy
         //Variable
         bool can_damage;
 };
+/*
+class Timer
+{
+    private:
+    public:
+}
+*/

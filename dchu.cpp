@@ -527,26 +527,23 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 
 void Enemy::action()
 {
-    auto [p_collide, p_transform, health] = ecs::ecs.component().fetch
-                                        <COLLIDER, TRANSFORM, HEALTH>(player);
-    auto [s_collide, s_transform] = ecs::ecs.component().fetch
-                                                    <COLLIDER, TRANSFORM>(ent);
+    static std::chrono::high_resolution_clock::time_point last_time;
     moveTo(ent, player);
     //Check if The Enemy has Hit The Player
-    if (!can_damage) {
-        static auto last_time = std::chrono::high_resolution_clock::now();
+    if (can_damage) {
+        if(doDamage(ent, player)) {
+            last_time = std::chrono::high_resolution_clock::now();
+            can_damage = false;
+        }
+        (can_damage) ? std::cout << "True\n" : std::cout << "False\n";
+    } else {
         auto current = std::chrono::high_resolution_clock::now();
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
             current - last_time
         );
-        if (!(t_elasped.count() % atk_Timer_Max)) {
+        if (t_elasped.count() > atk_Timer_Max) {
             can_damage = true;
         }
-    } else {
-        if(doDamage(ent, player)) {
-            can_damage = false;
-        }
-        (can_damage) ? std::cout << "True\n" : std::cout << "False\n";
     }
 }
 
