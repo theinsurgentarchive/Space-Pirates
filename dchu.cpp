@@ -519,7 +519,6 @@ void Enemy::action()
     auto [s_collide, s_transform] = ecs::ecs.component().fetch
                                                     <COLLIDER, TRANSFORM>(ent);
     moveTo(ent, player);
-    auto current = std::chrono::steady_clock::now();
     //Check if The Enemy has Hit The Player
     if (do_damage) {
         if (collided(p_transform, s_transform, p_collide, s_collide)) {
@@ -528,12 +527,14 @@ void Enemy::action()
                 health->health -= 1;
                 std::cout << health->health << std::endl;
             }
-            atk_loop = current;
+            atk_loop = std::chrono::steady_clock::now();
         }
     } else {
+        auto current = std::chrono::steady_clock::now();
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
             current - atk_loop
         );
+        std::cout << t_elasped.count() << std::endl;
         if (t_elasped.count() >= atk_Timer_Max) {
             do_damage = true;
         }
