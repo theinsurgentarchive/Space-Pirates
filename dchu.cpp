@@ -467,6 +467,11 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
+Enemy::Enemy()
+{
+    std::cout << "Called Default Constructor.\n";
+}
+
 Enemy::Enemy(ecs::Entity* ent)
 {
     atk_Timer_Max = 5;
