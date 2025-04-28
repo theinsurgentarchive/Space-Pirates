@@ -542,10 +542,10 @@ void Enemy::action()
         if (!(t_elasped.count() % atk_Timer_Max)) {
             can_damage = true;
         }
-    }
-
-    if(doDamage(ent, player)) {
-        can_damage = false;
+    } else {
+        if(doDamage(ent, player)) {
+            can_damage = false;
+        }
         (can_damage) ? std::cout << "True\n" : std::cout << "False\n";
     }
 }
