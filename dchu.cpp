@@ -534,7 +534,7 @@ void Enemy::action()
         if(doDamage(ent, player)) {
             last_time = std::chrono::high_resolution_clock::now();
             can_damage = false;
-            std::cout << "test" << std::endl;
+            std::cout << "test\n" << std::endl;
         }
         (can_damage) ? std::cout << "True\n" : std::cout << "False\n";
     } else {
