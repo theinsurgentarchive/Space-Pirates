@@ -533,7 +533,7 @@ void Enemy::action()
     if (!can_damage) {
         if(doDamage(ent, player)) {
             last_time = std::chrono::high_resolution_clock::now();
-            can_damage = false;
+            can_damage = true;
             std::cout << "Has Damaged\n";
         }
         (can_damage) ? std::cout << "True\n" : std::cout << "False\n";
@@ -544,7 +544,7 @@ void Enemy::action()
         );
         std::cout << t_elasped.count() << std::endl;
         if (t_elasped.count() >= atk_Timer_Max) {
-            can_damage = true;
+            can_damage = false;
             std::cout << "can Damage\n";
         } else {
             std::cout << "Cannot Damage\n";
