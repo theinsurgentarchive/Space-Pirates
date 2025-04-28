@@ -470,8 +470,8 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
 
 Enemy::Enemy(ecs::Entity* ent, float atk, float path)
 {
-    atk_Timer_Max = (u16)(atk * 1000);
-    path_Timer_Max = (u16)(path * 1000);
+    atk_Timer = (u16)(atk * 1000);
+    path_Timer = (u16)(path * 1000);
     can_damage = true;
     std::cout << can_damage << std::endl << std::flush;
     this->ent = ent;
