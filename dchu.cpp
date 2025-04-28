@@ -520,6 +520,7 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
         if ((health->health > 0)){
             health->health -= 1;
         }
+        return true;
     }
     return false;
 }
