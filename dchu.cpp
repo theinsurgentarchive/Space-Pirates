@@ -535,7 +535,7 @@ void Enemy::action()
             auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
                 current - last_time
             );
-            if (t_elasped.count() >= atk_Timer_Max) {
+            if (t_elasped.count() % atk_Timer_Max) {
                 do_damage = true;
                 std::cout << t_elasped.count() << std::endl;
             }
