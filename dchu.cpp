@@ -472,16 +472,17 @@ Enemy::Enemy(ecs::Entity* ent)
     atk_Timer_Max = 5;
     path_Timer_Max = 5;
     can_damage = true;
-    std::cout << can_damage << std::endl;
+    std::cout << can_damage << std::endl << std::fflush;
     this->ent = ent;
     initEnemy();
 }
+
 Enemy::Enemy(ecs::Entity* ent, u16 atk, u16 path)
 {
     atk_Timer_Max = atk;
     path_Timer_Max = path;
     can_damage = true;
-    std::cout << can_damage << std::endl;
+    std::cout << can_damage << std::endl << std::fflush;
     this->ent = ent;
     initEnemy();
 }
