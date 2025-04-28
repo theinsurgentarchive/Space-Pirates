@@ -521,26 +521,22 @@ void Enemy::action()
                                                     <COLLIDER, TRANSFORM>(ent);
     moveTo(ent, player);
     //Check if The Enemy has Hit The Player
-    if (do_damage) {
-        if (do_damage && 
-            collided(p_transform, s_transform, p_collide, s_collide)
-        ) {
+    if (collided(p_transform, s_transform, p_collide, s_collide)) {
+        if (do_damage && (health->health > 0)){
+            health->health -= 1;
+            std::cout << health->health << std::endl;
             do_damage = false;
-            if ((health->health > 0)){
-                health->health -= 1;
-                std::cout << health->health << std::endl;
-                //atk_loop = std::chrono::high_resolution_clock::now();
+            //atk_loop = std::chrono::high_resolution_clock::now();
+        } else {
+            static auto last_time = std::chrono::high_resolution_clock::now();
+            auto current = std::chrono::high_resolution_clock::now();
+            auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
+                current - last_time
+            );
+            std::cout << t_elasped.count() << std::endl;
+            if (t_elasped.count() >= atk_Timer_Max) {
+                do_damage = true;
             }
-        }
-    } else {
-        static auto last_time = std::chrono::high_resolution_clock::now();
-        auto current = std::chrono::high_resolution_clock::now();
-        auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
-            current - last_time
-        );
-        std::cout << t_elasped.count() << std::endl;
-        if (t_elasped.count() >= atk_Timer_Max) {
-            do_damage = true;
         }
     }
 }
