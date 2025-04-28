@@ -504,7 +504,7 @@ void Enemy::initEnemy()
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
     collide->dim = {16, 16};
-    t_loop = std::chrono::high_resolution_clock::now();
+    atk_loop = std::chrono::steady_clock::now();
 }
 /*
 void Enemy::loadEnemyTex(
@@ -528,11 +528,11 @@ void Enemy::action()
                 health->health -= 1;
                 std::cout << health->health << std::endl;
             }
-            t_loop = current;
+            atk_loop = current;
         }
     } else {
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
-            current - t_loop
+            current - atk_loop
         );
         if (t_elasped.count() >= atk_Timer_Max) {
             do_damage = true;
