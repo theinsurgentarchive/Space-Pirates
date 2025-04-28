@@ -522,14 +522,16 @@ void Enemy::action()
     moveTo(ent, player);
     //Check if The Enemy has Hit The Player
     if (do_damage) {
-        if (collided(p_transform, s_transform, p_collide, s_collide)) {
+        if (do_damage && 
+            collided(p_transform, s_transform, p_collide, s_collide)
+        ) {
+            do_damage = false;
             if ((health->health > 0)){
                 health->health -= 1;
                 std::cout << health->health << std::endl;
                 //atk_loop = std::chrono::high_resolution_clock::now();
             }
         }
-        do_damage = false;
     } else {
         static auto last_time = std::chrono::high_resolution_clock::now();
         auto current = std::chrono::high_resolution_clock::now();
