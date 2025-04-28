@@ -527,9 +527,9 @@ void Enemy::action()
                 health->health -= 1;
                 std::cout << health->health << std::endl;
                 atk_loop = std::chrono::high_resolution_clock::now();
-                do_damage = false;
             }
         }
+        do_damage = false;
     } else {
         auto current = std::chrono::high_resolution_clock::now();
         auto t_elasped = std::chrono::duration_cast<std::chrono::seconds>(
