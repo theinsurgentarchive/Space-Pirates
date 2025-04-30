@@ -489,7 +489,7 @@ Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
     atk_Timer = (u16)(t_mod[0] * 1000.0f);
     path_Timer = (u16)(t_mod[1] * 1000.0f);
     can_damage = true;
-    can_gen_path = false;
+    can_gen_path = true;
     this->ent = ent;
     initEnemy();
 }

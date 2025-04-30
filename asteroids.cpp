@@ -343,9 +343,6 @@ int main()
 	};
 	v2u t_grid_size = {planetAttr->size * 50, planetAttr->size * 50};
   	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {50.0f, 50.0f});
-	v2u far = astar->findClosestNode({1000.0f, 1000.0f})->getLocal();
-	v2u close = astar->findClosestNode({0, 0})->getLocal();
-	astar->aStar(close, far);
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->setAStar(astar);
 	navc->genPath(
