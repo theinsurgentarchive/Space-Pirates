@@ -544,7 +544,7 @@ void Enemy::action()
     if ((tran->pos[0] < 0 || tran->pos[0] > navi->getAStar()->getStep()[0]) ||
         (tran->pos[1] < 0 || tran->pos[1] > navi->getAStar()->getStep()[1])
     ) {
-        goto(skip);
+        goto skip;
     }
 
     //Check if The Enemy is Due for another A* Pass.
