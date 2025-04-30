@@ -623,6 +623,7 @@ void Enemy::action()
         phys->acc = {0.0f, 0.0f};
         phys->vel = {0.0f, 0.0f};
     }
+    delete node_pos;
 }
 
 
@@ -661,7 +662,8 @@ float* ecs::Navigate::nodePos()
     }
     v2f temp;
     temp = nodes[current_node_pos]->getWorld();
-    float result[2] = {temp[0], temp[1]};
+    float* result = new float[2];
+    result = {temp[0], temp[1]};
     return result;
 }
 
