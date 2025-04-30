@@ -546,9 +546,13 @@ void Enemy::action()
     v2f node_pos = navi->nodePos();
 
     //Check if The Player is Within Bounds
-    if ((tran->pos[0] < 0 || tran->pos[0] > navi->getAStar()->getStep()[0]) ||
-        (tran->pos[1] < 0 || tran->pos[1] > navi->getAStar()->getStep()[1])
-    ) {
+    if ((   
+            tran->pos[0] < 0 || tran->pos[0] > navi->getAStar()->size() *
+            navi->getAStar()->getStep()[0]) ||
+        (
+            tran->pos[1] < 0 || tran->pos[1] > navi->getAStar()->size() *
+            navi->getAStar()->getStep()[1]
+    )) {
         in_bounds = false;
     }
     std::cout << in_bounds << std::endl;
