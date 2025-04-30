@@ -540,6 +540,13 @@ void Enemy::action()
     static std::chrono::high_resolution_clock::time_point last_time;
     v2f node_pos = navi->nodePos();
 
+    //Check if The Player is Within Bounds
+    if ((tran->pos[0] < 0 || tran->pos[0] > navi->getAStar()->getStep()[0]) ||
+        (tran->pos[1] < 0 || tran->pos[1] > navi->getAStar()->getStep()[1])
+    ) {
+        goto(skip);
+    }
+
     //Check if The Enemy is Due for another A* Pass.
     if (can_gen_path) {
         navi->genPath(
@@ -576,6 +583,7 @@ void Enemy::action()
             moveTo(ent, node_pos);
         }
     }
+    skip:
     //Check if The Enemy has Hit The Player
     if (can_damage) {
         if(doDamage(ent, player)) {

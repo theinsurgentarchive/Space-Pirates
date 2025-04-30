@@ -78,11 +78,16 @@ class AStar
         //Get The Node Grid's Size
         v2u size();
 
+        //Get The Distance between the Center of Nodes
+        v2f getStep();
+
+        //Retrieve Nodes
         Node* getNode(u16, u16);
         Node* findClosestNode(v2f);
 
         void initGrid(v2f dim = {1.0f, 1.0f});
 
+        //Neighbor Related Function
         void genNeighbors();
         bool hasNeighbors(Node*);
 
