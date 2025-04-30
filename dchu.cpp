@@ -546,7 +546,7 @@ void Enemy::action()
     );
     auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
-    v2f* node_pos = navi->nodePos();
+    float node_pos[2] = navi->nodePos();
     
     //Check if nodePos Returned a nullptr
     if (node_pos == nullptr) {
@@ -588,10 +588,10 @@ void Enemy::action()
             moveTo(ent, player);
         } else {
             if (
-                (&(&(node_pos)) < (trav->pos[0] + 0.5f)) &&
-                (&(&(node_pos)) > (trav->pos[0] - 0.5f)) &&
-                (&(&(node_pos) + 1) < (trav->pos[1] + 0.5f)) &&
-                (&(&(node_pos) + 1) > (trav->pos[1] - 0.5f))
+                (node_pos[0] < (trav->pos[0] + 0.5f)) &&
+                (node_pos[0] > (trav->pos[0] - 0.5f)) &&
+                (node_pos[1] < (trav->pos[1] + 0.5f)) &&
+                (node_pos[1] > (trav->pos[1] - 0.5f))
             ) {
                 if (navi->nextNode()) {
                     DINFO("Position Reached, Heading to Next Node\n");
@@ -599,7 +599,7 @@ void Enemy::action()
                     DINFO("Destination Reached, Finished Status Enabled\n");
                 }
             } else {
-                moveTo(ent, &(&(node_pos)));
+                moveTo(ent, {node_pos[0], node_pos[1]});
             }
         }
         //Check if The Enemy has Hit The Player
