@@ -570,6 +570,7 @@ void Enemy::action()
     v2f node_pos = navi->nodePos();
 
     //Check if The Enemy is Due for another A* Pass.
+    /*
     if (can_gen_path) {
         navi->genPath(
             navi->getAStar()->findClosestNode(tran->pos),
@@ -585,6 +586,7 @@ void Enemy::action()
             can_gen_path = true;
         }
     }
+    */
 
     //Move Towards Next Node in The Path, Otherwise Move Towards The Player
     if (!(
