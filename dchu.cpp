@@ -480,7 +480,7 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     }
     moveTo(ent, tar->pos);
 }
-//Reversed
+
 Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 6.0f})
 {}
 
