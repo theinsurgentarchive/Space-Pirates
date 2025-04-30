@@ -341,7 +341,7 @@ int main()
 		transform->pos,
 		gl.res
 	};
-  auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
+  	AStar tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
 	Node* testing = tstar.aStar({0, 0}, {1000, 1000});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->genPath(
