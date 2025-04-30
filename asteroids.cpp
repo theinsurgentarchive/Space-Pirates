@@ -397,6 +397,7 @@ int main()
     shutdownAudioSystem();
     cleanup_fonts();
     logClose();
+	delete astar;
     return 0;
 }
 GLuint tex;
