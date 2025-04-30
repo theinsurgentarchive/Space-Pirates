@@ -7,7 +7,6 @@
 #include <unistd.h>
 
 extern ecs::Entity* player;
-extern AStar tstar;
 
 //Render Game Over Screen
 void renderGameOver(v2u res)
@@ -542,8 +541,8 @@ void Enemy::action()
     v2f node_pos = navi->nodePos();
     if (can_gen_path) {
         navi->genPath(
-            tstar.findClosestNode(trav->pos),
-            tstar.findClosestNode(tran->pos)
+            navi->getAStar()->findClosestNode(trav->pos),
+            navi->getAStar()->findClosestNode(tran->pos)
         );
         can_gen_path = false;
     } else {
@@ -608,6 +607,7 @@ bool Enemy::getCanGenPath()
 ecs::Navigate::Navigate()
 {
     current_node_pos = 0;
+    grid = nullptr;
 }
 
 v2f ecs::Navigate::nodePos()
@@ -659,4 +659,14 @@ bool ecs::Navigate::nextNode()
         DWARN("OverShoot Detected, No Changes Implemented\n");
         return false;
     }
+}
+
+AStar* ecs::Navigate::getAStar()
+{
+    return grid;
+}
+
+void ecs::Navigate::setAStar(AStar* astar)
+{
+    grid = astar;
 }

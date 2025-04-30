@@ -55,8 +55,12 @@ namespace ecs
     {
         private:
             std::vector<Node*> nodes;
+            
             //Get The Current Position Within The Node Vector
             u16 current_node_pos;
+
+            //Reference to world grid
+            AStar* grid;
         public:
             //Constructor
             Navigate();
@@ -66,6 +70,12 @@ namespace ecs
             void genPath(Node*, Node*);
             void reset();
             bool nextNode();
+
+            //Getter
+            AStar* getAStar();
+
+            //Setter
+            void setAStar(AStar*);
     };
 }
 
