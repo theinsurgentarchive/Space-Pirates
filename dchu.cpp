@@ -652,7 +652,7 @@ v2f ecs::Navigate::nodePos()
 {
     if (current_node_pos >= nodes.size()) {
         DWARN("Path Overshoot, Returning Default Value.\n");
-        return {-0.0000000000009f, 0.0000000000009f};
+        return nodes[current_node_pos - 1]->getWorld();
     }
     return nodes[current_node_pos]->getWorld();
 }
