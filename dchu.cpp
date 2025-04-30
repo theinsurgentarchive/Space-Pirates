@@ -656,15 +656,19 @@ ecs::Navigate::Navigate()
 
 float* ecs::Navigate::nodePos()
 {
+    //Collect Current Node World Position
     if (current_node_pos >= nodes.size()) {
         DWARN("Path Overshoot, Returning Default Value.\n");
         return nullptr;
     }
     v2f temp;
     temp = nodes[current_node_pos]->getWorld();
+    
+    //Generate New Float to be Returned
     float* result = new float[2];
     result[0] = temp[0];
     result[1] = temp[1];
+    
     return result;
 }
 
