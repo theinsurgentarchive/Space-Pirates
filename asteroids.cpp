@@ -376,7 +376,7 @@ int main()
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
-            done = check_keys(&e, &astar, dummy);
+            done = check_keys(&e, astar, dummy);
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
         //moveTo(gl.dummy, player);		
