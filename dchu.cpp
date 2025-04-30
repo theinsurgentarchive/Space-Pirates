@@ -241,10 +241,10 @@ Node* AStar::getNode(u16 x, u16 y)
 
 Node* AStar::findClosestNode(v2f pos)
 {
-    v2f find {floor(pos[0]), floor(pos[1])};
+    v2f find {floorf(pos[0]), floorf(pos[1])};
     v2f select {
-        round(find[0] / origin_step[0]),
-        round(find[1] / origin_step[1])
+        roundf(find[0] / origin_step[0]),
+        roundf(find[1] / origin_step[1])
     };
 
     //Get Node
