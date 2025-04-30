@@ -481,7 +481,7 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
-Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.07f, 6.0f})
+Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 15.0f})
 {}
 
 Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
@@ -558,18 +558,22 @@ void Enemy::action()
     }
 
     //Move Towards Next Node in The Path, Otherwise Move Towards The Player
-    if (!(
-        (node_pos[0] < (trav->pos[0] + 0.5f)) &&
-        (node_pos[0] > (trav->pos[0] - 0.5f)) &&
-        (node_pos[1] < (trav->pos[1] + 0.5f)) &&
-        (node_pos[1] > (trav->pos[1] - 0.5f))
-    )) {
-        moveTo(ent, node_pos);
+    if (navi->getStatus()) {
+        moveTo(ent, player);
     } else {
-        bool finished = navi->nextNode();
-        std::cout << finished << std::endl;
-        if (!finished) {
-            moveTo(ent, player);
+        if (
+            (node_pos[0] < (trav->pos[0] + 0.5f)) &&
+            (node_pos[0] > (trav->pos[0] - 0.5f)) &&
+            (node_pos[1] < (trav->pos[1] + 0.5f)) &&
+            (node_pos[1] > (trav->pos[1] - 0.5f))
+        ) {
+            if (navi->nextNode()) {
+                DINFO("Position Reached, Heading to Next Node\n");
+            } else {
+                DINFO("Destination Reached, Finished Status Enabled\n");
+            }
+        } else {
+            moveTo(ent, node_pos);
         }
     }
     //Check if The Enemy has Hit The Player
@@ -614,6 +618,7 @@ ecs::Navigate::Navigate()
 {
     current_node_pos = 0;
     grid = nullptr;
+    finished = false;
 }
 
 v2f ecs::Navigate::nodePos()
@@ -629,6 +634,7 @@ void ecs::Navigate::reset()
 {
     current_node_pos = 0;
     nodes.clear();
+    finished = false;
 }
 
 void ecs::Navigate::genPath(Node* start, Node* end)
@@ -650,17 +656,23 @@ void ecs::Navigate::genPath(Node* start, Node* end)
 
 bool ecs::Navigate::nextNode()
 {
+    
     if (current_node_pos < nodes.size()) {
         current_node_pos++;
         return true;
-    } else {
-        return false;
     }
+    finished = true;
+    return false;
 }
 
 AStar* ecs::Navigate::getAStar()
 {
     return grid;
+}
+
+bool ecs::Navigate::getStatus()
+{
+    return finished;
 }
 
 void ecs::Navigate::setAStar(AStar* astar)

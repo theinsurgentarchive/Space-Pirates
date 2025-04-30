@@ -110,6 +110,9 @@ namespace ecs
 
             //Reference to world grid
             AStar* grid;
+
+            //Has The Path Been Fully Traversed?
+            bool finished;
         public:
             //Constructor
             Navigate();
@@ -122,6 +125,7 @@ namespace ecs
 
             //Getter
             AStar* getAStar();
+            bool getStatus();
 
             //Setter
             void setAStar(AStar*);
