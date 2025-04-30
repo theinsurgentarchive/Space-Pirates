@@ -105,10 +105,6 @@ void Node::setWorld(v2f world)
 
 v2u Node::getLocal()
 {
-    if (this == nullptr) {
-        DERRORF("Attempting to Call getLocal Without Existing Returning 0, 0");
-        return {0, 0};
-    }
     return local_pos;
 }
 
@@ -572,7 +568,9 @@ void Enemy::action()
     )) {
         moveTo(ent, node_pos);
     } else {
-        if (!navi->nextNode()) {
+        bool finished = navi->nextNode();
+        std::cout << finished << std::endl;
+        if (!finished) {
             moveTo(ent, player);
         }
     }
