@@ -588,10 +588,10 @@ void Enemy::action()
             moveTo(ent, player);
         } else {
             if (
-                (&&(node_pos + 0) < (trav->pos[0] + 0.5f)) &&
-                (&&(node_pos + 0) > (trav->pos[0] - 0.5f)) &&
-                (&&(node_pos + 1) < (trav->pos[1] + 0.5f)) &&
-                (&&(node_pos + 1) > (trav->pos[1] - 0.5f))
+                (&(&(node_pos + 0)) < (trav->pos[0] + 0.5f)) &&
+                (&(&(node_pos + 0)) > (trav->pos[0] - 0.5f)) &&
+                (&(&(node_pos + 1)) < (trav->pos[1] + 0.5f)) &&
+                (&(&(node_pos + 1)) > (trav->pos[1] - 0.5f))
             ) {
                 if (navi->nextNode()) {
                     DINFO("Position Reached, Heading to Next Node\n");
@@ -659,9 +659,9 @@ v2f* ecs::Navigate::nodePos()
         DWARN("Path Overshoot, Returning Default Value.\n");
         return nullptr;
     }
-    v2f* result;
+    v2f result;
     result = nodes[current_node_pos]->getWorld();
-    return result;
+    return &result;
 }
 
 void ecs::Navigate::reset()
