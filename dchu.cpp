@@ -197,12 +197,10 @@ float AStar::distance(Node* a, Node* b)
 {
     if (a == nullptr) {
         DERRORF("%s does not exist.", a);
-        std::cout << "An Error has occurred\n";
         return 0.0f;
     }
     if (b == nullptr) {
         DERRORF("%s does not exist.", b);
-        std::cout << "An Error has occurred\n";
         return 0.0f;
     }
     return sqrtf(
@@ -646,7 +644,6 @@ void ecs::Navigate::genPath(Node* start, Node* end)
             nodes.push_back(current);
         }
         current = current->parent;
-        std::cout << current << std::endl;
     }
     DINFO("Finished Generating Path.\n");
 }
