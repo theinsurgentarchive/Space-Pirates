@@ -341,7 +341,7 @@ int main()
 		transform->pos,
 		gl.res
 	};
-	v2f t_grid_size = {planetAttr->size * 50, planetAttr->size * 50};
+	v2u t_grid_size = {planetAttr->size * 50, planetAttr->size * 50};
   	AStar tstar = AStar{{0.0f, 0.0f}, t_grid_size, {16.0f, 16.0f}};
 	Node* testing = tstar.aStar({0, 0}, {1000, 1000});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
