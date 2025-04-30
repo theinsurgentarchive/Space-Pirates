@@ -105,6 +105,10 @@ void Node::setWorld(v2f world)
 
 v2u Node::getLocal()
 {
+    if (this == nullptr) {
+        DERRORF("Attempting to Call getLocal Without Existing Returning 0, 0");
+        return {0, 0};
+    }
     return local_pos;
 }
 
