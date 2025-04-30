@@ -550,6 +550,7 @@ void Enemy::action()
     
     //Check if nodePos Returned a nullptr
     if (node_pos == nullptr) {
+        std::cout << "Not Found\n";
         navi->setStatus(true);
     }
     //Check if The Player is Within Bounds
@@ -562,7 +563,7 @@ void Enemy::action()
     )) {
         in_bounds = false;
     }
-    std::cout << in_bounds << std::endl;
+
     //Check if The Enemy is Due for another A* Pass.
     if (in_bounds) {
         if (can_gen_path) {
