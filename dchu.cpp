@@ -386,15 +386,15 @@ float AStar::distance(Node* a, Node* b)
 {
     return sqrtf(
         (
-            (a->getLocal()[0] - b->getLocal()[0])
+            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
             *
-            (a->getLocal()[0] - b->getLocal()[0])
+            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
         ) 
         +
         (
-            (a->getLocal()[1] - b->getLocal()[1])
+            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
             *
-            (a->getLocal()[1] - b->getLocal()[1])
+            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
         )
     );
 }
