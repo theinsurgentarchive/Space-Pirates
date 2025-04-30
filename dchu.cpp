@@ -540,7 +540,9 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 void Enemy::action()
 {
     bool in_bounds = true;
-    auto [navi, trav] = ecs::ecs.component().fetch<NAVIGATE, TRANSFORM>(ent);
+    auto [navi, trav, phys] = (
+        ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS>(ent)
+    );
     auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     v2f node_pos = navi->nodePos();
@@ -612,6 +614,9 @@ void Enemy::action()
                 can_damage = true;
             }
         }    
+    } else {
+        phys->acc = {0.0f, 0.0f};
+        phys->vel = {0.0f, 0.0f};
     }
 }
 
