@@ -539,6 +539,7 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 
 void Enemy::action()
 {
+    bool in_bounds = true;
     auto [navi, trav] = ecs::ecs.component().fetch<NAVIGATE, TRANSFORM>(ent);
     auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
@@ -548,60 +549,65 @@ void Enemy::action()
     if ((tran->pos[0] < 0 || tran->pos[0] > navi->getAStar()->getStep()[0]) ||
         (tran->pos[1] < 0 || tran->pos[1] > navi->getAStar()->getStep()[1])
     ) {
-        goto skip;
+        in_bounds = false;
     }
 
     //Check if The Enemy is Due for another A* Pass.
-    if (can_gen_path) {
-        navi->genPath(
-            navi->getAStar()->findClosestNode(tran->pos),
-            navi->getAStar()->findClosestNode(trav->pos)
-        );
-        can_gen_path = false;
-    } else {
-        auto current = std::chrono::high_resolution_clock::now();
-        auto t_elasped = std::chrono::duration_cast<std::chrono::milliseconds>(
-            current - last_time
-        );
-        if (t_elasped.count() >= path_Timer) {
-            can_gen_path = true;
+    if (in_bounds) {
+        if (can_gen_path) {
+            navi->genPath(
+                navi->getAStar()->findClosestNode(tran->pos),
+                navi->getAStar()->findClosestNode(trav->pos)
+            );
+            can_gen_path = false;
+        } else {
+            auto current = std::chrono::high_resolution_clock::now();
+            auto t_elasped = (
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                current - last_time
+                )
+            );
+            if (t_elasped.count() >= path_Timer) {
+                can_gen_path = true;
+            }
         }
-    }
-
-    //Move Towards Next Node in The Path, Otherwise Move Towards The Player
-    if (navi->getStatus()) {
-        moveTo(ent, player);
-    } else {
-        if (
-            (node_pos[0] < (trav->pos[0] + 0.5f)) &&
-            (node_pos[0] > (trav->pos[0] - 0.5f)) &&
-            (node_pos[1] < (trav->pos[1] + 0.5f)) &&
-            (node_pos[1] > (trav->pos[1] - 0.5f))
-        ) {
-            if (navi->nextNode()) {
-                DINFO("Position Reached, Heading to Next Node\n");
+    
+        //Move Towards Next Node in The Path, Otherwise Move Towards The Player
+        if (navi->getStatus()) {
+            moveTo(ent, player);
+        } else {
+            if (
+                (node_pos[0] < (trav->pos[0] + 0.5f)) &&
+                (node_pos[0] > (trav->pos[0] - 0.5f)) &&
+                (node_pos[1] < (trav->pos[1] + 0.5f)) &&
+                (node_pos[1] > (trav->pos[1] - 0.5f))
+            ) {
+                if (navi->nextNode()) {
+                    DINFO("Position Reached, Heading to Next Node\n");
+                } else {
+                    DINFO("Destination Reached, Finished Status Enabled\n");
+                }
             } else {
-                DINFO("Destination Reached, Finished Status Enabled\n");
+                moveTo(ent, node_pos);
+            }
+        }
+        //Check if The Enemy has Hit The Player
+        if (can_damage) {
+            if(doDamage(ent, player)) {
+                last_time = std::chrono::high_resolution_clock::now();
+                can_damage = false;
             }
         } else {
-            moveTo(ent, node_pos);
-        }
-    }
-    skip:
-    //Check if The Enemy has Hit The Player
-    if (can_damage) {
-        if(doDamage(ent, player)) {
-            last_time = std::chrono::high_resolution_clock::now();
-            can_damage = false;
-        }
-    } else {
-        auto current = std::chrono::high_resolution_clock::now();
-        auto t_elasped = std::chrono::duration_cast<std::chrono::milliseconds>(
-            current - last_time
-        );
-        if (t_elasped.count() >= atk_Timer) {
-            can_damage = true;
-        }
+            auto current = std::chrono::high_resolution_clock::now();
+            auto t_elasped = (
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    current - last_time
+                )
+            );
+            if (t_elasped.count() >= atk_Timer) {
+                can_damage = true;
+            }
+        }    
     }
 }
 
