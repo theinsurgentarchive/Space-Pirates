@@ -455,7 +455,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         DINFOF("%d Entity within Target X Range.\n", ent->id);
         physics->acc[1] = 0.0f;
-        physics->vel[0] *= 0.99f;
+        physics->vel[0] *= 0.999f;
     }
 
     if (
@@ -464,7 +464,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         DINFOF("%d Entity within Target Y Range.\n", ent->id);
         physics->acc[1] = 0.0f;
-        physics->vel[1] *= 0.99f;
+        physics->vel[1] *= 0.999f;
     }
 }
 
