@@ -132,9 +132,9 @@ AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
     grid_size[0] = grid_dim[0];
     grid_size[1] = grid_dim[1];
     origin_pos = origin;
-    v2f node_dim = {tile_dim[0], tile_dim[1]};
+    origin_step = {tile_dim[0], tile_dim[1]};
     //Initialize Grid Nodes
-    initGrid(node_dim);
+    initGrid(origin_step);
     DINFO("Completed World A* Node Generation\n");
 }
 
@@ -143,6 +143,7 @@ AStar::AStar(v2u size)
     //Initalize Variables
     grid_size = size;
     origin_pos = {0.0f, 0.0f};
+    origin_step = {0, 0};
 
     //Initalize Grid Nodes
     initGrid();
@@ -155,6 +156,7 @@ AStar::AStar(u16 x_size, u16 y_size)
     grid_size[0] = x_size;
     grid_size[1] = y_size;
     origin_pos = {0.0f, 0.0f};
+    origin_step = {0, 0};
 
     //Initalize Grid Nodes
     initGrid();
@@ -539,10 +541,12 @@ void Enemy::action()
     auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     v2f node_pos = navi->nodePos();
+
+    //Check if The Enemy is Due for another A* Pass.
     if (can_gen_path) {
         navi->genPath(
-            navi->getAStar()->findClosestNode(trav->pos),
-            navi->getAStar()->findClosestNode(tran->pos)
+            navi->getAStar()->findClosestNode(tran->pos),
+            navi->getAStar()->findClosestNode(trav->pos)
         );
         can_gen_path = false;
     } else {
@@ -554,13 +558,15 @@ void Enemy::action()
             can_gen_path = true;
         }
     }
+
+    //Move Towards Next Node in The Path, Otherwise Move Towards The Player
     if (!(
         (node_pos[0] < (trav->pos[0] + 0.5f)) &&
         (node_pos[0] > (trav->pos[0] - 0.5f)) &&
         (node_pos[1] < (trav->pos[1] + 0.5f)) &&
         (node_pos[1] > (trav->pos[1] - 0.5f))
     )) {
-        moveTo(ent, navi->nodePos());
+        moveTo(ent, node_pos);
     } else {
         if (!navi->nextNode()) {
             moveTo(ent, player);
@@ -630,22 +636,15 @@ void ecs::Navigate::genPath(Node* start, Node* end)
     reset();
     Node* start_node = start;
     Node* goal_node = end;
+    grid->aStar(start->getLocal(), end->getLocal());
     Node* current = goal_node;
     std::vector<Node*> temp;
     while (current != nullptr && current != start_node) {
         if (current != goal_node) {
-            temp.push_back(current);
+            nodes.push_back(current);
         }
         current = current->parent;
         std::cout << current << std::endl;
-    }
-    DINFO("Finished Gathering Node Path, Generating Traversable...\n");
-    u16 size = temp.size();
-    u16 iter = 0;
-    for (u16 i = (size - 1); i > 0; i--) {
-        nodes[iter] = temp[i];
-        std::cout << nodes[iter] << std::endl;
-        iter++; 
     }
     DINFO("Finished Generating Path.\n");
 }
@@ -656,7 +655,6 @@ bool ecs::Navigate::nextNode()
         current_node_pos++;
         return true;
     } else {
-        DWARN("OverShoot Detected, No Changes Implemented\n");
         return false;
     }
 }

@@ -49,38 +49,8 @@ class Node
         void setLocal(v2u);
 };
 
-namespace ecs
-{
-    class Navigate
-    {
-        private:
-            std::vector<Node*> nodes;
-            
-            //Get The Current Position Within The Node Vector
-            u16 current_node_pos;
 
-            //Reference to world grid
-            AStar* grid;
-        public:
-            //Constructor
-            Navigate();
-
-            //Function
-            v2f nodePos();
-            void genPath(Node*, Node*);
-            void reset();
-            bool nextNode();
-
-            //Getter
-            AStar* getAStar();
-
-            //Setter
-            void setAStar(AStar*);
-    };
-}
-
-
-//AStarGrid of Node Elements, Used in A* Search
+//AStar Grid of Node Elements, Used in A* Search
 class AStar
 {
     private:
@@ -127,6 +97,36 @@ class AStar
         //Generates Biased Data Based On Two Given Input Nodes
         float heuristics(Node*, Node*);
 };
+
+namespace ecs
+{
+    class Navigate
+    {
+        private:
+            std::vector<Node*> nodes;
+            
+            //Get The Current Position Within The Node Vector
+            u16 current_node_pos;
+
+            //Reference to world grid
+            AStar* grid;
+        public:
+            //Constructor
+            Navigate();
+
+            //Function
+            v2f nodePos();
+            void genPath(Node*, Node*);
+            void reset();
+            bool nextNode();
+
+            //Getter
+            AStar* getAStar();
+
+            //Setter
+            void setAStar(AStar*);
+    };
+}
 
 //Move an Entity to a Position or Entity with a Transform
 void moveTo(ecs::Entity*, v2f);

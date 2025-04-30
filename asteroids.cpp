@@ -347,8 +347,8 @@ int main()
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->setAStar(tstar);
 	navc->genPath(
-		tstar->findClosestNode({1000.0f, 1000.0f}),
-		tstar->findClosestNode({0.0f, 0.0f})
+		tstar->findClosestNode({0.0f, 0.0f}),
+		tstar->findClosestNode({1000.0f, 1000.0f})
 	);
 	name->name = "Simon";
 	name->offset = {0,-25};
