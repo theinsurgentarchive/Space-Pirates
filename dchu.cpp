@@ -184,6 +184,52 @@ v2u AStar::size()
     return grid_size;
 }
 
+void AStar::resetNodes()
+{
+    for (u16 x = 0; x < grid_size[0]; x++) {
+        for (u16 y = 0; y < grid_size[1]; y++) {
+            node_grid[x][y].visited = false;
+            node_grid[x][y].global_dist = INFINITY;
+            node_grid[x][y].local_dist = INFINITY;
+            node_grid[x][y].parent = nullptr;
+        }
+    }
+}
+
+//Find The Distance between Two Points
+float AStar::distance(Node* a, Node* b)
+{
+    if (a == nullptr) {
+        DERRORF("%s does not exist.", a);
+        std::cout << "An Error has occurred\n";
+        return 0.0f;
+    }
+    if (b == nullptr) {
+        DERRORF("%s does not exist.", b);
+        std::cout << "An Error has occurred\n";
+        return 0.0f;
+    }
+    return sqrtf(
+        (
+            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
+            *
+            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
+        ) 
+        +
+        (
+            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
+            *
+            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
+        )
+    );
+}
+
+float AStar::heuristics(Node* a, Node* b)
+{
+    return distance(a, b);
+}
+
+
 //Retrieves The Node requested in the AStar
 Node* AStar::getNode(u16 x, u16 y)
 {
@@ -372,51 +418,6 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
         } 
     }
     return nullptr;
-}
-
-void AStar::resetNodes()
-{
-    for (u16 x = 0; x < grid_size[0]; x++) {
-        for (u16 y = 0; y < grid_size[1]; y++) {
-            node_grid[x][y].visited = false;
-            node_grid[x][y].global_dist = INFINITY;
-            node_grid[x][y].local_dist = INFINITY;
-            node_grid[x][y].parent = nullptr;
-        }
-    }
-}
-
-//Find The Distance between Two Points
-float AStar::distance(Node* a, Node* b)
-{
-    if (a == nullptr) {
-        DERRORF("%s does not exist.", a);
-        std::cout << "An Error has occurred\n";
-        return 0.0f;
-    }
-    if (b == nullptr) {
-        DERRORF("%s does not exist.", b);
-        std::cout << "An Error has occurred\n";
-        return 0.0f;
-    }
-    return sqrtf(
-        (
-            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
-            *
-            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
-        ) 
-        +
-        (
-            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
-            *
-            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
-        )
-    );
-}
-
-float AStar::heuristics(Node* a, Node* b)
-{
-    return distance(a, b);
 }
 
 void moveTo(ecs::Entity* ent, v2f target)
