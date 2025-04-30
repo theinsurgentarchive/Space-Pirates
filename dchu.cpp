@@ -336,7 +336,7 @@ bool AStar::hasNeighbors(Node* node)
 Node* AStar::aStar(v2u begin_node, v2u ending_node)
 {
     //Pointer to Start Node
-    Node* start = &node_grid[begin_node[0]][begin_node[1]];
+    Node* start = getNode(begin_node[0], begin_node[1]);
     std::cout << start << std::endl;
     if (start == nullptr) {
         DERROR("Start Node Failed to initialize");
@@ -344,7 +344,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     }
     
     //Pointer to Goal Node
-    Node* goal = &node_grid[ending_node[0]][ending_node[1]];
+    Node* goal = getNode(ending_node[0],ending_node[1]);
     std::cout << goal << std::endl;
     if (goal == nullptr) {
         DERROR("Goal Node Failed to initialize");
