@@ -275,7 +275,6 @@ void AStar::initGrid(v2f dim)
     u16 iter = 0;
     for (u16 x = 0; x < grid_size[0]; x++) {
         for (u16 y = 0; y < grid_size[1]; y++) {
-            std::cout << iter++ << std::endl;
             node_grid[x][y].setLocal({x, y});
             node_grid[x][y].setWorld({
                 ((float)x * dim[0] + offset),
@@ -289,7 +288,7 @@ void AStar::initGrid(v2f dim)
 
     //Fill Each Node's Neighbors Vector Matrix
     genNeighbors();
-    std::cout << "Finished initialzing AStar\n";
+    DINFO("Finished Initializing AStar Grid\n");
 }
 
 void AStar::genNeighbors()
@@ -338,6 +337,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
 {
     //Pointer to Start Node
     Node* start = &node_grid[begin_node[0]][begin_node[1]];
+    std::cout << start << std::endl;
     if (start == nullptr) {
         DERROR("Start Node Failed to initialize");
         return nullptr;
@@ -345,6 +345,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     
     //Pointer to Goal Node
     Node* goal = &node_grid[ending_node[0]][ending_node[1]];
+    std::cout << goal << std::endl;
     if (goal == nullptr) {
         DERROR("Goal Node Failed to initialize");
         return nullptr;
