@@ -550,7 +550,6 @@ void Enemy::action()
     
     //Check if nodePos Returned a nullptr
     if (node_pos == nullptr) {
-        std::cout << "Not Found\n";
         navi->setStatus(true);
     }
     //Check if The Player is Within Bounds
@@ -585,7 +584,7 @@ void Enemy::action()
         }
     
         //Move Towards Next Node in The Path, Otherwise Move Towards The Player
-        if (navi->getStatus()) {
+        if (navi->getStatus() || node_pos == nullptr) {
             moveTo(ent, player);
         } else {
             if (
