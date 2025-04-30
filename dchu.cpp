@@ -272,9 +272,10 @@ void AStar::initGrid(v2f dim)
     }
 
     //Generate Nodes    
+    u16 iter = 0;
     for (u16 x = 0; x < grid_size[0]; x++) {
         for (u16 y = 0; y < grid_size[1]; y++) {
-            std::cout << (x + y) << std::endl;
+            std::cout << iter++ << std::endl;
             node_grid[x][y].setLocal({x, y});
             node_grid[x][y].setWorld({
                 ((float)x * dim[0] + offset),
@@ -288,6 +289,7 @@ void AStar::initGrid(v2f dim)
 
     //Fill Each Node's Neighbors Vector Matrix
     genNeighbors();
+    std::cout << "Finished initialzing AStar\n";
 }
 
 void AStar::genNeighbors()
