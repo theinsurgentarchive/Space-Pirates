@@ -310,7 +310,7 @@ int main()
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
 	dummy = ecs::ecs.entity().checkout();
-	Enemy foe(dummy, {0.07f, 3.0f});
+	Enemy foe(dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
@@ -335,7 +335,8 @@ int main()
 
     // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(player);
 	player = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
+				.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
 	Camera camera = {
 		transform->pos,
 		gl.res
@@ -343,7 +344,10 @@ int main()
   auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
 	Node* testing = tstar.aStar({0, 0}, {1000, 1000});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
-	navc->genPath(tstar.getNode(0, 0), tstar.getNode(1000, 1000));
+	navc->genPath(
+		tstar.findClosestNode({1000.0f, 1000.0f}),
+		tstar.findClosestNode({0.0f, 0.0f})
+	);
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";

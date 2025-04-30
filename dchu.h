@@ -65,7 +65,7 @@ namespace ecs
             v2f nodePos();
             void genPath(Node*, Node*);
             void reset();
-            void nextNode();
+            bool nextNode();
     };
 }
 
@@ -137,9 +137,11 @@ class Enemy
         u16 atk_Timer;
         u16 path_Timer;
         bool can_damage;
+        bool can_gen_path;
     public:
         //Constructor
-        Enemy(ecs::Entity*, v2f);
+        Enemy(ecs::Entity*);
+        Enemy(ecs::Entity*, v2f t_mod);
         
         //Function
         void initEnemy();
@@ -153,5 +155,6 @@ class Enemy
         u16 getAtkTimer();
         u16 getPathTimer();
         bool getCanDamage();
+        bool getCanGenPath();
 
 };

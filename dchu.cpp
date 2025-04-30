@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 extern ecs::Entity* player;
+extern AStar tstar;
 
 //Render Game Over Screen
 void renderGameOver(v2u res)
@@ -481,6 +482,9 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
+Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.07f, 6.0f})
+{}
+
 Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
 {
     atk_Timer = (u16)(t_mod[0] * 1000.0f);
@@ -533,16 +537,35 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 void Enemy::action()
 {
     auto [navi, trav] = ecs::ecs.component().fetch<NAVIGATE, TRANSFORM>(ent);
+    auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     v2f node_pos = navi->nodePos();
-    if ((node_pos[0] < (trav->pos[0] + 0.5f)) &&
+    if (can_gen_path) {
+        navi->genPath(
+            tstar.findClosestNode(trav->pos),
+            tstar.findClosestNode(tran->pos)
+        );
+        can_gen_path = false;
+    } else {
+        auto current = std::chrono::high_resolution_clock::now();
+        auto t_elasped = std::chrono::duration_cast<std::chrono::milliseconds>(
+            current - last_time
+        );
+        if (t_elasped.count() >= path_Timer) {
+            can_gen_path = true;
+        }
+    }
+    if (!(
+        (node_pos[0] < (trav->pos[0] + 0.5f)) &&
         (node_pos[0] > (trav->pos[0] - 0.5f)) &&
         (node_pos[1] < (trav->pos[1] + 0.5f)) &&
         (node_pos[1] > (trav->pos[1] - 0.5f))
-    ) {
-        moveTo(ent, player);
+    )) {
+        moveTo(ent, navi->nodePos());
     } else {
-        moveTo(ent, );
+        if (!navi->nextNode()) {
+            moveTo(ent, player);
+        }
     }
     //Check if The Enemy has Hit The Player
     if (can_damage) {
@@ -575,6 +598,11 @@ u16 Enemy::getPathTimer()
 bool Enemy::getCanDamage()
 {
     return can_damage;
+}
+
+bool Enemy::getCanGenPath()
+{
+    return can_gen_path;
 }
 
 ecs::Navigate::Navigate()
@@ -622,11 +650,13 @@ void ecs::Navigate::genPath(Node* start, Node* end)
     DINFO("Finished Generating Path.\n");
 }
 
-void ecs::Navigate::nextNode()
+bool ecs::Navigate::nextNode()
 {
     if (current_node_pos < nodes.size()) {
         current_node_pos++;
+        return true;
     } else {
         DWARN("OverShoot Detected, No Changes Implemented\n");
+        return false;
     }
 }
