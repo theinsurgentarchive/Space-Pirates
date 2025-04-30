@@ -235,7 +235,6 @@ Node* AStar::getNode(u16 x, u16 y)
 {
     if ((x >= grid_size[0] || y >= grid_size[1]) || (x < 0 || y < 0)) {
         DWARN("Cannot find Node, Out of Bounds\n");
-        std::cout << "Out of Bounds\n";
         return nullptr;
     }
     return &node_grid[x][y];
@@ -338,7 +337,6 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
 {
     //Pointer to Start Node
     Node* start = getNode(begin_node[0], begin_node[1]);
-    std::cout << start << std::endl;
     if (start == nullptr) {
         DERROR("Start Node Failed to initialize");
         return nullptr;
@@ -346,7 +344,6 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     
     //Pointer to Goal Node
     Node* goal = getNode(ending_node[0],ending_node[1]);
-    std::cout << goal << std::endl;
     if (goal == nullptr) {
         DERROR("Goal Node Failed to initialize");
         return nullptr;
@@ -498,7 +495,7 @@ Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
     atk_Timer = (u16)(t_mod[0] * 1000.0f);
     path_Timer = (u16)(t_mod[1] * 1000.0f);
     can_damage = true;
-    std::cout << can_damage << std::endl << std::flush;
+    can_gen_path = false;
     this->ent = ent;
     initEnemy();
 }
@@ -550,7 +547,6 @@ void Enemy::action()
     v2f node_pos = navi->nodePos();
 
     //Check if The Enemy is Due for another A* Pass.
-    /*
     if (can_gen_path) {
         navi->genPath(
             navi->getAStar()->findClosestNode(tran->pos),
@@ -566,7 +562,6 @@ void Enemy::action()
             can_gen_path = true;
         }
     }
-    */
 
     //Move Towards Next Node in The Path, Otherwise Move Towards The Player
     if (!(
