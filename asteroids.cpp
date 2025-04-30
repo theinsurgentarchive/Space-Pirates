@@ -341,9 +341,9 @@ int main()
 		gl.res
 	};
   auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
-	Node* testing = tstar.aStar({0, 0}, {23, 23});
+	Node* testing = tstar.aStar({0, 0}, {1000, 1000});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
-	navc->genPath(testing);
+	navc->genPath(tstar.getNode(0, 0), tstar.getNode(1000, 1000));
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
@@ -637,12 +637,11 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 				case XK_c:
 					v2u grid_size = as->size();
 					cout << grid_size[0] << ", " << grid_size[1] << "\n\n";
-					if (as->getNode(0, 0) == nullptr) {
+					if (as->getNode(6, 6) == nullptr) {
 						cout << "Error, Cannot Find Node\n";
 					} else {
-						auto cn = as->getNode(0, 0)->getWorld();
-						cout << cn[0] << ", " << cn[1] << "\n\n";
-						cout << "0, 0\n\n";
+						auto cn = as->getNode(6, 6)->getWorld();
+						cout << cn[0] << ", " << cn[1] << "\n";
 					}
 					break;
 			}

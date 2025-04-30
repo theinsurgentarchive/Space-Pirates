@@ -181,10 +181,24 @@ v2u AStar::size()
 //Retrieves The Node requested in the AStar
 Node* AStar::getNode(u16 x, u16 y)
 {
-    if (x >= grid_size[0] && y >= grid_size[1]) {
+    if ((x >= grid_size[0] || y >= grid_size[1]) || (x < 0 || y < 0)) {
+        DWARN("Cannot find Node, Out of Bounds\n");
         return nullptr;
     }
     return &node_grid[x][y];
+}
+
+Node* AStar::findClosestNode(v2f pos)
+{
+    v2f find {floor(pos[0]), floor(pos[1])};
+    v2f select {
+        round(find[0] / origin_step[0]),
+        round(find[1] / origin_step[1])
+    };
+
+    //Get Node
+    Node* result = getNode(select[0], select[1]);
+    return result;
 }
 
 //Set Node Positions & Conditionals
@@ -518,8 +532,18 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 
 void Enemy::action()
 {
+    auto [navi, trav] = ecs::ecs.component().fetch<NAVIGATE, TRANSFORM>(ent);
     static std::chrono::high_resolution_clock::time_point last_time;
-    moveTo(ent, player);
+    v2f node_pos = navi->nodePos();
+    if ((node_pos[0] < (trav->pos[0] + 0.5f)) &&
+        (node_pos[0] > (trav->pos[0] - 0.5f)) &&
+        (node_pos[1] < (trav->pos[1] + 0.5f)) &&
+        (node_pos[1] > (trav->pos[1] - 0.5f))
+    ) {
+        moveTo(ent, player);
+    } else {
+        moveTo(ent, );
+    }
     //Check if The Enemy has Hit The Player
     if (can_damage) {
         if(doDamage(ent, player)) {
@@ -555,25 +579,54 @@ bool Enemy::getCanDamage()
 
 ecs::Navigate::Navigate()
 {
-    current = 0;
+    current_node_pos = 0;
 }
 
 v2f ecs::Navigate::nodePos()
 {
-    if (current >= nodes.size()) {
+    if (current_node_pos >= nodes.size()) {
         DWARN("Path Overshoot, Returning Default Value.\n");
-        return {0.0f, 0.0f};
+        return {-0.0000000000009f, 0.0000000000009f};
     }
-    return nodes[current];
-}
-
-void ecs::Navigate::genPath(Node* chain)
-{
-    reset();
+    return nodes[current_node_pos]->getWorld();
 }
 
 void ecs::Navigate::reset()
 {
-    current = 0;
+    current_node_pos = 0;
     nodes.clear();
+}
+
+void ecs::Navigate::genPath(Node* start, Node* end)
+{
+    reset();
+    Node* start_node = start;
+    Node* goal_node = end;
+    Node* current = goal_node;
+    std::vector<Node*> temp;
+    while (current != nullptr && current != start_node) {
+        if (current != goal_node) {
+            temp.push_back(current);
+        }
+        current = current->parent;
+        std::cout << current << std::endl;
+    }
+    DINFO("Finished Gathering Node Path, Generating Traversable...\n");
+    u16 size = temp.size();
+    u16 iter = 0;
+    for (u16 i = (size - 1); i > 0; i--) {
+        nodes[iter] = temp[i];
+        std::cout << nodes[iter] << std::endl;
+        iter++; 
+    }
+    DINFO("Finished Generating Path.\n");
+}
+
+void ecs::Navigate::nextNode()
+{
+    if (current_node_pos < nodes.size()) {
+        current_node_pos++;
+    } else {
+        DWARN("OverShoot Detected, No Changes Implemented\n");
+    }
 }

@@ -54,18 +54,18 @@ namespace ecs
     class Navigate
     {
         private:
-            std::vector<v2f> nodes;
-            u16 current;
-            ecs::Entity* self;
+            std::vector<Node*> nodes;
+            //Get The Current Position Within The Node Vector
+            u16 current_node_pos;
         public:
             //Constructor
             Navigate();
 
             //Function
             v2f nodePos();
-            void genPath(Node*);
+            void genPath(Node*, Node*);
             void reset();
-            void moveToCurrent();
+            void nextNode();
     };
 }
 
@@ -79,6 +79,9 @@ class AStar
 
         //The Position in The World that The Grid is Generated From.
         v2f origin_pos;
+
+        //The World Position Step
+        v2f origin_step;
     public:
         //Dynamic Node Grid
         std::vector<std::vector<Node>> node_grid;
@@ -96,6 +99,7 @@ class AStar
         v2u size();
 
         Node* getNode(u16, u16);
+        Node* findClosestNode(v2f);
 
         void initGrid(v2f dim = {1.0f, 1.0f});
 
@@ -117,7 +121,7 @@ class AStar
 //Move an Entity to a Position or Entity with a Transform
 void moveTo(ecs::Entity*, v2f);
 void moveTo(ecs::Entity*, ecs::Entity*);
-
+void moveTo(ecs::Entity*, Node*);
 //Enemy Generation
 enum EnemyT 
 {
