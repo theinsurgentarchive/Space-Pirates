@@ -588,10 +588,10 @@ void Enemy::action()
             moveTo(ent, player);
         } else {
             if (
-                (&(&(node_pos + 0)) < (trav->pos[0] + 0.5f)) &&
-                (&(&(node_pos + 0)) > (trav->pos[0] - 0.5f)) &&
-                (&(&(node_pos + 1)) < (trav->pos[1] + 0.5f)) &&
-                (&(&(node_pos + 1)) > (trav->pos[1] - 0.5f))
+                (&(&(node_pos)) < (trav->pos[0] + 0.5f)) &&
+                (&(&(node_pos)) > (trav->pos[0] - 0.5f)) &&
+                (&(&(node_pos) + 1) < (trav->pos[1] + 0.5f)) &&
+                (&(&(node_pos) + 1) > (trav->pos[1] - 0.5f))
             ) {
                 if (navi->nextNode()) {
                     DINFO("Position Reached, Heading to Next Node\n");
@@ -599,7 +599,7 @@ void Enemy::action()
                     DINFO("Destination Reached, Finished Status Enabled\n");
                 }
             } else {
-                moveTo(ent, &&(node_pos));
+                moveTo(ent, &(&(node_pos)));
             }
         }
         //Check if The Enemy has Hit The Player
