@@ -338,15 +338,22 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
 {
     //Pointer to Start Node
     Node* start = &node_grid[begin_node[0]][begin_node[1]];
-
+    if (start == nullptr) {
+        DERROR("Start Node Failed to initialize");
+        return nullptr;
+    }
+    
     //Pointer to Goal Node
     Node* goal = &node_grid[ending_node[0]][ending_node[1]];
+    if (goal == nullptr) {
+        DERROR("Goal Node Failed to initialize");
+        return nullptr;
+    }
 
     resetNodes();
     if (!hasNeighbors(start)) {
         return nullptr;
     }
-
     //Initialize Start Node
     start->local_dist = 0.0f;
     start->global_dist = heuristics(start, goal);
