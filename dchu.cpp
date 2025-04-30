@@ -235,6 +235,7 @@ Node* AStar::getNode(u16 x, u16 y)
 {
     if ((x >= grid_size[0] || y >= grid_size[1]) || (x < 0 || y < 0)) {
         DWARN("Cannot find Node, Out of Bounds\n");
+        std::cout << "Out of Bounds\n";
         return nullptr;
     }
     return &node_grid[x][y];
