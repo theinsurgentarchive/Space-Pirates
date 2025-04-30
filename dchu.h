@@ -123,7 +123,7 @@ namespace ecs
             Navigate();
 
             //Function
-            v2f nodePos();
+            v2f* nodePos();
             void genPath(Node*, Node*);
             void reset();
             bool nextNode();
@@ -134,6 +134,7 @@ namespace ecs
 
             //Setter
             void setAStar(AStar*);
+            void setStatus(bool);
     };
 }
 

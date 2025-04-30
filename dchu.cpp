@@ -540,13 +540,18 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 void Enemy::action()
 {
     bool in_bounds = true;
+
     auto [navi, trav, phys] = (
         ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS>(ent)
     );
     auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
-    v2f node_pos = navi->nodePos();
-
+    v2f* node_pos = navi->nodePos();
+    
+    //Check if nodePos Returned a nullptr
+    if (node_pos == nullptr) {
+        navi->setStatus() = true;
+    }
     //Check if The Player is Within Bounds
     if ((   
             tran->pos[0] < 0 || tran->pos[0] > navi->getAStar()->size()[0] *
@@ -583,10 +588,10 @@ void Enemy::action()
             moveTo(ent, player);
         } else {
             if (
-                (node_pos[0] < (trav->pos[0] + 0.5f)) &&
-                (node_pos[0] > (trav->pos[0] - 0.5f)) &&
-                (node_pos[1] < (trav->pos[1] + 0.5f)) &&
-                (node_pos[1] > (trav->pos[1] - 0.5f))
+                (&node_pos[0] < (trav->pos[0] + 0.5f)) &&
+                (&node_pos[0] > (trav->pos[0] - 0.5f)) &&
+                (&node_pos[1] < (trav->pos[1] + 0.5f)) &&
+                (&node_pos[1] > (trav->pos[1] - 0.5f))
             ) {
                 if (navi->nextNode()) {
                     DINFO("Position Reached, Heading to Next Node\n");
@@ -594,7 +599,7 @@ void Enemy::action()
                     DINFO("Destination Reached, Finished Status Enabled\n");
                 }
             } else {
-                moveTo(ent, node_pos);
+                moveTo(ent, &node_pos);
             }
         }
         //Check if The Enemy has Hit The Player
@@ -648,13 +653,13 @@ ecs::Navigate::Navigate()
     finished = false;
 }
 
-v2f ecs::Navigate::nodePos()
+v2f* ecs::Navigate::nodePos()
 {
     if (current_node_pos >= nodes.size()) {
         DWARN("Path Overshoot, Returning Default Value.\n");
-        return nodes[current_node_pos - 1]->getWorld();
+        return nullptr;
     }
-    return nodes[current_node_pos]->getWorld();
+    return &nodes[current_node_pos]->getWorld();
 }
 
 void ecs::Navigate::reset()
