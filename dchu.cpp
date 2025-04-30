@@ -232,7 +232,7 @@ float AStar::heuristics(Node* a, Node* b)
 //Retrieves The Node requested in the AStar
 Node* AStar::getNode(u16 x, u16 y)
 {
-    if ((x >= grid_size[0] || y >= grid_size[1]) || (x < 0 || y < 0)) {
+    if (x >= grid_size[0] || y >= grid_size[1]) {
         DWARN("Cannot find Node, Out of Bounds\n");
         return nullptr;
     }
