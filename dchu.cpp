@@ -9,7 +9,7 @@
 extern ecs::Entity* player;
 
 //Render Game Over Screen
-void renderGameOver(v2u res)
+void renderGameOver([[maybe_unused]] v2u res)
 {
     sleep(2);
 }
