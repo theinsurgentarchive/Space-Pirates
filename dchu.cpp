@@ -449,8 +449,8 @@ void moveTo(ecs::Entity* ent, v2f target)
     float accel = 50.0f;
     float dist = v2fDist(target, transform->pos);
     float reduce = 1.0f;
-    if (dist < accel) {
-        reduce = dist / accel;
+    if (dist < (accel /4.0f)) {
+        reduce = dist / (accel / 4.0f);
     }
     v2f dir = v2fNormal(dif);
     v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
@@ -463,7 +463,7 @@ void moveTo(ecs::Entity* ent, v2f target)
         (transform->pos[0] < target[0] + move[0] + 0.1f)
     ) {
         DINFOF("%d Entity within Target X Range.\n", ent->id);
-        physics->acc[0] = 0.0f;
+        physics->acc[1] = 0.0f;
         physics->vel[0] *= 0.99f;
     }
 
@@ -475,26 +475,6 @@ void moveTo(ecs::Entity* ent, v2f target)
         physics->acc[1] = 0.0f;
         physics->vel[1] *= 0.99f;
     }
-    /*
-    //Speed Limit
-    float top_speed = 50.0f;
-    if (physics->vel[0] > top_speed) {
-        physics->vel[0] = top_speed;
-        physics->acc[0] = 0.0f;
-    }
-    if (physics->vel[0] < -top_speed) {
-        physics->vel[0] = -top_speed;
-        physics->acc[0] = 0.0f;
-    }
-    if (physics->vel[1] > top_speed) {
-        physics->vel[1] = top_speed;
-        physics->acc[1] = 0.0f;
-    }
-    if (physics->vel[1] < -top_speed) {
-        physics->vel[1] = -top_speed;
-        physics->acc[1] = 0.0f;
-    }
-    */
 }
 
 void moveTo(ecs::Entity* ent, ecs::Entity* target)
