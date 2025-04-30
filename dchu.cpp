@@ -180,6 +180,11 @@ v2u AStar::size()
     return grid_size;
 }
 
+v2f AStar::getStep()
+{
+    return origin_step;
+}
+
 void AStar::resetNodes()
 {
     for (u16 x = 0; x < grid_size[0]; x++) {
@@ -266,7 +271,6 @@ void AStar::initGrid(v2f dim)
     }
 
     //Generate Nodes    
-    u16 iter = 0;
     for (u16 x = 0; x < grid_size[0]; x++) {
         for (u16 y = 0; y < grid_size[1]; y++) {
             node_grid[x][y].setLocal({x, y});
