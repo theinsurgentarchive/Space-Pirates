@@ -481,7 +481,7 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
-Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 15.0f})
+Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 6.0f})
 {}
 
 Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
