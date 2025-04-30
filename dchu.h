@@ -123,7 +123,7 @@ namespace ecs
             Navigate();
 
             //Function
-            v2f* nodePos();
+            float* nodePos();
             void genPath(Node*, Node*);
             void reset();
             bool nextNode();
