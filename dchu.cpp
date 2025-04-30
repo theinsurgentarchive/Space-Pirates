@@ -551,7 +551,7 @@ void Enemy::action()
     ) {
         in_bounds = false;
     }
-
+    std::cout << in_bounds << std::endl;
     //Check if The Enemy is Due for another A* Pass.
     if (in_bounds) {
         if (can_gen_path) {
