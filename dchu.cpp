@@ -546,7 +546,7 @@ void Enemy::action()
     );
     auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
-    float node_pos[2] = navi->nodePos();
+    float* node_pos = navi->nodePos();
     
     //Check if nodePos Returned a nullptr
     if (node_pos == nullptr) {
