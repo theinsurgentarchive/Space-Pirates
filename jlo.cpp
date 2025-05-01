@@ -61,7 +61,7 @@ extern std::vector<Collision> cols;
 extern std::atomic<bool> done;
 extern ThreadPool* pool;
 extern ecs::Entity* player;
-
+extern const ecs::Entity* islandWithMaxArea(std::vector<std::vector<const ecs::Entity*>> tiles);
 void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
 {
@@ -732,7 +732,7 @@ World::World(WorldGenerationSettings settings)
                 static_cast<float>(sd[1] * p[1] * transform->scale[1])
             };
             sprite->ssheet = tile->second.ssheet;
-            if (sprite->ssheet == "warm-water") {
+            if (sprite->ssheet.find("water") != std::string::npos || sprite->ssheet.find("lava") != std::string::npos) {
                 auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
                 collider->dim = v2u {16 * 3,16 * 3};
                 collider->passable = false;
@@ -1459,45 +1459,69 @@ void collisions(const Camera& camera, ThreadPool& pool)
 
 Collision::Collision(const ecs::Entity* a, const ecs::Entity* b) : a{a}, b{b} {}
 
-
-void bfs(
-    std::vector<std::vector<const ecs::Entity*>> tiles, 
+int bfs(
+    std::vector<std::vector<std::vector<const ecs::Entity*>>> tiles, 
     int x, 
     int y, 
-    std::unordered_set<std::pair<int,int>,PairHash>& visited) 
+    std::unordered_set<std::pair<int, int>, PairHash>& visited) 
 {
-    int rows = tiles.size();
-    int cols = tiles[0].size();
+    int rows = tiles.size();  // Use layer-specific rows
+    int cols = tiles[0].size();  // Use layer-specific columns
     int area = 1;
-    std::queue<std::pair<int,int>> q;
-    q.push({x,y});
-    visited.insert({x,y});
-    int dirs[4][2] = {{1,0},{0,1},{0,-1},{-1,0}};
+
+    std::queue<std::pair<int, int>> q;
+    q.push({x, y});
+    visited.insert({x, y});
+    
+    int dirs[4][2] = {{1, 0}, {0, 1}, {0, -1}, {-1, 0}};  // Directions for BFS
+
     while (!q.empty()) {
-        std::pair<int,int> current = q.front();
+        std::pair<int, int> current = q.front();
         q.pop();
-        for (const auto& dir: dirs) {
+        
+        for (const auto& dir : dirs) {
             int rx = current.first + dir[0];
             int ry = current.second + dir[1];
             
             if (rx < 0 || rx >= rows || ry < 0 || ry >= cols)
                 continue;
-            
-            std::pair<int,int> neighbor = {rx,ry};
+
+            std::pair<int, int> neighbor = {rx, ry};
             if (visited.find(neighbor) != visited.end())
                 continue;
 
-            const ecs::Entity* tile = tiles[rx][ry];
+            const ecs::Entity* tile = tiles[0][rx][ry];  
+            // Use layer-specific tile
+
             if (tile == nullptr)
                 continue;
-            
-            auto [collider] = ecs::ecs.component().fetch<COLLIDER>(tile);
+
+            auto [collider, sprite] = ecs::ecs.component().fetch<
+                COLLIDER, SPRITE>(tile);
+
+            // Debugging output
+            std::cout << sprite->ssheet << '\n'; 
+
             if (collider != nullptr && !collider->passable)
                 continue;
-            q.push(neighbor);
+
+            // Skip water and lava tiles based on sprite sheet name
+            if (sprite->ssheet.find("water") != std::string::npos || 
+                sprite->ssheet.find("lava") != std::string::npos) {
+                continue;
+            }
+
             visited.insert(neighbor);
+            q.push(neighbor);
             area++;
         }
     }
+    return area;
 }
+
+std::
+
+
+
+
 

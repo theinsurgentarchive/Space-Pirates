@@ -65,6 +65,12 @@ enum BiomeType
     HELL
 };
 
+enum LootType
+{
+    OXYGEN,
+    FUEL
+};
+
 enum Direction
 {
     TOP,
@@ -77,6 +83,8 @@ struct Biome;
 struct SpriteSheet;
 class Camera;
 struct World;
+class Loot;
+class LootSelector;
 struct Texture;
 struct Collision;
 template <typename T>
@@ -152,6 +160,24 @@ u16 getId()
     static int cid = counter++;
     return cid;
 }
+
+struct Loot
+{
+    LootType type;
+    float amount;
+    float weight;
+    Loot(LootType type, float amount, float weight);
+};
+
+class LootSelector
+{
+    public:
+        Loot random(std::mt19937 rand);
+        LootSelector& addLoot(std::initializer_list<Loot> loot);
+    private:
+        std::vector<Loot> loot_;
+};
+
 
 struct Biome
 {
@@ -257,6 +283,7 @@ struct World
     using WorldCell = std::vector<const ecs::Entity*>;
     std::vector<std::vector<WorldCell>> cells;
     World(WorldGenerationSettings settings);
+    WorldCell& cellWithMaxArea();
     ~World();
 };
 
@@ -637,4 +664,5 @@ class PlayerFactory
     private:
         Camera& camera_;
 };
+
 #include "jlo.tpp"
