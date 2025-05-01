@@ -318,7 +318,7 @@ int main()
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
 		planetAttr->humidity,
-		static_cast<u16>(planetAttr->size * 50),
+		static_cast<u16>(5),
 		static_cast<u32>(2)};
 	settings.origin = {0,0};
 
@@ -349,6 +349,11 @@ int main()
 	c = &camera;
 
 	World w {settings};
+	// auto layers = w.cellWithMaxArea();
+	// if (!layers.empty()) {
+	// 	const ecs::Entity* tile = layers[0];
+	// 	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(tile);
+	// }
 	rs.sample();
 	ps.sample();
 	init_opengl();
