@@ -312,9 +312,7 @@ int main()
 		{LOOT_FUEL, 3.0f, 0.8f}
 	});
 	
-
-	auto loot = loot_table.random();
-	std::cout << loot.type << ' ' << loot.weight << std::endl;
+	
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
