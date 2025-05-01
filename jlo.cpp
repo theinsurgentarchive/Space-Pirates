@@ -1459,67 +1459,34 @@ void collisions(const Camera& camera, ThreadPool& pool)
 
 Collision::Collision(const ecs::Entity* a, const ecs::Entity* b) : a{a}, b{b} {}
 
-int bfs(
-    std::vector<std::vector<std::vector<const ecs::Entity*>>> tiles, 
-    int x, 
-    int y, 
-    std::unordered_set<std::pair<int, int>, PairHash>& visited) 
+LootTable::LootTable() : generator_{std::random_device{}()} {}
+
+LootTable& LootTable::addLoot(std::initializer_list<Loot> loot)
 {
-    int rows = tiles.size();  // Use layer-specific rows
-    int cols = tiles[0].size();  // Use layer-specific columns
-    int area = 1;
-
-    std::queue<std::pair<int, int>> q;
-    q.push({x, y});
-    visited.insert({x, y});
-    
-    int dirs[4][2] = {{1, 0}, {0, 1}, {0, -1}, {-1, 0}};  // Directions for BFS
-
-    while (!q.empty()) {
-        std::pair<int, int> current = q.front();
-        q.pop();
-        
-        for (const auto& dir : dirs) {
-            int rx = current.first + dir[0];
-            int ry = current.second + dir[1];
-            
-            if (rx < 0 || rx >= rows || ry < 0 || ry >= cols)
-                continue;
-
-            std::pair<int, int> neighbor = {rx, ry};
-            if (visited.find(neighbor) != visited.end())
-                continue;
-
-            const ecs::Entity* tile = tiles[0][rx][ry];  
-            // Use layer-specific tile
-
-            if (tile == nullptr)
-                continue;
-
-            auto [collider, sprite] = ecs::ecs.component().fetch<
-                COLLIDER, SPRITE>(tile);
-
-            // Debugging output
-            std::cout << sprite->ssheet << '\n'; 
-
-            if (collider != nullptr && !collider->passable)
-                continue;
-
-            // Skip water and lava tiles based on sprite sheet name
-            if (sprite->ssheet.find("water") != std::string::npos || 
-                sprite->ssheet.find("lava") != std::string::npos) {
-                continue;
-            }
-
-            visited.insert(neighbor);
-            q.push(neighbor);
-            area++;
-        }
+    loot_.reserve(loot_.size() + loot.size());
+    for (const auto& l : loot) {
+        loot_.emplace_back(l);
     }
-    return area;
+    return *this;
 }
 
-std::
+Loot LootTable::random()
+{
+    float tweight = 0.0f;
+    for (auto& loot : loot_) {
+        tweight += loot.weight;
+    }
+    std::uniform_real_distribution<> dist {0.0f,tweight};
+    float rvalue = dist(generator_);
+    float cweight = 0.0f;
+    for (auto& loot : loot_) {
+        cweight += loot.weight;
+        if (cweight >= rvalue) {
+            return loot;
+        }
+    }
+    return loot_[0];
+}
 
 
 

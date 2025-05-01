@@ -282,7 +282,6 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 ecs::Entity* ptr;
-
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
@@ -303,7 +302,19 @@ void loadShipAndAsteroids(std::unordered_map<std::string, std::shared_ptr<Sprite
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 int main()
 {
-	ThreadPool tp {4};
+	LootTable loot_table;
+	loot_table.addLoot({
+		{LOOT_OXYGEN, 5.0f, 1.0f},
+		{LOOT_OXYGEN, 10.0f, 1.5f},
+		{LOOT_OXYGEN, 2.0f, 0.5f},
+		{LOOT_FUEL, 5.0f, 1.0f},
+		{LOOT_FUEL, 8.0f, 2.0f},
+		{LOOT_FUEL, 3.0f, 0.8f}
+	});
+	
+
+	auto loot = loot_table.random();
+	std::cout << loot.type << ' ' << loot.weight << std::endl;
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -311,7 +322,7 @@ int main()
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
-
+	ThreadPool tp {4};
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
 

@@ -8,11 +8,13 @@
 #include <deque>
 #include <array>
 #include <shared_mutex>
+#include <initializer_list>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <atomic>
 #include <functional>
+#include <random>
 #include <unordered_map>
 #include <unordered_set>
 #include <GL/glx.h>
@@ -67,8 +69,8 @@ enum BiomeType
 
 enum LootType
 {
-    OXYGEN,
-    FUEL
+    LOOT_OXYGEN,
+    LOOT_FUEL
 };
 
 enum Direction
@@ -83,7 +85,7 @@ struct Biome;
 struct SpriteSheet;
 class Camera;
 struct World;
-class Loot;
+struct Loot;
 class LootSelector;
 struct Texture;
 struct Collision;
@@ -166,16 +168,17 @@ struct Loot
     LootType type;
     float amount;
     float weight;
-    Loot(LootType type, float amount, float weight);
 };
 
-class LootSelector
-{
+class LootTable
+{    
     public:
-        Loot random(std::mt19937 rand);
-        LootSelector& addLoot(std::initializer_list<Loot> loot);
+        Loot random();
+        LootTable& addLoot(std::initializer_list<Loot> loot);
+        LootTable();
     private:
         std::vector<Loot> loot_;
+        std::mt19937 generator_;
 };
 
 
