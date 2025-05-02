@@ -172,7 +172,7 @@ void AStar::toggleObstacle(u16 x, u16 y)
 void AStar::setObstacles(World w)
 {
     using WorldCell = std::vector<const ecs::Entity*>;
-    auto cells = w.cells
+    auto cells = w.cells;
     for (u16 x = 0; x < cells.size(); x++) {
         for (u16 y = 0; y < cells[x].size(); y++) {
             auto cell = cells[x][y];
