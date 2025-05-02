@@ -409,11 +409,6 @@ int main()
 		render();
         x11.swapBuffers();
         usleep(1000);
-		if (health->health <= 0.0f) {
-			done = true;
-			DINFO("Player Died, GAME OVER...");
-			gl.state = GAMEOVER
-		}
     }
     shutdownAudioSystem();
     cleanup_fonts();
@@ -737,6 +732,21 @@ void physics(Enemy& foe)
 			foe.action();
 		}
 	}
+	if (player) {
+		auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+		if (health->health <= 0.0f) {
+			done = true;
+			DINFO("Player Died, GAME OVER...");
+			gl.state = GAMEOVER
+		}
+	}
+	if (gl.spaceship) {
+		auto [spaceshipHealth] = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+		if (spaceshipHealth->health <= 0.0f) {
+			DINFO("Player Died, GAME OVER...");
+			gl.state = GAMEOVER; 
+		}
+	}
 }
 
  void SampleSpaceEntities() //chatgpt 
@@ -924,16 +934,6 @@ void render() {
 			glLoadIdentity();
 
 			DisableFor2D();
-
-
-			if (gl.spaceship) {
-				auto [spaceshipHealth] = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
-				if (spaceshipHealth->health <= 0.0f) {
-					gl.state = GAMEOVER; 
-					return; 
-				}
-			}
-			
 
 			if (gl.spaceship) { //draw ui space bars
 				auto [spaceshipHealth,oxygen,fuel] = ecs::ecs.component().fetch<ecs::Health,ecs::Oxygen,ecs::Fuel>(gl.spaceship);			
