@@ -409,7 +409,7 @@ int main()
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
-		physics(foe, w);
+		physics(foe, &w);
 		render();
         x11.swapBuffers();
         usleep(1000);
