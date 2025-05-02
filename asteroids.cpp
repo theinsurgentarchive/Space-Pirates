@@ -395,7 +395,10 @@ int main()
 			case PLAYING:
 				c = &camera; 
 				break; 
-
+			case GAMEOVER:
+				sleep(4);
+				done = true;
+				break;
 			default: 
 				c = nullptr;
 				break; 
@@ -735,7 +738,6 @@ void physics(Enemy& foe)
 	if (player) {
 		auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
 		if (health->health <= 0.0f) {
-			done = true;
 			DINFO("Player Died, GAME OVER...");
 			gl.state = GAMEOVER;
 		}
@@ -991,7 +993,6 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
 			glMatrixMode(GL_MODELVIEW);
-			sleep(4);
 			break; 
 
 		case EXIT: 
