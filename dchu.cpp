@@ -168,6 +168,33 @@ void AStar::toggleObstacle(u16 x, u16 y)
     DINFOF("Is an Obstacle");
 }
 
+//Set Obstacles Nodes If Node are on either a Water Tile, or The Tile With Decor
+void AStar::setObstacles(World w)
+{
+    using WorldCell = std::vector<const ecs::Entity*>;
+    auto cells = w.cells
+    for (u16 x = 0; x < cells.size(); x++) {
+        for (u16 y = 0; y < cells[x].size(); y++) {
+            auto cell = cells[x][y];
+            auto [trans] = ecs::ecs.component().fetch<TRANSFORM>(cell);
+            Node* node = findClosestNode(trans->pos[0], trans->pos[1]);
+            if (cell.size() > 1) {
+                DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
+                node.obstacle = true;
+                continue;
+            }
+            auto [sprite] = ecs::ecs.component().fetch<SPRITE>(cell);
+            if (sprite->ssheet == "warm-water" ||
+                sprite->ssheet == "cold-water" ||
+                sprite->ssheet == "lava-001"
+            ) {
+                DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
+                node.obstacle = true;
+            }
+        }
+    }
+}
+
 //Returns The Node Grid's Size
 v2u AStar::size()
 {
@@ -496,8 +523,8 @@ void Enemy::initEnemy()
 {
     //Initialize Components
     auto [health, collide, sprite, transform, physics, navigate] = 
-    ecs::ecs.component().assign
-                <HEALTH, COLLIDER, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(ent);
+    ecs::ecs.component()
+        .assign<HEALTH, COLLIDER, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(ent);
 
     //Set Component Variables
     health->max = 50.0f;

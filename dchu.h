@@ -69,8 +69,10 @@ class AStar
         AStar(v2u);
         AStar(u16, u16);
 
-        //Sets a Node to an Obstacle in A*
+
+        //Sets Node(s) to an Obstacle in A*
         void toggleObstacle(u16, u16);
+        void setObstacles(World);
 
         //Get The Node Grid's Size
         v2u size();
