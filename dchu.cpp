@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 extern ecs::Entity* player;
+extern static float movement_mag;
 
 //Renderability Check
 bool canRender(ecs::Entity* ent)
@@ -559,6 +560,7 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 
 void Enemy::action(World* w)
 {
+    float m_mag = movement_mag;
     bool in_bounds = true;
     auto cells = w->cells;
     v2u w_size = {cells.size() - 1, cells[0].size() - 1};
@@ -578,8 +580,8 @@ void Enemy::action(World* w)
     }
     //Check if The Player is Within Bounds
     v2f star_w_size = v2f {
-        navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0] - 25.0f,
-        navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1] - 25.0f
+        navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0] - m_mag,
+        navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1] - m_mag
     };
     std::cout << star_w_size[0] << " " << star_w_size[1] << std::endl;
     if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||

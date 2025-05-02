@@ -288,6 +288,7 @@ ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
+const static float movement_mag = 45.0;
 const Camera* c;
 const Camera* spaceCamera; 
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
@@ -640,7 +641,6 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
-			static float movement_mag = 45.0;
 			switch(key) {
 				case XK_Right:
 					sc->ssheet = "player-right";
