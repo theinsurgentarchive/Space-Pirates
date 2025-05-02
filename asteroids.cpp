@@ -273,7 +273,7 @@ public:
 void init_opengl(void);
 void check_mouse(XEvent *e);
 int check_keys(XEvent *e, AStar *as, ecs::Entity*);
-void physics(Enemy&);
+void physics(Enemy&, World*);
 void render();
 // For transparent title.png background
 std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
