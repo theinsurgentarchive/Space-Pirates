@@ -559,13 +559,9 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 
 void Enemy::action(World* w)
 {
-    float m_mag = 45.0f;
+    float m_mag = 25.0f;
     bool in_bounds = true;
     auto cells = w->cells;
-    v2u w_size = {
-        static_cast<u16>(cells.size() - 1),
-        static_cast<u16>(cells[0].size() - 1)
-    };
     auto [navi, s_trans, phys] = (
         ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS>(ent)
     );

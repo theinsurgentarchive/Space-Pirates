@@ -295,13 +295,11 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<Collision> cols;
 atomic<bool> done = false;
-
-void sig_handle(int sig)
+[[mayble_unused]] void sig_handle(int sig)
 {
 	done = true;
 	std::exit(0);
 }
-
 // load space sheets
 std::unordered_map<std::string, std::shared_ptr
 										<SpriteSheet>> shipAndAsteroidsSheets;
@@ -321,8 +319,8 @@ int main()
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-	[[mayble_unused]] auto [planetAttr2] = ecs::ecs.component()
-													.fetch<PLANET>(planetPtr2);
+	//[[mayble_unused]] auto [planetAttr2] = ecs::ecs.component()
+	//												.fetch<PLANET>(planetPtr2);
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
@@ -356,7 +354,7 @@ int main()
 	
 	ps.sample();
 
-	[[mayble_unused]] float dt = getDeltaTime(); 
+	//[[mayble_unused]] float dt = getDeltaTime(); 
   	v2u t_grid_size = {
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
