@@ -557,7 +557,7 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
     return false;
 }
 
-void Enemy::action(World& w)
+void Enemy::action(World* w)
 {
     bool in_bounds = true;
     auto cells = w.cells;

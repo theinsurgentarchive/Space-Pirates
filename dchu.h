@@ -168,7 +168,7 @@ class Enemy
             std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
         );
         bool doDamage(ecs::Entity*, ecs::Entity*);
-        void action();
+        void action(World*);
 
         //Getter
         u16 getAtkTimer();
