@@ -578,8 +578,8 @@ void Enemy::action(World* w)
     }
     //Check if The Player is Within Bounds
     v2f star_w_size = v2f {
-        navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0],
-        navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1]
+        navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0] - 5.0f,
+        navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1] - 5.0f
     };
     std::cout << star_w_size[0] << " " << star_w_size[1] << std::endl;
     if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||
