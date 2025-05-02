@@ -581,6 +581,7 @@ void Enemy::action(World* w)
         navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0],
         navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1]
     };
+    std::cout << star_w_size[0] << " " << star_w_size[1] << std::endl;
     if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||
         (p_trans->pos[1] < 0 || p_trans->pos[1] > star_w_size[1])
     ) {
