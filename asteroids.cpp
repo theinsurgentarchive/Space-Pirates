@@ -273,7 +273,7 @@ public:
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent);
+int check_keys(XEvent *e);
 void physics(Enemy&, World*);
 void render();
 // For transparent title.png background
@@ -295,13 +295,13 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<Collision> cols;
 atomic<bool> done = false;
-/*
+
 void sig_handle(int sig)
 {
 	done = true;
 	std::exit(0);
 }
-*/
+
 // load space sheets
 std::unordered_map<std::string, std::shared_ptr
 										<SpriteSheet>> shipAndAsteroidsSheets;
