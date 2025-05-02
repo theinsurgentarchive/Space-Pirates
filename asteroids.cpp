@@ -352,8 +352,8 @@ int main()
 	ps.sample();
 
 	float dt = getDeltaTime(); 
-  v2u t_grid_size = {planetAttr->size * 50, planetAttr->size * 50};
-  AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {50.0f, 50.0f});
+  	v2u t_grid_size = {planetAttr->size * 50, planetAttr->size * 50};
+  	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {50.0f, 50.0f});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->setAStar(astar);
 	navc->genPath(
