@@ -171,7 +171,6 @@ void AStar::toggleObstacle(u16 x, u16 y)
 //Set Obstacles Nodes If Node are on either a Water Tile, or The Tile With Decor
 void AStar::setObstacles(World w)
 {
-    using WorldCell = std::vector<const ecs::Entity*>;
     auto cells = w.cells;
     for (u16 x = 0; x < cells.size(); x++) {
         for (u16 y = 0; y < cells[x].size(); y++) {
