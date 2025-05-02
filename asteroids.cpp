@@ -371,7 +371,7 @@ int main()
 	loadTextures(ssheets);
 	c = &camera;
 	World w {settings};
-	//astar->setObstacles(w);
+	astar->setObstacles(w);
 	rs.sample();
 	ps.sample();
 	init_opengl();

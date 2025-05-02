@@ -583,8 +583,6 @@ void Enemy::action(World* w)
     };
     if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||
         (p_trans->pos[1] < 0 || p_trans->pos[1] > star_w_size[1]) ||
-        (p_trans->pos[0] > w_trans->pos[0] * 48.0f) || 
-        (p_trans->pos[1] > w_trans->pos[1] * 48.0f)
     ) {
         in_bounds = false;
     }
@@ -592,6 +590,11 @@ void Enemy::action(World* w)
     //Check if The Enemy is Due for another A* Pass.
     if (in_bounds) {
         if (can_gen_path) {
+            printf(
+                "Player Pos at gen: (%d, %d)\n",
+                p_trans->pos[0],
+                p_trans->pos[1]
+            );
             navi->genPath(
                 navi->getAStar()->findClosestNode(p_trans->pos),
                 navi->getAStar()->findClosestNode(s_trans->pos)
