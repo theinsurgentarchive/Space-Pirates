@@ -169,9 +169,9 @@ void AStar::toggleObstacle(u16 x, u16 y)
 }
 
 //Set Obstacles Nodes If Node are on either a Water Tile, or The Tile With Decor
-void AStar::setObstacles(World w)
+void AStar::setObstacles(World* w)
 {
-    auto cells = w.cells;
+    auto cells = w->cells;
     for (u16 x = 0; x < cells.size(); x++) {
         for (u16 y = 0; y < cells[x].size(); y++) {
             auto cell = cells[x][y];
@@ -557,14 +557,18 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
     return false;
 }
 
-void Enemy::action()
+void Enemy::action(World* w)
 {
     bool in_bounds = true;
-
-    auto [navi, trav, phys] = (
+    auto cells = w->cells;
+    v2u w_size = {cells.size() - 1, cells[0].size() - 1};
+    auto [w_trans] = ecs::ecs.component().fetch<TRANSFORM>(
+        cells[w_size[0]][w_size[1]][0]
+    );
+    auto [navi, s_trans, phys] = (
         ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS>(ent)
     );
-    auto [tran] = ecs::ecs.component().fetch<TRANSFORM>(player);
+    auto [trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     float* node_pos = navi->nodePos();
     
@@ -573,13 +577,15 @@ void Enemy::action()
         navi->setStatus(true);
     }
     //Check if The Player is Within Bounds
-    if ((   
-            tran->pos[0] < 0 || tran->pos[0] > navi->getAStar()->size()[0] *
-            navi->getAStar()->getStep()[0]) ||
-        (
-            tran->pos[1] < 0 || tran->pos[1] > navi->getAStar()->size()[1] *
-            navi->getAStar()->getStep()[1]
-    )) {
+    v2f star_w_size = {
+        navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0],
+        navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1]
+    };
+    if ((trans->pos[0] < 0 || trans->pos[0] > star_w_size) ||
+        (trans->pos[1] < 0 || trans->pos[1] > star_w_size) ||
+        (trans->pos[0] > w_trans[0] * 48.0f) || 
+        (trans->pos[1] > w_trans[1] * 48.0f)
+    ) {
         in_bounds = false;
     }
 
@@ -588,7 +594,7 @@ void Enemy::action()
         if (can_gen_path) {
             navi->genPath(
                 navi->getAStar()->findClosestNode(tran->pos),
-                navi->getAStar()->findClosestNode(trav->pos)
+                navi->getAStar()->findClosestNode(s_trans->pos)
             );
             can_gen_path = false;
         } else {
@@ -608,10 +614,10 @@ void Enemy::action()
             moveTo(ent, player);
         } else {
             if (
-                (node_pos[0] < (trav->pos[0] + 0.5f)) &&
-                (node_pos[0] > (trav->pos[0] - 0.5f)) &&
-                (node_pos[1] < (trav->pos[1] + 0.5f)) &&
-                (node_pos[1] > (trav->pos[1] - 0.5f))
+                (node_pos[0] < (s_trans->pos[0] + 0.5f)) &&
+                (node_pos[0] > (s_trans->pos[0] - 0.5f)) &&
+                (node_pos[1] < (s_trans->pos[1] + 0.5f)) &&
+                (node_pos[1] > (s_trans->pos[1] - 0.5f))
             ) {
                 if (navi->nextNode()) {
                     DINFO("Position Reached, Heading to Next Node\n");

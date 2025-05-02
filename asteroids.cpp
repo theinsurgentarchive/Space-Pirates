@@ -409,7 +409,7 @@ int main()
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
-		physics(foe);
+		physics(foe, w);
 		render();
         x11.swapBuffers();
         usleep(1000);
@@ -662,16 +662,6 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 				case XK_a:
 					done = 1;
 					break;
-				case XK_c:
-					v2u grid_size = as->size();
-					cout << grid_size[0] << ", " << grid_size[1] << "\n\n";
-					if (as->getNode(6, 6) == nullptr) {
-						cout << "Error, Cannot Find Node\n";
-					} else {
-						auto cn = as->getNode(6, 6)->getWorld();
-						cout << cn[0] << ", " << cn[1] << "\n";
-					}
-					break;
 			}
 		}
 	}
@@ -722,7 +712,7 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 
 
 
-void physics(Enemy& foe)
+void physics(Enemy& foe, World* w)
 {
 	ps.update((float)1/20);
 	if (gl.state == MENU){
@@ -733,7 +723,7 @@ void physics(Enemy& foe)
 		// ecs::updatePlanetSpin();
 	} else if (gl.state == PLAYING) {
 		if(dummy) {
-			foe.action();
+			foe.action(w);
 		}
 	}
 	if (player) {
