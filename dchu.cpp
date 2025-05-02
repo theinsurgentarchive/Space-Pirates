@@ -582,7 +582,7 @@ void Enemy::action(World* w)
         navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1]
     };
     if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||
-        (p_trans->pos[1] < 0 || p_trans->pos[1] > star_w_size[1]) ||
+        (p_trans->pos[1] < 0 || p_trans->pos[1] > star_w_size[1])
     ) {
         in_bounds = false;
     }
@@ -591,7 +591,7 @@ void Enemy::action(World* w)
     if (in_bounds) {
         if (can_gen_path) {
             printf(
-                "Player Pos at gen: (%d, %d)\n",
+                "Player Pos at gen: (%f, %f)\n",
                 p_trans->pos[0],
                 p_trans->pos[1]
             );
