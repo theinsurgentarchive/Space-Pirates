@@ -175,8 +175,8 @@ void AStar::setObstacles(World* w)
     for (u16 x = 0; x < cells.size(); x++) {
         for (u16 y = 0; y < cells[x].size(); y++) {
             auto cell = cells[x][y];
-            auto [trans] = ecs::ecs.component().fetch<TRANSFORM>(cell[0]);
-            Node* node = findClosestNode(trans->pos);
+            auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(cell[0]);
+            Node* node = findClosestNode(p_trans->pos);
             if (cell.size() > 1) {
                 DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
                 node->obstacle = true;
@@ -560,7 +560,7 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 void Enemy::action(World* w)
 {
     bool in_bounds = true;
-    auto cells = w.cells;
+    auto cells = w->cells;
     v2u w_size = {cells.size() - 1, cells[0].size() - 1};
     auto [w_trans] = ecs::ecs.component().fetch<TRANSFORM>(
         cells[w_size[0]][w_size[1]][0]
@@ -568,7 +568,7 @@ void Enemy::action(World* w)
     auto [navi, s_trans, phys] = (
         ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS>(ent)
     );
-    auto [trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
+    auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     float* node_pos = navi->nodePos();
     
@@ -577,14 +577,14 @@ void Enemy::action(World* w)
         navi->setStatus(true);
     }
     //Check if The Player is Within Bounds
-    v2f star_w_size = {
+    v2f star_w_size = v2f {
         navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0],
         navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1]
     };
-    if ((trans->pos[0] < 0 || trans->pos[0] > star_w_size) ||
-        (trans->pos[1] < 0 || trans->pos[1] > star_w_size) ||
-        (trans->pos[0] > w_trans[0] * 48.0f) || 
-        (trans->pos[1] > w_trans[1] * 48.0f)
+    if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||
+        (p_trans->pos[1] < 0 || p_trans->pos[1] > star_w_size[1]) ||
+        (p_trans->pos[0] > w_trans[0] * 48.0f) || 
+        (p_trans->pos[1] > w_trans[1] * 48.0f)
     ) {
         in_bounds = false;
     }
@@ -593,7 +593,7 @@ void Enemy::action(World* w)
     if (in_bounds) {
         if (can_gen_path) {
             navi->genPath(
-                navi->getAStar()->findClosestNode(tran->pos),
+                navi->getAStar()->findClosestNode(p_trans->pos),
                 navi->getAStar()->findClosestNode(s_trans->pos)
             );
             can_gen_path = false;
