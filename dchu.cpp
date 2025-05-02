@@ -175,12 +175,26 @@ void AStar::setObstacles(World* w)
     for (u16 x = 0; x < cells.size(); x++) {
         for (u16 y = 0; y < cells[x].size(); y++) {
             auto cell = cells[x][y];
+            if (!cell[0]){
+                DERRORF("Cannot find entity to cell (%d, %d)\n", x, y);
+                continue;
+            }
             auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(cell[0]);
             Node* node = findClosestNode(p_trans->pos);
             if (cell.size() > 1) {
-                DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
-                node->obstacle = true;
-                continue;
+                bool has_treasure;
+                for (auto micro : cell) {
+                    auto [m_sprite] = ecs::ecs.component().fetch<SPRITE>(micro);
+                    if (m_sprite->ssheet == "placeholder") {
+                        has_treasure = true;
+                        break;
+                    }
+                }
+                if (has_treasure) {
+                    DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
+                    node->obstacle = true;
+                    continue;
+                }
             }
             auto [sprite] = ecs::ecs.component().fetch<SPRITE>(cell[0]);
             if (sprite->ssheet == "warm-water" ||
