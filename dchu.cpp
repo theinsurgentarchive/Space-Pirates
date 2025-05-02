@@ -583,8 +583,8 @@ void Enemy::action(World* w)
     };
     if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||
         (p_trans->pos[1] < 0 || p_trans->pos[1] > star_w_size[1]) ||
-        (p_trans->pos[0] > w_trans[0] * 48.0f) || 
-        (p_trans->pos[1] > w_trans[1] * 48.0f)
+        (p_trans->pos[0] > w_trans->pos[0] * 48.0f) || 
+        (p_trans->pos[1] > w_trans->pos[1] * 48.0f)
     ) {
         in_bounds = false;
     }
