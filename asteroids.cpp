@@ -295,7 +295,7 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<Collision> cols;
 atomic<bool> done = false;
-[[mayble_unused]] void sig_handle(int sig)
+[[maybe_unused]] void sig_handle(int sig)
 {
 	done = true;
 	std::exit(0);
