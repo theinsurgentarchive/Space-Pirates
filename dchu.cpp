@@ -441,7 +441,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
 
     //Set Acceleration
-    float accel = 18.5f;
+    float accel = 30.0f;
     float dist = v2fDist(target, transform->pos);
     float reduce = 1.0f;
     if (dist < (accel /4.0f)) {

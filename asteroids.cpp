@@ -643,7 +643,7 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
-			static float movement_mag = 20.0;
+			static float movement_mag = 45.0;
 			switch(key) {
 				case XK_Right:
 					sc->ssheet = "player-right";
