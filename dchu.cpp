@@ -8,12 +8,6 @@
 
 extern ecs::Entity* player;
 
-//Render Game Over Screen
-void renderGameOver([[maybe_unused]] v2u res)
-{
-    sleep(2);
-}
-
 //Renderability Check
 bool canRender(ecs::Entity* ent)
 {

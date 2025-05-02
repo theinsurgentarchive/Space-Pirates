@@ -412,9 +412,7 @@ int main()
 		if (health->health <= 0.0f) {
 			done = true;
 			DINFO("Player Died, GAME OVER...");
-			cout << "GAME OVER\n";
-			getAudioManager()->stopMusic();
-			renderGameOver(gl.res);
+			gl.state = GAMEOVER
 		}
     }
     shutdownAudioSystem();
@@ -968,6 +966,7 @@ void render() {
 		}
 
 		case GAMEOVER:
+			getAudioManager()->stopMusic();
 
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
@@ -986,12 +985,13 @@ void render() {
 			r.bot = gl.res[1] / 2;
 			r.center = 1;
 			ggprint40(&r, 40, 0xFF0000, "GAME OVER");
-			
+
 			// store 
 			glPopMatrix();
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
 			glMatrixMode(GL_MODELVIEW);
+			sleep(4);
 			break; 
 
 		case EXIT: 

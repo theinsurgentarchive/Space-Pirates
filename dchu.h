@@ -6,9 +6,6 @@
 #define COMBAT ecs::Combat
 #define NAVIGATE ecs::Navigate
 
-//Game Over Screen
-void renderGameOver(v2u);
-
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
