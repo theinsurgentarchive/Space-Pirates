@@ -319,8 +319,8 @@ int main()
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-	//[[mayble_unused]] auto [planetAttr2] = ecs::ecs.component()
-	//												.fetch<PLANET>(planetPtr2);
+	[[maybe_unused]] auto [planetAttr2] = ecs::ecs.component()
+													.fetch<PLANET>(planetPtr2);
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
@@ -353,8 +353,7 @@ int main()
 
 	
 	ps.sample();
-
-	//[[mayble_unused]] float dt = getDeltaTime(); 
+ 
   	v2u t_grid_size = {
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
