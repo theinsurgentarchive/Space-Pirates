@@ -737,7 +737,7 @@ void physics(Enemy& foe)
 		if (health->health <= 0.0f) {
 			done = true;
 			DINFO("Player Died, GAME OVER...");
-			gl.state = GAMEOVER
+			gl.state = GAMEOVER;
 		}
 	}
 	if (gl.spaceship) {
