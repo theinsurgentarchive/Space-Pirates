@@ -288,7 +288,7 @@ ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
-const static float movement_mag = 45.0;
+const float movement_mag = 45.0;
 const Camera* c;
 const Camera* spaceCamera; 
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
