@@ -557,10 +557,10 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
     return false;
 }
 
-void Enemy::action(World* w)
+void Enemy::action(World& w)
 {
     bool in_bounds = true;
-    auto cells = w->cells;
+    auto cells = w.cells;
     v2u w_size = {cells.size() - 1, cells[0].size() - 1};
     auto [w_trans] = ecs::ecs.component().fetch<TRANSFORM>(
         cells[w_size[0]][w_size[1]][0]
