@@ -177,13 +177,13 @@ void AStar::setObstacles(World w)
         for (u16 y = 0; y < cells[x].size(); y++) {
             auto cell = cells[x][y];
             auto [trans] = ecs::ecs.component().fetch<TRANSFORM>(cell[0]);
-            Node* node = findClosestNode(trans->pos[0], trans->pos[1]);
+            Node* node = findClosestNode(trans->pos);
             if (cell.size() > 1) {
                 DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
                 node->obstacle = true;
                 continue;
             }
-            auto [sprite] = ecs::ecs.component().fetch<SPRITE>(cell);
+            auto [sprite] = ecs::ecs.component().fetch<SPRITE>(cell[0]);
             if (sprite->ssheet == "warm-water" ||
                 sprite->ssheet == "cold-water" ||
                 sprite->ssheet == "lava-001"
