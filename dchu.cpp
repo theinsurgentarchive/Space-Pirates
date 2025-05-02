@@ -562,10 +562,10 @@ void Enemy::action(World* w)
     float m_mag = 45.0f;
     bool in_bounds = true;
     auto cells = w->cells;
-    v2u w_size = {cells.size() - 1, cells[0].size() - 1};
-    auto [w_trans] = ecs::ecs.component().fetch<TRANSFORM>(
-        cells[w_size[0]][w_size[1]][0]
-    );
+    v2u w_size = {
+        static_cast<u16>(cells.size() - 1),
+        static_cast<u16>(cells[0].size() - 1)
+    };
     auto [navi, s_trans, phys] = (
         ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS>(ent)
     );

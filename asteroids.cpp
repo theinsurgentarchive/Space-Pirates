@@ -273,7 +273,7 @@ public:
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent, ecs::Entity*);
+int check_keys(XEvent);
 void physics(Enemy&, World*);
 void render();
 // For transparent title.png background
@@ -356,7 +356,7 @@ int main()
 	
 	ps.sample();
 
-	float dt = getDeltaTime(); 
+	[[mayble_unused]] float dt = getDeltaTime(); 
   	v2u t_grid_size = {
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
@@ -395,7 +395,7 @@ int main()
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
-            done = check_keys(&e, astar, dummy);
+            done = check_keys(&e);
 		}
 		switch (gl.state){ //camera switch 
 			case SPACE:
@@ -597,7 +597,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e, ecs::Entity* ent)
+int check_keys(XEvent *e)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;
