@@ -208,7 +208,10 @@ void loadTextures(
     .loadStatic("lava-001",
         loadTexture(
             "./resources/textures/tiles/lava-001.webp",false),
-        {1,45},{16,16}, true);
+        {1,45},{16,16}, true)
+    .loadStatic("chest",
+        loadTexture(
+            "./resources/textures/decorations/chest.png",false));
 }
 
 std::shared_ptr<Texture> loadTexture(
@@ -693,13 +696,69 @@ WorldGenerationSettings::WorldGenerationSettings(
     biome_seed{seed}
 {}
 
-World::World(WorldGenerationSettings settings)
+const ecs::Entity* createWorldTile(WorldGenerationSettings& settings, 
+    v2u& sprite_dim, v2i& cell_pos, wfc::TileMeta& tile_meta)
+{
+    const ecs::Entity* entity = ecs::ecs.entity().checkout();
+    auto [transform,sprite] = ecs::ecs.component()
+        .assign<TRANSFORM,SPRITE>(entity);
+    transform->scale = {3,3};
+    transform->pos = settings.origin + v2f {
+        static_cast<float>(sprite_dim[0] * cell_pos[0] * transform->scale[0]),
+        static_cast<float>(sprite_dim[1] * cell_pos[1] * transform->scale[1])
+    };
+    sprite->ssheet = tile_meta.ssheet;
+    if (sprite->ssheet.find("water") != std::string::npos || 
+    sprite->ssheet.find("lava") != std::string::npos) {
+        auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
+        collider->dim = v2u {static_cast<u16>(16 * transform->scale[0]),static_cast<u16>(16 * transform->scale[1])};
+        collider->passable = false;
+    }
+    return entity;
+}
+
+const ecs::Entity* createChest(WorldGenerationSettings&, const v2u&, const v2i&)
+{
+    const ecs::Entity* entity = ecs::ecs.entity().checkout();
+    auto [transform,sprite] = ecs::ecs.component()
+        .assign<TRANSFORM,SPRITE>(entity);
+    transform->pos = settings.origin + v2f {
+        static_cast<float>(sprite_dim[0] * cell_pos[0] * transform->scale[0]),
+        static_cast<float>(sprite_dim[1] * cell_pos[1] * transform->scale[1])
+    };
+    sprite->ssheet = "chest";
+    return entity;
+}
+
+void populateWithChests(World& world, const v2u& grid_size, const std::mt19937 generator)
+{
+    std::uniform_int_distribution<int> x_dist {0,static_cast<int>(grid_size[0])};
+    std::uniform_int_distribution<int> y_dist {0,static_cast<int>(grid_size[1])};
+    auto chest = ssheets.find("chest");
+    if (chest != ssheets.end()) {
+        for (int i = 0; i < 2; ++i) {
+            v2i cell_pos = {x_dist(generator),y_dist(generator)};
+            std::vector<const ecs::Entity*> cell = world.cells[cell_pos[0]][cell_pos[1]];
+            auto [collider] = ecs::ecs.component().fetch<COLLIDER>(cell[0]);
+            if (cell.size() == 1 && collider->passable) {
+                world.cells.push_back(createChest(world.getSettings(),chest->second->sprite_dim,cell_pos));
+            } 
+        }
+    }
+}
+
+WorldGenerationSettings& World::getSettings()
+{
+    return settings_;
+}
+
+World::World(WorldGenerationSettings settings) 
+    : generator_{std::random_device{}()}, settings_{settings}
 {
     Biome biome = selectBiome(
         settings.temperature,
         settings.humidity, 
         settings.biome_seed);
-        std::cout << biome.type << ' ' << biome.description << std::endl;
     std::unordered_map<std::string,wfc::TileMeta> tile_map = biome.tiles();
     wfc::Grid grid {{settings.radius,settings.radius}};
     wfc::WaveFunction wf {grid,tile_map};
@@ -711,33 +770,17 @@ World::World(WorldGenerationSettings settings)
             auto cell = grid.get({i,j});
             if (cell == nullptr || cell->state.empty())
                 continue;
-            auto tile = tile_map.find(cell->state);
-            if (tile == tile_map.end())
+            auto tile_pair = tile_map.find(cell->state);
+            if (tile_pair == tile_map.end())
                 continue;
-
-            auto ssheet = ssheets.find(tile->second.ssheet);
+            wfc::TileMeta tile_meta = tile_pair->second;
+            auto ssheet = ssheets.find(tile_meta.ssheet);
             if (ssheet == ssheets.end())
                 continue;
-            auto sd = ssheet->second->sprite_dim;
-            v2i p = cell->pos;
-            const ecs::Entity* entity = ecs::ecs.entity().checkout();
-            if (entity == nullptr) {
-                continue;
-            }
-            auto [transform,sprite] = 
-                ecs::ecs.component().assign<TRANSFORM,SPRITE>(entity);
-            transform->scale = {3,3};
-            transform->pos = settings.origin + v2f {
-                static_cast<float>(sd[0] * p[0] * transform->scale[0]),
-                static_cast<float>(sd[1] * p[1] * transform->scale[1])
-            };
-            sprite->ssheet = tile->second.ssheet;
-            if (sprite->ssheet.find("water") != std::string::npos || sprite->ssheet.find("lava") != std::string::npos) {
-                auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
-                collider->dim = v2u {16 * 3,16 * 3};
-                collider->passable = false;
-            }
-            cells[i][j].push_back(entity);
+            v2u sprite_dim = ssheet->second->sprite_dim;
+            const ecs::Entity* tile = createWorldTile(settings,sprite_dim,cell->pos,tile_meta);
+            auto [transform,sprite] = ecs::ecs.component().fetch<TRANSFORM,SPRITE>(tile);
+            cells[i][j].push_back(tile);
             std::uniform_real_distribution<double> dis(0.0,1.0);
             if (dis(generator) > 0.8) {
                 std::vector<std::string> decors = Biome::decor(biome.type);
@@ -747,10 +790,10 @@ World::World(WorldGenerationSettings settings)
                 std::random_device rd;
                 std::mt19937 generator { rd() };
                 std::uniform_int_distribution<> dist (0, decors.size() - 1);
-                int decor_index = dist(generator);
+                int decor_index = dist(generator_);
                 auto decor_ssheet = ssheets.find(decors[decor_index]);
                 if (decor_ssheet == ssheets.end() || 
-                    sprite->ssheet.find("water") != std::string::npos ||
+                    sprite->ssheet.find("water") != std::string::npos || 
                     sprite->ssheet.find("lava") != std::string::npos)
                     continue;
                 auto decor_sd = decor_ssheet->second->sprite_dim;
@@ -765,6 +808,7 @@ World::World(WorldGenerationSettings settings)
             }
         }
     }
+    populateWithChests(*this, grid_size, generator_);
 }
 
 World::~World()
@@ -1339,7 +1383,8 @@ void ThreadPool::workerThread()
         std::function<void()> current_task = nullptr;
         {
             std::unique_lock<std::mutex> lock(queue_mutex_);
-            task_available_.wait(lock, [this] { return stop_ || !task_queue_.empty(); });
+            task_available_.wait(lock, 
+                [this] { return stop_ || !task_queue_.empty(); });
             
             if (stop_ && task_queue_.empty()) {
                 return;

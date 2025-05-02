@@ -84,7 +84,7 @@ enum Direction
 struct Biome;
 struct SpriteSheet;
 class Camera;
-struct World;
+class World;
 struct Loot;
 class LootSelector;
 struct Texture;
@@ -281,13 +281,17 @@ struct WorldGenerationSettings
     WorldGenerationSettings(float temperature, float humidity, u16 radius, u32 seed);
 };
 
-struct World
+class World
 {
     using WorldCell = std::vector<const ecs::Entity*>;
-    std::vector<std::vector<WorldCell>> cells;
-    World(WorldGenerationSettings settings);
-    WorldCell& cellWithMaxArea();
-    ~World();
+    public:
+        World(WorldGenerationSettings settings);
+        ~World();
+        std::vector<std::vector<WorldCell>> cells;
+        WorldGenerationSettings& getSettings();
+    private:
+        WorldGenerationSettings settings_;
+        std::mt19937 generator_;
 };
 
 namespace wfc

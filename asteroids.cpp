@@ -312,7 +312,6 @@ int main()
 		{LOOT_FUEL, 3.0f, 0.8f}
 	});
 	
-	
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -327,7 +326,7 @@ int main()
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
 		planetAttr->humidity,
-		static_cast<u16>(5),
+		static_cast<u16>(50),
 		static_cast<u32>(2)};
 	settings.origin = {0,0};
 
