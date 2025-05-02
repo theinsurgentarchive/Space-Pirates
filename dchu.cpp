@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 extern ecs::Entity* player;
-extern float movement_mag;
+extern const float movement_mag;
 
 //Renderability Check
 bool canRender(ecs::Entity* ent)
