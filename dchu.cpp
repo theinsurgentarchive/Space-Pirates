@@ -7,7 +7,6 @@
 #include <unistd.h>
 
 extern ecs::Entity* player;
-extern const float movement_mag;
 
 //Renderability Check
 bool canRender(ecs::Entity* ent)
@@ -560,7 +559,7 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 
 void Enemy::action(World* w)
 {
-    float m_mag = movement_mag;
+    float m_mag = 45.0f;
     bool in_bounds = true;
     auto cells = w->cells;
     v2u w_size = {cells.size() - 1, cells[0].size() - 1};
