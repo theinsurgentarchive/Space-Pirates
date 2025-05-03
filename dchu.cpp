@@ -546,7 +546,7 @@ void loadEnemyTex(
     loader.loadStatic(
         "enemy-idle",
         loadTexture("./resources/textures/enemies/gobo-idle.webp", true),
-        {1, 1}, {42, 32}, false
+        {1, 1}, {32, 32}, false
     ).loadStatic(
         "enemy-front",
         loadTexture("./resources/textures/enemies/gobo-front.webp", true),
@@ -558,7 +558,7 @@ void loadEnemyTex(
     ).loadStatic(
         "enemy-left",
         loadTexture("./resources/textures/enemies/gobo-left.webp", true),
-        {1, 6}, {36, 36}, true
+        {1, 6}, {42, 36}, true
     );
     DINFO("Finished Loading Enemy Sprites\n");
 }
@@ -588,7 +588,7 @@ void Enemy::initEnemy()
     health->health = health->max;
     sprite->ssheet = "enemy-idle";
     sprite->render_order = 14;
-    transform->pos = {floatRand(1000.0f, 10.0f), floatRand(1000.0f, 10.0f)};
+    transform->pos = {floatRand(1000.0f, 100.0f), floatRand(1000.0f, 100.0f)};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
