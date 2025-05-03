@@ -181,7 +181,7 @@ void AStar::setObstacles(World* w)
         if (cells[x].empty()) {
             DERROR("Error, Tile Row is Missing\n");
             std::cout << "Row " << x << " Error\n";
-            continue
+            continue;
         }
         for (u16 y = 0; y < cells[x].size(); y++) {
             if (cells[x][y].empty()) {
