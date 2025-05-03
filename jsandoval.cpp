@@ -462,6 +462,7 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
 
     glEnd();
     glPopMatrix();
+
 }
 
 
@@ -484,3 +485,4 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
 
 //     return distance < (spaceshipRadius + asteroidRadius); //circle collision formula
 // }
+

@@ -28,6 +28,7 @@
 #include "balrowhany.h"
 #include "jsandoval.h"
 #include "mchitorog.h"
+#include "dchu.h"
 #define GAME_TITLE "Space Pirates"
 #define _TEXTURES "./textures"
 using namespace std; 
@@ -76,6 +77,7 @@ public:
 	GameState state; 
 	int selected_option; // 0 = start, 1 = controls, 2 = exit
 	ecs::Entity* spaceship;
+	ecs::Entity* dummy;
 	Global() {
 		res[0] = 720;
 		res[1] = 480;
@@ -271,7 +273,7 @@ public:
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent *e);
+int check_keys(XEvent *e, AStar *as, ecs::Entity*);
 void physics();
 void render();
 // For transparent title.png background
@@ -288,6 +290,7 @@ ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
+const Camera* spaceCamera; 
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<Collision> cols;
@@ -307,11 +310,12 @@ int main()
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
-	initializeEntity(gl.spaceship); 
+	initializeEntity(gl.spaceship);
+	gl.dummy = ecs::ecs.entity().checkout();
+	initEnemy(gl.dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	planetPtr2 = ecs::GeneratePlanet();
-
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
 
@@ -321,7 +325,6 @@ int main()
 		static_cast<u16>(planetAttr->size * 50),
 		static_cast<u32>(2)};
 	settings.origin = {0,0};
-
     // Initialize audio system
     initAudioSystem();
 	loadTextures(ssheets);  //load planet textures
@@ -329,7 +332,6 @@ int main()
     
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
-
     // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
 	ptr = ecs::ecs.entity().checkout();
 	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(ptr);
@@ -337,6 +339,23 @@ int main()
 		transform->pos,
 		gl.res
 	};
+
+	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+	Camera space_Camera = {
+		SpaceTransform->pos,
+		gl.res
+	};
+	spaceCamera = &space_Camera; 
+	
+
+	
+	ps.sample();
+
+	float dt = getDeltaTime(); 
+  auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
+	Node* testing = tstar.aStar({0, 0}, {23, 23});
+	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
+	navc->genPath(testing);
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
@@ -347,7 +366,6 @@ int main()
 	health->max = 100;
 	loadTextures(ssheets);
 	c = &camera;
-
 	World w {settings};
 	rs.sample();
 	ps.sample();
@@ -364,10 +382,23 @@ int main()
             XEvent e = x11.getXNextEvent();
             x11.check_resize(&e);
             check_mouse(&e);
-            done = check_keys(&e);
+            done = check_keys(&e, &tstar, gl.dummy);
+		}
+		switch (gl.state){ //camera switch 
+			case SPACE:
+				c = spaceCamera; 
+				break; 
+			case PLAYING:
+				c = &camera; 
+				break; 
+
+			default: 
+				c = nullptr;
+				break; 
 		}
         clock_gettime(CLOCK_REALTIME, &timeCurrent);
-        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        moveTo(gl.dummy, ptr);
+		timeSpan = timeDiff(&timeStart, &timeCurrent);
         timeCopy(&timeStart, &timeCurrent);
         getAudioManager()->update();
 		physics();
@@ -543,7 +574,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e)
+int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 {
 	[[maybe_unused]]static int shift = 0;
 	[[maybe_unused]]static int exit_request = 0;
@@ -573,6 +604,8 @@ int check_keys(XEvent *e)
 			gl.state = MENU;
 			return 0;
 		}
+		
+
 
 		if (key == XK_Escape && gl.state == SPACE) {  // TEMP FOR EASE
 			gl.state = MENU; 
@@ -598,13 +631,12 @@ int check_keys(XEvent *e)
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
-			static float movement_mag = 300.0;
+			static float movement_mag = 20.0;
 			
 			if (key == XK_e) {
 				gl.state = SPACE;
 				return 0;
 			}
-
 			switch(key) {
 				case XK_Right:
 					sc->ssheet = "player-right";
@@ -626,6 +658,17 @@ int check_keys(XEvent *e)
 				case XK_a:
 					done = 1;
 					break;
+				case XK_c:
+					v2u grid_size = as->size();
+					cout << grid_size[0] << ", " << grid_size[1] << "\n\n";
+					if (as->getNode(0, 0) == nullptr) {
+						cout << "Error, Cannot Find Node\n";
+					} else {
+						auto cn = as->getNode(0, 0)->getWorld();
+						cout << cn[0] << ", " << cn[1] << "\n\n";
+						cout << "0, 0\n\n";
+					}
+					break;
 			}
 		}
 	}
@@ -633,7 +676,8 @@ int check_keys(XEvent *e)
 	if (gl.state == SPACE) {
 		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
 		if (e->type == KeyPress) {
-			static float movement_mag = 300.0;
+
+			static float movement_mag = 600.0;
 
 			if (key == XK_e) {
 				gl.state = PLAYING;
@@ -643,21 +687,29 @@ int check_keys(XEvent *e)
 			switch(key) {
 				case XK_Right:
 					sprite->ssheet = "ship-right";
-					physics->vel = {movement_mag,0};
+					physics->vel = {space_movement_mag,0};
+					decrementResources(gl.state, gl.spaceship);
 					break;
+
 				case XK_Left:
 					sprite->invert_y = true;
 					sprite->ssheet = "ship-right";
-					physics->vel = {-movement_mag,0};
+					physics->vel = {-space_movement_mag,0};
+					decrementResources(gl.state, gl.spaceship);
 					break;
+
 				case XK_Up:
 					sprite->ssheet = "ship-front-back";
-					physics->vel = {0,movement_mag};
+					physics->vel = {0,space_movement_mag};
+					decrementResources(gl.state, gl.spaceship);
 					break;
+
 				case XK_Down:
 					sprite->ssheet = "ship-front-back";
-					physics->vel = {0,-movement_mag};
+					physics->vel = {0,-space_movement_mag};
+					decrementResources(gl.state, gl.spaceship);
 					break;
+
 				case XK_a:
 					done = 1;
 					break;
@@ -819,7 +871,6 @@ void render() {
 			glPushMatrix(); // PUSH 3
 			glLoadIdentity();
 			gluPerspective(45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1], 0.1f, 100.0f);
-
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); // PUSH 4
 			glLoadIdentity();
@@ -834,8 +885,58 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
 			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix(); 
 			glLoadIdentity();
+
+			//applying camera
+	
+			c->update();
+
+			// merge space sprites into ssheets once
+			static bool spaceSheetsLoaded = false;
+			if (!spaceSheetsLoaded) {
+    			ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
+   				spaceSheetsLoaded = true; 
+				
+			}
+
+			spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
+
+			//sample only asteroid and ship entities 
+			SampleSpaceEntities();
+			//spaceRenderer.update((float)1/10);
+			float dt = getDeltaTime(); 
+			spaceRenderer.update(dt);
+			
+
+			glPopMatrix();  
+			
+
+			
+
+			// ==== ui bar render === // 
+			glMatrixMode(GL_PROJECTION); //fix health from not moving 
+			glPushMatrix();
+			glLoadIdentity();
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+
+			DisableFor2D();
+
+
+			if (gl.spaceship) {
+				auto [spaceshipHealth] = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+				if (spaceshipHealth->health <= 0.0f) {
+					gl.state = GAMEOVER; 
+					return; 
+				}
+			}
+			
 
 			if (gl.spaceship) { //draw ui space bars
 				auto [spaceshipHealth,oxygen,fuel] = ecs::ecs.component().fetch<ecs::Health,ecs::Oxygen,ecs::Fuel>(gl.spaceship);			
@@ -849,27 +950,50 @@ void render() {
 					drawUIBar("Fuel", fuel->fuel, fuel->max, 20, gl.res[1] - 130, 0xFF9900);
 				}
 			}
-			// merge into ssheets global in space mode
-			// static bool spaceSheetsLoaded = false;
-			// if (!spaceSheetsLoaded) {
-    		// 	ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
-   			// 	spaceSheetsLoaded = true; 
-				
-			// }
-		
-			spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
-			c->update(); // update camera
-			//spaceRenderer.sample(); // sample space entities
-			SampleSpaceEntities(); //chat: update entity list w/ asteroids
-			spaceRenderer.update((float)1/10); // update space render system
-			//cout << "SpaceRenderer updated" << endl;
 
-	
+
+			// ---- restore ---- 
+			glMatrixMode(GL_MODELVIEW);
+			glPopMatrix();
+			
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix();
+			
+		
+
 			DisableFor2D();
-			ggprint8b(&r, 0, 0xFFFFFF, "Welcome to SPACE mode 🚀");
+			
+
 			break;
 			
 		}
+
+		case GAMEOVER:
+
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			glLoadIdentity();
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);  //chat 
+
+
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+			DisableFor2D();
+
+			
+			Rect r;
+			r.left = gl.res[0] / 2;
+			r.bot = gl.res[1] / 2;
+			r.center = 1;
+			ggprint40(&r, 40, 0xFF0000, "GAME OVER");
+			
+			// store 
+			glPopMatrix();
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix();
+			glMatrixMode(GL_MODELVIEW);
+			break; 
 
 		case EXIT: 
 			break; 
@@ -879,6 +1003,5 @@ void render() {
 			break; 
 
 	}
-
 }
 			
