@@ -587,8 +587,8 @@ void Enemy::initEnemy()
     health->max = 50.0f;
     health->health = health->max;
     sprite->ssheet = "enemy-idle";
-    sprite->render_order = 100;
-    transform->pos = {1000.0f, 1000.0f};
+    sprite->render_order = 14;
+    transform->pos = {floatRand(1000.0f, 10.0f), floatRand(1000.0f, 10.0f)};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
