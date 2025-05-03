@@ -171,9 +171,24 @@ void AStar::toggleObstacle(u16 x, u16 y)
 //Set Obstacles Nodes If Node are on either a Water Tile, or The Tile With Decor
 void AStar::setObstacles(World* w)
 {
+    if (w->cells.empty()) {
+        DERROR("Error, World Empty\n");
+        std::cout << "World Error\n";
+        return;
+    }
     auto cells = w->cells;
     for (u16 x = 0; x < cells.size(); x++) {
+        if (cells[x].empty()) {
+            DERROR("Error, Tile Row is Missing\n");
+            std::cout << "Row " << x << " Error\n";
+            continue
+        }
         for (u16 y = 0; y < cells[x].size(); y++) {
+            if (cells[x][y].empty()) {
+                DERRORF("Error, Tile (%d, %d) is Missing\n", x, y);
+                std::cout << "Tile (" << x << ", " << y << ") Error\n";
+                continue;
+            }
             auto cell = cells[x][y];
             if (!cell[0]){
                 DERRORF("Cannot find entity to cell (%d, %d)\n", x, y);
