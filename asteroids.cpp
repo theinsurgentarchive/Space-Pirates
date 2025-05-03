@@ -330,8 +330,11 @@ int main()
 	settings.origin = {0,0};
     // Initialize audio system
     initAudioSystem();
+
+	// Initialize Textures
 	loadTextures(ssheets);  //load planet textures
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
+	loadEnemyTex(ssheets); //Load Enemy Textures
     
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);

@@ -537,6 +537,32 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
+void loadEnemyTex(
+    std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>& ssheets
+)
+{
+    DINFO("Start Loading Enemy Sprites\n");
+    SpriteSheetLoader loader {shipAndAsteroidsSheets};
+    loader.loadStatic(
+        "enemy-idle",
+        loadTexture("./resources/textures/enemies/gobo-idle.webp", false),
+        {1, 1}, {21, 16}, false
+    ).loadStatic(
+        "enemy-front",
+        loadTexture("./resources/textures/enemies/gobo-front.webp", false),
+        {1, 6}, {21, 18}, true
+    ).loadStatic(
+        "enemy-back",
+        loadTexture("./resources/textures/enemies/gobo-back.webp", false),
+        {1, 6}, {21, 18}, true
+    ).loadStatic(
+        "enemy-left",
+        loadTexture("./resources/textures/enemies/gobo-left.webp", false),
+        {1, 6}, {21, 18}, true
+    );
+    DINFO("Finished Loading Enemy Sprites\n");
+}
+
 Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f})
 {}
 
@@ -560,7 +586,7 @@ void Enemy::initEnemy()
     //Set Component Variables
     health->max = 50.0f;
     health->health = health->max;
-    sprite->ssheet = "placeholder";
+    sprite->ssheet = "enemy-idle";
     sprite->render_order = 14;
     transform->pos = {1000.0f, 1000.0f};
     physics->acc = {0.0f, 0.0f};
@@ -568,12 +594,7 @@ void Enemy::initEnemy()
     collide->passable = true;
     collide->dim = {16, 16};
 }
-/*
-void Enemy::loadEnemyTex(
-    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
-)
-{}
-*/
+
 bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
 {
     auto [p_collide, p_transform, health] = ecs::ecs.component().fetch
@@ -594,8 +615,8 @@ void Enemy::action(World* w)
     float m_mag = 25.0f;
     bool in_bounds = true;
     auto cells = w->cells;
-    auto [navi, s_trans, phys] = (
-        ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS>(ent)
+    auto [navi, s_trans, phys, sprite] = (
+        ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS, SPRITE>(ent)
     );
     auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
@@ -653,6 +674,25 @@ void Enemy::action(World* w)
                 }
             } else {
                 moveTo(ent, {node_pos[0], node_pos[1]});
+                if (phys->vel[0] == 0.0f && phys->vel[1] == 0.0f) {
+                    sprite->ssheet = "enemy-idle";
+                }
+                if (phys->vel[0] != 0.0f) {
+                    if (phys->vel[0] > 0.0f) {
+                        sprite->ssheet = "enemy-left"
+                        sprite->invert_y = true;
+                    }
+                    if (phys->vel[0] < 0.0f) {
+                        sprite->ssheet = "enemy-left"
+                    }
+                } else {
+                    if (phys->vel[1] > 0.0f) {
+                        sprite->ssheet = "enemy-back";
+                    }
+                    if (phys->vel[1] < 0.0f) {
+                        sprite->ssheet = "enemy-front";
+                    }
+                }
             }
         }
         //Check if The Enemy has Hit The Player

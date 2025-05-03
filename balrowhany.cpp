@@ -282,7 +282,7 @@ void loadShipAndAsteroids(
             "./resources/textures/space/base.png", true), {1,1}, {24,24}) 
     .loadStatic("asteroid-explode", 
         loadTexture(
-            "./resources/textures/space/explode.png", true), {1,8}, {32,32}, true)
+        "./resources/textures/space/explode.png", true), {1,8}, {32,32}, true)
     .loadStatic("ship-front-back", 
         loadTexture(
             "./resources/textures/space/ship-front-back.png", true),

@@ -149,6 +149,10 @@ enum EnemyT
     ALIEN     //2
 };
 
+void loadEnemyTex(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>&
+);
+
 class Enemy
 {
     private:
@@ -164,9 +168,6 @@ class Enemy
         
         //Function
         void initEnemy();
-        void loadEnemyTex(
-            std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
-        );
         bool doDamage(ecs::Entity*, ecs::Entity*);
         void action(World*);
 
