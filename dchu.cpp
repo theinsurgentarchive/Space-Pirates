@@ -542,7 +542,7 @@ void loadEnemyTex(
 )
 {
     DINFO("Start Loading Enemy Sprites\n");
-    SpriteSheetLoader loader {shipAndAsteroidsSheets};
+    SpriteSheetLoader loader {ssheets};
     loader.loadStatic(
         "enemy-idle",
         loadTexture("./resources/textures/enemies/gobo-idle.webp", false),
@@ -679,11 +679,11 @@ void Enemy::action(World* w)
                 }
                 if (phys->vel[0] != 0.0f) {
                     if (phys->vel[0] > 0.0f) {
-                        sprite->ssheet = "enemy-left"
+                        sprite->ssheet = "enemy-left";
                         sprite->invert_y = true;
                     }
                     if (phys->vel[0] < 0.0f) {
-                        sprite->ssheet = "enemy-left"
+                        sprite->ssheet = "enemy-left";
                     }
                 } else {
                     if (phys->vel[1] > 0.0f) {
