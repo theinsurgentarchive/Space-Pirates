@@ -680,6 +680,10 @@ int check_keys(XEvent *e)
 					break;
 			}
 		}
+	} else {
+		sc->ssheet = "player-idle";
+		sc->invert_y = false;
+		pc->vel = {0,0};
 	}
 
 	if (gl.state == SPACE) {

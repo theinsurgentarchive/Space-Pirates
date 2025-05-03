@@ -587,7 +587,7 @@ void Enemy::initEnemy()
     health->max = 50.0f;
     health->health = health->max;
     sprite->ssheet = "enemy-idle";
-    sprite->render_order = 15;
+    sprite->render_order = 16;
     transform->pos = {1000.0f, 1000.0f};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
