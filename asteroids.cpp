@@ -599,6 +599,12 @@ int check_keys(XEvent *e)
 			}
 		} else if (e->type == KeyPress) {
 			static float movement_mag = 300.0;
+			
+			if (key == XK_e) {
+				gl.state = SPACE;
+				return 0;
+			}
+
 			switch(key) {
 				case XK_Right:
 					sc->ssheet = "player-right";
@@ -628,6 +634,12 @@ int check_keys(XEvent *e)
 		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
 		if (e->type == KeyPress) {
 			static float movement_mag = 300.0;
+
+			if (key == XK_e) {
+				gl.state = PLAYING;
+				return 0;
+			}
+
 			switch(key) {
 				case XK_Right:
 					sprite->ssheet = "ship-right";
