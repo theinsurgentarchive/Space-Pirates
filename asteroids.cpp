@@ -315,9 +315,7 @@ int main()
 	initEnemy(gl.dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
-	planetPtr2 = ecs::GeneratePlanet();
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
@@ -352,7 +350,7 @@ int main()
 	ps.sample();
 
 	float dt = getDeltaTime(); 
-  auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
+	auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
 	Node* testing = tstar.aStar({0, 0}, {23, 23});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
 	navc->genPath(testing);
@@ -635,6 +633,24 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 			
 			if (key == XK_e) {
 				gl.state = SPACE;
+				//DESTROY PLANET
+				/*
+				[[maybe_unused]] auto [map_tiles] = ecs::ecs.component().fetch<TRANSFORM, SPRITE>(entity);
+				[[maybe_unused]] auto [planet_death] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+				*/
+				//REGENERATE REGENERATE PLANET
+				/*
+				planetPtr = ecs::GeneratePlanet();
+				auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+				WorldGenerationSettings settings {
+					planetAttr->temperature,
+					planetAttr->humidity,
+					static_cast<u16>(planetAttr->size * 50),
+					static_cast<u32>(2)};
+				settings.origin = {0,0};
+				loadTextures(ssheets);
+				*/
+
 				return 0;
 			}
 			switch(key) {
@@ -732,7 +748,6 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 
 		} return exit_request;
 	} //bracket fix
-
 
 
 void physics()
@@ -967,12 +982,8 @@ void render() {
 			
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
-			
-		
 
 			DisableFor2D();
-			
-
 			break;
 			
 		}
