@@ -173,20 +173,17 @@ void AStar::setObstacles(World* w)
 {
     if (w->cells.empty()) {
         DERROR("Error, World Empty\n");
-        std::cout << "World Error\n";
         return;
     }
     auto cells = w->cells;
     for (u16 x = 0; x < cells.size(); x++) {
         if (cells[x].empty()) {
             DERROR("Error, Tile Column is Missing\n");
-            std::cout << "Column " << x << " Error\n";
             continue;
         }
         for (u16 y = 0; y < cells[x].size(); y++) {
             if (cells[x][y].empty()) {
                 DERRORF("Error, Tile (%d, %d) is Missing\n", x, y);
-                std::cout << "Tile (" << x << ", " << y << ") Error\n";
                 continue;
             }
             auto cell = cells[x][y];
