@@ -545,20 +545,20 @@ void loadEnemyTex(
     SpriteSheetLoader loader {ssheets};
     loader.loadStatic(
         "enemy-idle",
-        loadTexture("./resources/textures/enemies/gobo-idle.webp", false),
-        {1, 1}, {21, 16}, false
+        loadTexture("./resources/textures/enemies/gobo-idle.webp", true),
+        {1, 1}, {42, 32}, false
     ).loadStatic(
         "enemy-front",
-        loadTexture("./resources/textures/enemies/gobo-front.webp", false),
-        {1, 6}, {21, 18}, true
+        loadTexture("./resources/textures/enemies/gobo-front.webp", true),
+        {1, 6}, {42, 36}, true
     ).loadStatic(
         "enemy-back",
-        loadTexture("./resources/textures/enemies/gobo-back.webp", false),
-        {1, 6}, {21, 18}, true
+        loadTexture("./resources/textures/enemies/gobo-back.webp", true),
+        {1, 6}, {42, 36}, true
     ).loadStatic(
         "enemy-left",
-        loadTexture("./resources/textures/enemies/gobo-left.webp", false),
-        {1, 6}, {21, 18}, true
+        loadTexture("./resources/textures/enemies/gobo-left.webp", true),
+        {1, 6}, {36, 36}, true
     );
     DINFO("Finished Loading Enemy Sprites\n");
 }
