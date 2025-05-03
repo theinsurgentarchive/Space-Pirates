@@ -162,10 +162,10 @@ void AStar::toggleObstacle(u16 x, u16 y)
 {
     if (node_grid[x][y].obstacle) {
         node_grid[x][y].obstacle = false;
-        DINFOF("Is Not an Obstacle");
+        DINFO("Is Not an Obstacle");
     }
     node_grid[x][y].obstacle = true;
-    DINFOF("Is an Obstacle");
+    DINFO("Is an Obstacle");
 }
 
 //Set Obstacles Nodes If Node are on either a Water Tile, or The Tile With Decor
@@ -247,11 +247,11 @@ void AStar::resetNodes()
 float AStar::distance(Node* a, Node* b)
 {
     if (a == nullptr) {
-        DERRORF("%s does not exist.", a);
+        DERROR("Node 'a' does not exist\n");
         return 0.0f;
     }
     if (b == nullptr) {
-        DERRORF("%s does not exist.", b);
+        DERROR("Node 'b' does not exist\n");
         return 0.0f;
     }
     return sqrtf(
@@ -279,7 +279,7 @@ float AStar::heuristics(Node* a, Node* b)
 Node* AStar::getNode(u16 x, u16 y)
 {
     if (x >= grid_size[0] || y >= grid_size[1]) {
-        DWARN("Cannot find Node, Out of Bounds\n");
+        DWARNF("Cannot find Node (%d, %d), Out of Bounds\n", x, y);
         return nullptr;
     }
     return &node_grid[x][y];
@@ -306,7 +306,7 @@ void AStar::initGrid(v2f dim)
     
     //Error & Halt Initialization if Any Dimension is 0 
     if ((dim[0] <= 0.0f) && (dim[1] <= 0.0f)) {
-        DERROR("Dimensions of World Position Cannot Be Zero.");
+        DERROR("Dimensions of World Position Cannot Be Zero\n");
         return;
     }
 
@@ -476,6 +476,13 @@ void moveTo(ecs::Entity* ent, v2f target)
 {
     auto [physics, transform] = 
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
+    if (physics == nullptr || transform == nullptr) {
+        DERROR(
+            ("Moving Entity does not have PHYSICS" +
+            " and/or TRANSFORM Component(s)\n")
+        );
+        return;
+    }
     v2f dif {target[0] - transform->pos[0], target[1] - transform->pos[1]};
     //if The Difference is Within 0.3 Error Zero Velocity & Accel, & Return
     if ((dif[0] < 0.3f && dif[0] > -0.3f) &&
