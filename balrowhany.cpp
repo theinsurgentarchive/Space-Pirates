@@ -171,8 +171,8 @@ void initializeEntity(ecs::Entity* spaceship)
 
     
     if (health) {
-        health -> health = 5.0f; 
         health -> max = 100.0f;
+        health -> health = health -> max; 
 
     }
 
