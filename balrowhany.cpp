@@ -273,7 +273,7 @@ void loadShipAndAsteroids(
 {
     SpriteSheetLoader loader {shipAndAsteroidsSheets};  
     //loader instance using custom map defined above
-    DINFO("Loading asteroid base.png sprites...\n") 
+    DINFO("Loading asteroid base.png sprites...\n");
     loader
     
 
@@ -293,7 +293,7 @@ void loadShipAndAsteroids(
     .loadStatic("ship-right", 
         loadTexture(
             "./resources/textures/space/ship-right.png", true), {1,1}, {32,32});
-     DINFOF("finished loading asteroid and ship sprites.\n");
+     DINFO("finished loading asteroid and ship sprites.\n");
 }
 
 
@@ -534,7 +534,7 @@ void moveAsteroids(ecs::Entity* spaceship)
 
             
             if (sprite->frame >= 10) { //slight cool down
-                 DINFOF("Asteroid *poof* aka returned\n");
+                 DINFO("Asteroid *poof* aka returned\n");
                  ecs::ecs.entity().ret(const_cast<ecs::Entity*>(asteroid));
                
                 continue; // skip to next asteroid 
