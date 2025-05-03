@@ -181,7 +181,7 @@ void loadTextures(
             "./resources/textures/tiles/grass-005.webp",false))
     .loadStatic("placeholder",
         loadTexture(
-            "./resources/placeholder.webp", true))
+            "./resources/placeholder.webp", false))
     .loadStatic("flower-001",
         loadTexture(
             "./resources/textures/tiles/flower-001.webp",false))
@@ -1269,7 +1269,7 @@ namespace ecs
             auto ssheet = ssheets[sprite->ssheet];
             if (ssheet == nullptr) {
                 DWARNF("animation from animation key: %s was null\n", 
-                        ec->ssheet.c_str());
+                        sprite->ssheet.c_str());
                 continue;
             }
             
