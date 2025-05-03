@@ -334,7 +334,6 @@ int main()
 	// Initialize Textures
 	loadTextures(ssheets);  //load planet textures
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
-	loadEnemyTex(ssheets); //Load Enemy Textures
     
     // Set initial music according to game state (starting in MENU state)
     updateAudioState(gl.state);
@@ -377,6 +376,7 @@ int main()
 	health->health = 100.0f;
 	health->max = 100.0f;
 	loadTextures(ssheets);
+	loadEnemyTex(ssheets);
 	c = &camera;
 	World w {settings};
 	astar->setObstacles(&w);
@@ -891,7 +891,7 @@ void render() {
 
 			glPushMatrix();
 			c->update();
-			rs.update((float)1/10);
+			rs.update(getDeltaTime());
 			glPopMatrix();
 
 			DisableFor2D();
