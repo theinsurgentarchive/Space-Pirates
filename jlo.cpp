@@ -1269,7 +1269,7 @@ namespace ecs
             auto ssheet = ssheets[sprite->ssheet];
             if (ssheet == nullptr) {
                 DWARNF("animation from animation key: %s was null\n", 
-                        ec->ssheet.c_str());
+                        sprite->ssheet.c_str());
                 continue;
             }
             
