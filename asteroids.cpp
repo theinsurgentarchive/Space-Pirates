@@ -631,7 +631,7 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
-			static float movement_mag = 20.0;
+			static float movement_mag = 45.0;
 			
 			if (key == XK_e) {
 				gl.state = SPACE;
@@ -677,7 +677,7 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
 		if (e->type == KeyPress) {
 
-			static float movement_mag = 600.0;
+			static float space_movement_mag = 600.0;
 
 			if (key == XK_e) {
 				gl.state = PLAYING;
