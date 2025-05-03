@@ -460,7 +460,7 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 
 
     if (!spaceshipTransform || !asteroidTransform){
-        DERROR("We are missing components for collision");
+        DWARN("We are missing components for collision");
         return false; 
     }
 
@@ -547,7 +547,7 @@ void moveAsteroids(ecs::Entity* spaceship)
         if (checkCircleCollision(spaceship, asteroid)) {
             if (asteroidComp->exploding == false) { 
                 asteroidComp->exploding = true; //set exploding true 
-                DINFO("Collison Detected!\n");
+                DINFO("Collison Detected!\n"); 
                 sprite->ssheet = "asteroid-explode";
                 sprite->frame = 2;
                 if (asteroidComp->exploding) {

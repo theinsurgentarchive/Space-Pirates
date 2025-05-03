@@ -178,17 +178,17 @@ void AStar::setObstacles(World* w)
     auto cells = w->cells;
     for (u16 x = 0; x < cells.size(); x++) {
         if (cells[x].empty()) {
-            DERROR("Error, Tile Column is Missing\n");
+            DWARN("Error, Tile Column is Missing\n");
             continue;
         }
         for (u16 y = 0; y < cells[x].size(); y++) {
             if (cells[x][y].empty()) {
-                DERRORF("Error, Tile (%d, %d) is Missing\n", x, y);
+                DWARNF("Error, Tile (%d, %d) is Missing\n", x, y);
                 continue;
             }
             auto cell = cells[x][y];
             if (!cell[0]){
-                DERRORF("Cannot find entity to cell (%d, %d)\n", x, y);
+                DWARNF("Cannot find entity to cell (%d, %d)\n", x, y);
                 continue;
             }
             auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(cell[0]);
@@ -477,7 +477,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     auto [physics, transform] = 
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
     if (physics == nullptr || transform == nullptr) {
-        DERROR(
+        DWARN(
         "Moving Entity does not have PHYSICS and/or TRANSFORM Component(s)\n"
         );
         return;
