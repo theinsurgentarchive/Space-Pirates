@@ -643,10 +643,11 @@ int check_keys(XEvent *e)
 
 	// Playing state handling
 	if (gl.state == PLAYING) {
-		if (!ecs::ecs.component().has<PHYSICS>(player)) {
+		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
+		if (pc == nullptr || sc == nullptr) {
+			DWARN("Player Doesn't have physics and/or Sprite\n");
 			return 0;
 		}
-		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
 		if (e->type == KeyRelease) {
 			if (key == XK_Up || key == XK_Down ||
 				key == XK_Left || key == XK_Right
@@ -681,6 +682,11 @@ int check_keys(XEvent *e)
 			}
 		}
 	} else {
+		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
+		if (pc == nullptr || sc == nullptr) {
+			DWARN("Player Doesn't have physics and/or Sprite\n");
+			return 0;
+		}
 		sc->ssheet = "player-idle";
 		sc->invert_y = false;
 		pc->vel = {0,0};
