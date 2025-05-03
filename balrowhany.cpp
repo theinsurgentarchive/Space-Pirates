@@ -195,10 +195,13 @@ void initializeEntity(ecs::Entity* spaceship)
 
     //cout << "Spaceship intialized with health, oxygen, & fuel" << endl;
     if (getHealth) {
-        DINFOF("Health: %.2f / %.2f\n", 
-                getHealth -> health <<  getHealth -> max);  
+        DINFOF(
+            "Health: %.2f / %.2f\n", 
+            getHealth -> health,
+            getHealth -> max
+        );  
        [[maybe_unused]] float healthPercent = 
-                    (getHealth -> health / getHealth -> max) * 100.0f;
+                            (getHealth -> health / getHealth -> max) * 100.0f;
 		DINFOF("Health Percentage: %.2f%%\n", healthPercent);
  
     } else {
@@ -213,7 +216,7 @@ void initializeEntity(ecs::Entity* spaceship)
 
     if (getFuel) {
         DINFOF("Fuel: %.2f / %.2f\n", getFuel->fuel, getFuel->max);
-        DINFOF("Fuel component not found."); 
+        DINFO("Fuel component not found."); 
     }
 
     if (getTransform) {
@@ -223,7 +226,7 @@ void initializeEntity(ecs::Entity* spaceship)
         DINFO("Transform component not found.\n");
     }
 
-	DINFOF("\n");
+	//DINFO("\n");
     
 }
 
@@ -270,7 +273,7 @@ void loadShipAndAsteroids(
 {
     SpriteSheetLoader loader {shipAndAsteroidsSheets};  
     //loader instance using custom map defined above
-    DINFOF("Loading asteroid base.png sprites...\n") 
+    DINFO("Loading asteroid base.png sprites...\n") 
     loader
     
 
@@ -301,7 +304,7 @@ ecs::Entity* createAsteroid(float x, float y)
     ecs::Entity* asteroid = ecs::ecs.entity().checkout();
 
     if (!asteroid) {
-        DINFOF("Failed to create asteroid entity.\n");
+        DINFO("Failed to create asteroid entity.\n");
         return nullptr;
     }
 
@@ -337,7 +340,7 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
     float CameraY = transform->pos[1];
 
    
-    std::cout << "Camera pos: (" << CameraX << ", " << CameraY << ")\n";
+    //std::cout << "Camera pos: (" << CameraX << ", " << CameraY << ")\n";
 
 
 
@@ -395,15 +398,17 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
                 break;         
         }
         //create Asteroid entity with it's properties in x, y position
-        std::cout << "Spawning asteroid at: (" << x << ", " << y << ")\n"; //test1
+        //std::cout << "Spawning asteroid at: (" << x << ", " << y << ")\n"; //test1
         ecs::Entity* asteroid = createAsteroid(x, y); 
 
         // assign that Asteroid with spawnPoint for randomized direction 
         auto [spawnPoint] = ecs::ecs.component().assign<ecs::SpawnPoint>(asteroid);
         spawnPoint->direction = directionRandomizer; 
 
-        DINFOF("Spawning asteroid at x: %.2f, y: %.2f (dir %d)\n", x, y, 
-                                            directionRandomizer);
+        DINFOF(
+            "Spawning asteroid at x: %.2f, y: %.2f (dir %d)\n",
+            x, y, directionRandomizer
+        );
 
 
 
@@ -420,8 +425,8 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
 			auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(current - lastAsteroidSpawn);
 			
 			if (secondsPassed.count() >= 3) {  
-				DINFOF("Spawning Asteroids \n");
-                cout << "Spawning asteroid" << endl;
+				DINFO("Spawning Asteroids \n");
+                //cout << "Spawning asteroid" << endl;
                 [[maybe_unused]]auto transform = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
 				generateAsteroids(rand() % 2 + 4, xres, yres, spaceship); //spawn count 
 				lastAsteroidSpawn = current; //reset timer
@@ -437,7 +442,7 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
 			}
 
             if (spaceship == nullptr){
-                DINFOF("Error: Spaceship Null!\n");
+                DERROR("Error: Spaceship Null!\n");
                 return; //debug 
             }
 
@@ -455,7 +460,7 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 
 
     if (!spaceshipTransform || !asteroidTransform){
-        DINFOF("We are missing components for collision");
+        DERROR("We are missing components for collision");
         return false; 
     }
 
@@ -476,7 +481,7 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 void moveAsteroids(ecs::Entity* spaceship) 
 {
     if (!spaceship) {
-        DINFOF("Spaceship is null\n");
+        DERROR("Spaceship is null\n");
         return; 
     }
 
@@ -542,7 +547,7 @@ void moveAsteroids(ecs::Entity* spaceship)
         if (checkCircleCollision(spaceship, asteroid)) {
             if (asteroidComp->exploding == false) { 
                 asteroidComp->exploding = true; //set exploding true 
-                DINFOF("Collison Detected!\n") 
+                DINFO("Collison Detected!\n") 
                 sprite->ssheet = "asteroid-explode";
                 sprite->frame = 2;
                 if (asteroidComp->exploding) {
@@ -555,9 +560,9 @@ void moveAsteroids(ecs::Entity* spaceship)
                 if (shipHealth) {
                     shipHealth->health -= 1.0f; 
                     DINFOF("Spaceship damaged, health is now: %.2f\n", 
-                            shipHealth->health);
+                                                            shipHealth->health);
                 } else {
-                    DINFO("no health comp\n");
+                    DINFO("no health component\n");
 
                 }
             }
