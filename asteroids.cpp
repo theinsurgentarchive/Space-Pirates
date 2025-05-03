@@ -674,7 +674,12 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 	}
 
 	if (gl.state == SPACE) {
+		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+		float parallaxScale = 0.0001f;
+
 		[[maybe_unused]] auto [transform,sprite,physics] = ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship);
+
+
 		if (e->type == KeyPress) {
 
 			static float space_movement_mag = 600.0;
@@ -688,6 +693,7 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 				case XK_Right:
 					sprite->ssheet = "ship-right";
 					physics->vel = {space_movement_mag,0};
+					traits->PosX -= space_movement_mag * parallaxScale;
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
@@ -695,18 +701,21 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 					sprite->invert_y = true;
 					sprite->ssheet = "ship-right";
 					physics->vel = {-space_movement_mag,0};
+					traits->PosX += space_movement_mag * parallaxScale;
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
 				case XK_Up:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,space_movement_mag};
+					traits->PosY -= space_movement_mag * parallaxScale;
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
 				case XK_Down:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,-space_movement_mag};
+					traits->PosY += space_movement_mag * parallaxScale;
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
@@ -741,12 +750,12 @@ void physics()
 
  void SampleSpaceEntities() //chatgpt 
  { // sample space entities, made jlo renderSystem > ._entities public for access
- 	auto spaceEntities = ecs::ecs.query<ASTEROID>(); 
+	auto spaceEntities = ecs::ecs.query<ASTEROID>(); 
 	if (gl.spaceship) {
 		spaceEntities.push_back(gl.spaceship); // add spaceship to entity list
 	}
 	spaceRenderer._entities = spaceEntities; //render only these (filtered)
- }
+}
 
 
 void render() {
