@@ -674,25 +674,6 @@ void Enemy::action(World* w)
                 }
             } else {
                 moveTo(ent, {node_pos[0], node_pos[1]});
-                if (phys->vel[0] == 0.0f && phys->vel[1] == 0.0f) {
-                    sprite->ssheet = "enemy-idle";
-                }
-                if (phys->vel[0] != 0.0f) {
-                    if (phys->vel[0] > 0.0f) {
-                        sprite->ssheet = "enemy-left";
-                        sprite->invert_y = true;
-                    }
-                    if (phys->vel[0] < 0.0f) {
-                        sprite->ssheet = "enemy-left";
-                    }
-                } else {
-                    if (phys->vel[1] > 0.0f) {
-                        sprite->ssheet = "enemy-back";
-                    }
-                    if (phys->vel[1] < 0.0f) {
-                        sprite->ssheet = "enemy-front";
-                    }
-                }
             }
         }
         //Check if The Enemy has Hit The Player
@@ -715,6 +696,30 @@ void Enemy::action(World* w)
     } else {
         phys->acc = {0.0f, 0.0f};
         phys->vel = {0.0f, 0.0f};
+    }
+
+    //Set Sprite based on velocity
+    if (
+        (phys->vel[0] <= 0.1f && phys->vel[1] <= 0.1f) &&
+        (phys->vel[0] >= -0.1f && phys->vel[1] >= -0.1f)
+    ) {
+        sprite->ssheet = "enemy-idle";
+    }
+    if (phys->vel[0] > 0.1f && phys->vel[1] > 0.1f) {
+        if (phys->vel[0] > phys->vel[1]) {
+            sprite->ssheet = "enemy-left";
+            sprite->invert_y = true;
+        } else {
+            sprite->ssheet = "enemy-back";
+        }
+    }
+    if (phys->vel[0] < -0.1f && phys->vel[1] < -0.1f) {
+        if (phys->vel[0] <= phys->vel[1]) {
+            sprite->ssheet = "enemy-left";
+            sprite->invert_y = false;
+        } else {
+            sprite->ssheet = "enemy-front";
+        }
     }
     delete node_pos;
 }
