@@ -634,14 +634,19 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 			if (key == XK_e) {
 				gl.state = SPACE;
 				//DESTROY PLANET
+				ecs::ecs.entity().ret(planetPtr);
 				/*
-				[[maybe_unused]] auto [map_tiles] = ecs::ecs.component().fetch<TRANSFORM, SPRITE>(entity);
-				[[maybe_unused]] auto [planet_death] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+				[[maybe_unused]] auto map_tiles = ecs::ecs.query<TRANSFORM, SPRITE>();
+				for (auto* tile:map_tiles) {
+					auto* entity = tile;
+					ecs::ecs.entity().ret(entity);
+				}
 				*/
 				//REGENERATE REGENERATE PLANET
-				/*
+				
 				planetPtr = ecs::GeneratePlanet();
 				auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+				/*
 				WorldGenerationSettings settings {
 					planetAttr->temperature,
 					planetAttr->humidity,
@@ -650,6 +655,7 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 				settings.origin = {0,0};
 				loadTextures(ssheets);
 				*/
+				
 
 				return 0;
 			}
