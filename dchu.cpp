@@ -478,8 +478,7 @@ void moveTo(ecs::Entity* ent, v2f target)
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
     if (physics == nullptr || transform == nullptr) {
         DERROR(
-            ("Moving Entity does not have PHYSICS" +
-            " and/or TRANSFORM Component(s)\n")
+        "Moving Entity does not have PHYSICS and/or TRANSFORM Component(s)\n"
         );
         return;
     }
