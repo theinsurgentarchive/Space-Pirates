@@ -802,10 +802,10 @@ void physics(Enemy& foe, World* w)
 	if (player) {
 		auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
 
-		// if (health->health <= 0.0f) {
-		// 	DINFO("Player Died, GAME OVER...");
-		// 	gl.state = GAMEOVER;
-		// }
+		if (health->health <= 0.0f) {
+			DINFO("Player Died, GAME OVER...");
+			gl.state = GAMEOVER;
+		}
 	}
 	if (gl.spaceship) {
 		auto [spaceshipHealth] = ecs::ecs.component()
@@ -1006,7 +1006,6 @@ void render() {
 			float dt = getDeltaTime(); 
 			spaceRenderer.update(dt);
 			
-
 			glPopMatrix();  
 			
 
