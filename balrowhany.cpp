@@ -304,7 +304,7 @@ void initializeEntity(ecs::Entity* spaceship)
 
 	if (getFuel) {
 		DINFOF("Fuel: %.2f / %.2f\n", getFuel->fuel, getFuel->max);
-		DINFOF("Fuel component not found."); 
+		DINFO("Fuel component not found."); 
 	}
 
 	if (getTransform) {
@@ -361,7 +361,7 @@ void loadShipAndAsteroids(
 {
 	SpriteSheetLoader loader {shipAndAsteroidsSheets};  
 	//loader instance using custom map defined above
-	DINFOF("Loading asteroid base.png sprites...\n"); 
+	DINFO("Loading asteroid base.png sprites...\n"); 
 	loader
 
 
@@ -381,7 +381,7 @@ void loadShipAndAsteroids(
 		.loadStatic("ship-right", 
 				loadTexture(
 					"./resources/textures/space/ship-right.png", true), {1,1}, {32,32});
-	DINFOF("finished loading asteroid and ship sprites.\n");
+	DINFO("finished loading asteroid and ship sprites.\n");
 }
 
 
@@ -392,7 +392,7 @@ ecs::Entity* createAsteroid(float x, float y)
 	ecs::Entity* asteroid = ecs::ecs.entity().checkout();
 
 	if (!asteroid) {
-		DINFOF("Failed to create asteroid entity.\n");
+		DINFO("Failed to create asteroid entity.\n");
 		return nullptr;
 	}
 
@@ -511,8 +511,8 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
 	auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(current - lastAsteroidSpawn);
 
 	if (secondsPassed.count() >= 3) {  
-		DINFOF("Spawning Asteroids \n");
-		cout << "Spawning asteroid" << endl;
+		DINFO("Spawning Asteroids \n");
+		//cout << "Spawning asteroid" << endl;
 		[[maybe_unused]]auto transform = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
 		generateAsteroids(rand() % 2 + 4, xres, yres, spaceship); //spawn count 
 		lastAsteroidSpawn = current; //reset timer
@@ -528,7 +528,7 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres) {
 	}
 
 	if (spaceship == nullptr){
-		DINFOF("Error: Spaceship Null!\n");
+		DINFO("Error: Spaceship Null!\n");
 		return; //debug 
 	}
 
@@ -619,7 +619,7 @@ void moveAsteroids(ecs::Entity* spaceship)
 			DINFOF("Exploding frame is: %d\n", sprite->frame);
 
 			if (sprite->frame >= 10) { //slight cool down
-				DINFOF("Asteroid *poof* aka returned\n");
+				DINFO("Asteroid *poof* aka returned\n");
 				ecs::ecs.entity().ret(const_cast<ecs::Entity*>(asteroid));
 
 				continue; // skip to next asteroid
@@ -633,7 +633,7 @@ void moveAsteroids(ecs::Entity* spaceship)
 			if (checkCircleCollision(spaceship, asteroid)) {
 				if (asteroidComp->exploding == false) { 
 					asteroidComp->exploding = true; //set exploding true 
-					DINFOF("Collison Detected!\n") 
+					DINFO("Collison Detected!\n") 
 						sprite->ssheet = "asteroid-explode";
 					sprite->frame = 2;
 					if (asteroidComp->exploding) {
