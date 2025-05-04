@@ -637,4 +637,6 @@ class PlayerFactory
     private:
         Camera& camera_;
 };
+
+bool collided(TRANSFORM*, TRANSFORM*, COLLIDER*, COLLIDER*);
 #include "jlo.tpp"

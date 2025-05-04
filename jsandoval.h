@@ -31,8 +31,6 @@ namespace ecs
     // void updatePlanetSpin();
 }
 
-
-
 void DrawPlanetMenu(float planetAngY, float planetPosX, float planetPosY,
     float planetPosZ, GLfloat* lightPosition, GLuint planetTexture, float size,
     float rotationX, float rotationY);
@@ -58,3 +56,5 @@ glm::vec3 TempToColor(float temp);
 void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
     float planetPosZ, GLfloat* lightPosition, float size,
     float rotationX, float rotationY, float roughness, float temp);
+
+bool PlanetCollision(const ecs::Entity* Planet);
