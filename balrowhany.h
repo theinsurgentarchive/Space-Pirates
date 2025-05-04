@@ -8,13 +8,14 @@
 
 // Game States for Menu Logic
 enum GameState {
-    MENU,       // 0 
-    PLAYING,    // 1
-    CONTROLS,   // 2 
-    CREDITS,    // 3
-    SPACE,      // 4
-    GAMEOVER,   // 5 
-    EXIT        // 6
+    MENU,          // 0 
+    PLAYING,       // 1
+    CONTROLS,      // 2 
+    CREDITS,       // 3
+    SPACE,         // 4
+    GAMEOVER,      // 5 
+    EXIT,          // 6
+    PAUSED         // 7
 };
 
 //ecs Components
@@ -46,7 +47,7 @@ namespace ecs {
 //Menu
 int handle_menu_keys(int key, GameState &state, int &selected_option);
 void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture, GLuint titleTexture, int selected_option);
-void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture);
+void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture, GameState controls_from_state);
 
 //Bar
 void initializeEntity(ecs::Entity* entity);
