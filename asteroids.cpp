@@ -265,7 +265,8 @@ class X11_wrapper {
 			blank = XCreateBitmapFromData (dpy, win, data, 1, 1);
 			if (blank == None)
 				std::cout << "error: out of memory." << std::endl;
-			cursor = XCreatePixmapCursor(dpy, blank, blank, &dummy, &dummy, 0, 0);
+			cursor = XCreatePixmapCursor(
+									dpy, blank, blank, &dummy, &dummy, 0, 0);
 			XFreePixmap(dpy, blank);
 			//this makes the cursor. then set it using this function
 			XDefineCursor(dpy, win, cursor);
@@ -281,8 +282,10 @@ class X11_wrapper {
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
-int check_keys(XEvent *e, AStar *as, ecs::Entity* ent);
-void physics();
+
+int check_keys(XEvent *e);
+void physics(Enemy&, World*);
+
 void render();
 // For transparent title.webp background
 std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
@@ -304,10 +307,9 @@ void updateFootstepSounds();
 //==========================================================================
 // M A I N
 //==========================================================================
-ecs::Entity* ptr;
-
+ecs::Entity* player;
+ecs::Entity* dummy;
 ecs::Entity* planetPtr;
-ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
@@ -316,14 +318,16 @@ std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
 std::vector<Collision> cols;
 atomic<bool> done = false;
-void sig_handle(int sig)
+void sig_handle([[maybe_unused]] int sig)
 {
 	done = true;
 	std::exit(0);
 }
 // load space sheets
-std::unordered_map<std::string, std::shared_ptr<SpriteSheet>> shipAndAsteroidsSheets;
-void loadShipAndAsteroids(std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
+std::unordered_map<std::string, std::shared_ptr
+										<SpriteSheet>> shipAndAsteroidsSheets;
+void loadShipAndAsteroids(std::unordered_map
+		<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 int main()
 {
@@ -332,13 +336,11 @@ int main()
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
-	gl.dummy = ecs::ecs.entity().checkout();
-	initEnemy(gl.dummy);
+	dummy = ecs::ecs.entity().checkout();
+	Enemy foe(dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
-	planetPtr2 = ecs::GeneratePlanet();
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-	auto [planetAttr2] = ecs::ecs.component().fetch<PLANET>(planetPtr2);
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
@@ -346,21 +348,23 @@ int main()
 			static_cast<u16>(planetAttr->size * 50),
 			static_cast<u32>(2)};
 	settings.origin = {0,0};
-	// Initialize audio system
-	initAudioSystem();
+    // Initialize audio system
+    initAudioSystem();
+
+	// Initialize Textures
 	loadTextures(ssheets);  //load planet textures
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
+    
+    // Set initial music according to game state (starting in MENU state)
+    updateAudioState(gl.state);
 
-	// Set initial music according to game state (starting in MENU state)
-	updateAudioState(gl.state);
-	// ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
-	ptr = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(ptr);
+	player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
+				.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
 	Camera camera = {
 		transform->pos,
 		gl.res
 	};
-
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
@@ -372,22 +376,32 @@ int main()
 
 	ps.sample();
 
-	float dt = getDeltaTime(); 
-	auto tstar = AStar{{0.0f, 0.0f}, {50, 50}, {16.0f, 16.0f}};
-	Node* testing = tstar.aStar({0, 0}, {23, 23});
-	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(gl.dummy);
-	navc->genPath(testing);
+	float dt = getDeltaTime();  
+  	v2u t_grid_size = {
+		static_cast<u16>(planetAttr->size * 50), 
+		static_cast<u16>(planetAttr->size * 50)
+	};
+  	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
+	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
+	navc->setAStar(astar);
+	navc->genPath(
+		astar->findClosestNode({0.0f, 0.0f}),
+		astar->findClosestNode({1000.0f, 1000.0f})
+	);
+
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
 	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
-	health->health = 50;
-	health->max = 100;
+	health->health = 100.0f;
+	health->max = 100.0f;
 	loadTextures(ssheets);
+	loadEnemyTex(ssheets);
 	c = &camera;
 	World w {settings};
+	astar->setObstacles(&w);
 	rs.sample();
 	ps.sample();
 	init_opengl();
@@ -398,12 +412,12 @@ int main()
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
-	while (!done) {
-		while (x11.getXPending()) {
-			XEvent e = x11.getXNextEvent();
-			x11.check_resize(&e);
-			check_mouse(&e);
-			done = check_keys(&e, &tstar, gl.dummy);
+    while (!done) {
+        while (x11.getXPending()) {
+            XEvent e = x11.getXNextEvent();
+            x11.check_resize(&e);
+            check_mouse(&e);
+            done = check_keys(&e);
 		}
 		switch (gl.state) { //camera switch 
 			case SPACE:
@@ -419,25 +433,31 @@ int main()
 				} else if (gl.previous_state == PLAYING) {
 					c = &camera;
 				}
+				break; 
+			case GAMEOVER:
+				sleep(4);
+				done = true;
+
 				break;
 			default: 
 				c = nullptr;
 				break; 
 		}
-		clock_gettime(CLOCK_REALTIME, &timeCurrent);
-		moveTo(gl.dummy, ptr);
+        clock_gettime(CLOCK_REALTIME, &timeCurrent);
+        //moveTo(gl.dummy, player);		
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
-		timeCopy(&timeStart, &timeCurrent);
-		getAudioManager()->update();
-		physics();
+        timeCopy(&timeStart, &timeCurrent);
+        getAudioManager()->update();
+		physics(foe, &w);
 		render();
-		x11.swapBuffers();
-		usleep(1000);
-	}
-	shutdownAudioSystem();
-	cleanup_fonts();
-	logClose();
-	return 0;
+        x11.swapBuffers();
+        usleep(1000);
+    }
+    shutdownAudioSystem();
+    cleanup_fonts();
+    logClose();
+	delete astar;
+    return 0;
 }
 GLuint tex;
 void init_opengl(void)
@@ -510,8 +530,11 @@ void init_opengl(void)
 	glBindTexture(GL_TEXTURE_2D, planet4Texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, planet4Image->width, planet4Image->height, 0,
-			GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get());
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 3,
+		planet4Image->width, planet4Image->height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get()
+	);
 
 	initialize_fonts();
 	// Load game title texture
@@ -521,8 +544,11 @@ void init_opengl(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	// Use GL_RGBA instead of GL_RGB to handle alpha channel
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, titleImage->width, titleImage->height, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, buildAlphaData(titleImage).get());
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, GL_RGBA,
+		titleImage->width, titleImage->height, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, buildAlphaData(titleImage).get()
+	);
 
 }
 
@@ -602,7 +628,7 @@ void check_mouse(XEvent *e)
 	}
 }
 
-int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
+int check_keys(XEvent *e)
 {
 	static int shift = 0;
 	static int exit_request = 0;
@@ -710,12 +736,152 @@ int check_keys(XEvent *e, AStar *as, ecs::Entity* ent)
 					break;
 
 				default:
-					break;
+				break;
 			}
 		}
 	}
+	// Playing state handling
+	if (gl.state == PLAYING) {
+		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
+		if (pc == nullptr || sc == nullptr) {
+			DWARN("Player Doesn't have physics and/or Sprite\n");
+			return 0;
+		}
+		if (e->type == KeyRelease) {
+			if (key == XK_Up || key == XK_Down ||
+				key == XK_Left || key == XK_Right
+			) {
+				sc->ssheet = "player-idle";
+				sc->invert_y = false;
+				pc->vel = {0,0};
+			}
+		} else if (e->type == KeyPress) {
+			static float movement_mag = 75.0;
+			
+      if (key == XK_e) {
+			
+				gl.state = SPACE;
+				//DESTROY PLANET
+				ecs::ecs.entity().ret(planetPtr);
+				
+				// [[maybe_unused]] auto map_tiles = ecs::ecs.query<TRANSFORM, SPRITE>();
+				// for (auto* tile:map_tiles) {
+				// 	auto* entity = tile;
+				// 	ecs::ecs.entity().ret(entity);
+				// }
+				
+				//REGENERATE REGENERATE PLANET
+				
+				planetPtr = ecs::GeneratePlanet();
+				auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+				
+				// WorldGenerationSettings settings {
+				// 	planetAttr->temperature,
+				// 	planetAttr->humidity,
+				// 	static_cast<u16>(planetAttr->size * 50),
+				// 	static_cast<u32>(2)};
+				//settings.origin = {0,0};
+				//loadTextures(ssheets);
 
-	return exit_request;
+				return 0;
+			}
+			switch(key) {
+				case XK_Right:
+					sc->ssheet = "player-right";
+					pc->vel = {movement_mag,0};
+					break;
+				case XK_Left:
+					sc->invert_y = true;
+					sc->ssheet = "player-right";
+					pc->vel = {-movement_mag,0};
+					break;
+				case XK_Up:
+					sc->ssheet = "player-back";
+					pc->vel = {0,movement_mag};
+					break;
+				case XK_Down:
+					sc->ssheet = "player-front";
+					pc->vel = {0,-movement_mag};
+					break;
+				case XK_a:
+					done = 1;
+					break;
+			}
+		}
+	} else {
+		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
+		if (pc == nullptr || sc == nullptr) {
+			DWARN("Player Doesn't have physics and/or Sprite\n");
+			return 0;
+		}
+		sc->ssheet = "player-idle";
+		sc->invert_y = false;
+		pc->vel = {0,0};
+	}
+
+	if (gl.state == SPACE) {
+		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+		float parallaxScale = 0.0003f;
+    
+		[[maybe_unused]] auto [transform,sprite,physics] = (
+			ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship)
+		);
+    
+		if (e->type == KeyPress) {
+
+			static float space_movement_mag = 800.0;
+
+			if (key == XK_e) {
+
+				if (PlanetCollision(planetPtr)) {
+					gl.state = PLAYING;
+				}
+				
+				return 0;
+			}
+
+			switch(key) {
+				case XK_Right:
+					sprite->ssheet = "ship-right";
+					physics->vel = {space_movement_mag,0};
+					traits->PosX -= space_movement_mag * parallaxScale;
+					decrementResources(gl.state, gl.spaceship);
+					break;
+
+				case XK_Left:
+					sprite->invert_y = true;
+					sprite->ssheet = "ship-right";
+					physics->vel = {-space_movement_mag,0};
+					traits->PosX += space_movement_mag * parallaxScale;
+					decrementResources(gl.state, gl.spaceship);
+					break;
+
+				case XK_Up:
+					sprite->ssheet = "ship-front-back";
+					physics->vel = {0,space_movement_mag};
+					traits->PosY -= space_movement_mag * parallaxScale;
+					decrementResources(gl.state, gl.spaceship);
+					break;
+
+				case XK_Down:
+					sprite->ssheet = "ship-front-back";
+					physics->vel = {0,-space_movement_mag};
+					traits->PosY += space_movement_mag * parallaxScale;
+					decrementResources(gl.state, gl.spaceship);
+					break;
+
+				case XK_a:
+					done = 1;
+					break;
+				} 
+			}
+			else if (e->type == KeyRelease) {
+				sprite->ssheet = "ship-right";
+				sprite ->invert_y = false;
+				physics->vel = {0,0};
+			}
+		}
+		return exit_request;
 }
 
 // Helper functions for each state
@@ -842,7 +1008,7 @@ int handle_credits_state(int key)
 
 void handle_playing_state(int key)
 {
-	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(ptr);
+	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(player);
 	
 	static auto lastFootstepTime = std::chrono::high_resolution_clock::now();
     	static const auto footstepInterval = std::chrono::milliseconds(600); 
@@ -908,7 +1074,7 @@ void handle_space_state(int key)
 
 void handle_playing_key_release()
 {
-	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(ptr);
+	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(player);
 	if (pc && sc) {
 		sc->ssheet = "player-idle";
 		sc->invert_y = false;
@@ -926,7 +1092,7 @@ void handle_space_key_release()
 	}
 }
 
-void physics()
+void physics(Enemy& foe, World* w)
 {
 	if (gl.state == PAUSED) {
 		return; 
@@ -934,11 +1100,30 @@ void physics()
 	ps.update((float)1/20);
 	if (gl.state == MENU){
 		gl.planetAng[2] += 1.0;
-	}
-	else if (gl.state == SPACE) {
+	} else if (gl.state == SPACE) {
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		traits-> AngY += 1.0f;
 		// ecs::updatePlanetSpin();
+	} else if (gl.state == PLAYING) {
+		if(dummy) {
+			foe.action(w);
+		}
+	}
+	if (player) {
+		auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+
+		if (health->health <= 0.0f) {
+			DINFO("Player Died, GAME OVER...");
+			gl.state = GAMEOVER;
+		}
+	}
+	if (gl.spaceship) {
+		auto [spaceshipHealth] = ecs::ecs.component()
+											.fetch<ecs::Health>(gl.spaceship);
+		if (spaceshipHealth->health <= 0.0f) {
+			DINFO("Player Died, GAME OVER...");
+			gl.state = GAMEOVER; 
+		}
 	}
 	else if (gl.state == PLAYING) {
         updateFootstepSounds();
@@ -962,7 +1147,7 @@ void render() {
 	Rect r;
 	r.left = 100;
 	r.bot = gl.res[1] - 20;
-	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(player);
 	auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
@@ -978,7 +1163,12 @@ void render() {
 			glPushMatrix(); // PUSH 2
 			glLoadIdentity();
 
-			render_menu_screen(gl.res[0], gl.res[1], menuBackgroundTexture, gl.titleTexture, gl.selected_option); 
+			render_menu_screen(
+				gl.res[0], gl.res[1],
+				menuBackgroundTexture,
+				gl.titleTexture,
+				gl.selected_option
+			); 
 
 			glPopMatrix(); // POP 2
 			glMatrixMode(GL_PROJECTION);
@@ -988,7 +1178,11 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix(); // PUSH 3
 			glLoadIdentity();
-			gluPerspective(45.0f, (GLfloat) gl.res[0] / (GLfloat) gl.res[1], 0.1f, 100.0f);
+			gluPerspective(
+				45.0f,
+				(GLfloat) gl.res[0] / (GLfloat) gl.res[1],
+				0.1f, 100.0f
+			);
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); // PUSH 4
@@ -1055,38 +1249,43 @@ void render() {
 
 			glPushMatrix();
 			c->update();
-			rs.update((float)1/10);
+			rs.update(getDeltaTime());
 			glPopMatrix();
 
 			DisableFor2D();
-			if (ptr) {   //player health bar
-				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(ptr);
-				playerHealth->health = 100.0f; 
-				playerHealth -> max = 100.0f;
+			if (player) {   //player health bar
+				auto [playerHealth] = ecs::ecs.component()
+													.fetch<ecs::Health>(player);
 				if (playerHealth) 
-					drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
+					drawUIBar(
+						"Health",
+						playerHealth->health,
+						playerHealth->max, 20,
+						gl.res[1] - 50, 0xF00FF00
+					);
 			}
-
 			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
 			break; 
 
 		case SPACE:
-			{
-				auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-				glMatrixMode(GL_PROJECTION);
-				glPushMatrix(); // PUSH 3
-				glLoadIdentity();
-				gluPerspective(45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1], 0.1f, 100.0f);
-				glMatrixMode(GL_MODELVIEW);
-				glPushMatrix(); // PUSH 4
-				glLoadIdentity();
-				gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-				EnableFor3D();
-				glPushMatrix();
-				DrawPlanet(traits-> AngY, traits-> PosX, traits-> PosY, traits-> 
+		{
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix(); // PUSH 3
+			glLoadIdentity();
+			gluPerspective(
+				45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1],
+				0.1f, 100.0f
+			);
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix(); // PUSH 4
+			glLoadIdentity();
+			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+			EnableFor3D();
+			glPushMatrix();
+			DrawPlanet(traits-> AngY, traits-> PosX, traits-> PosY, traits-> 
 						PosZ, gl.lightPosition, traits->size, traits->rotationX, 
 						traits->rotationY, traits->smooth, traits->temperature);
-				glPopMatrix();
+			glPopMatrix();
 
 				glMatrixMode(GL_PROJECTION);
 				glLoadIdentity();
@@ -1190,8 +1389,8 @@ void render() {
 
 					// Render player health bar
 					DisableFor2D();
-					if (ptr) {
-						auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(ptr);
+					if (player) {
+						auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(player);
 						if (playerHealth) {
 							drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
 						}
@@ -1294,6 +1493,7 @@ void render() {
 
 
 		case GAMEOVER:
+			getAudioManager()->stopMusic();
 
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
@@ -1331,7 +1531,7 @@ void render() {
 }
 
 void playFootstepSound() {
-    auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+    auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
     if (!transform) return;
     
     auto [planet] = ecs::ecs.component().fetch<PLANET>(planetPtr);
@@ -1357,7 +1557,7 @@ void updateFootstepSounds() {
     static auto lastFootstepTime = std::chrono::high_resolution_clock::now();
     static const auto footstepInterval = std::chrono::milliseconds(600); 
 
-    auto [physics, transform] = ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ptr);
+    auto [physics, transform] = ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(player);
 
     if (physics && transform) {
         // Check if player is moving (has velocity)

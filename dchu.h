@@ -1,5 +1,6 @@
 #pragma once
 #include "jlo.h"
+#include "jsandoval.h"
 
 //Define Alias for ecs Components
 #define COMBAT ecs::Combat
@@ -45,28 +46,8 @@ class Node
         void setLocal(v2u);
 };
 
-namespace ecs
-{
-    class Navigate
-    {
-        private:
-            std::vector<v2f> nodes;
-            u16 current;
-            ecs::Entity* self;
-        public:
-            //Constructor
-            Navigate();
 
-            //Function
-            v2f nodePos();
-            void genPath(Node*);
-            void reset();
-            void moveToCurrent();
-    };
-}
-
-
-//AStarGrid of Node Elements, Used in A* Search
+//AStar Grid of Node Elements, Used in A* Search
 class AStar
 {
     private:
@@ -75,6 +56,9 @@ class AStar
 
         //The Position in The World that The Grid is Generated From.
         v2f origin_pos;
+
+        //The World Position Step
+        v2f origin_step;
     public:
         //Dynamic Node Grid
         std::vector<std::vector<Node>> node_grid;
@@ -85,16 +69,24 @@ class AStar
         AStar(v2u);
         AStar(u16, u16);
 
-        //Sets a Node to an Obstacle in A*
+
+        //Sets Node(s) to an Obstacle in A*
         void toggleObstacle(u16, u16);
+        void setObstacles(World*);
 
         //Get The Node Grid's Size
         v2u size();
 
+        //Get The Distance between the Center of Nodes
+        v2f getStep();
+
+        //Retrieve Nodes
         Node* getNode(u16, u16);
+        Node* findClosestNode(v2f);
 
         void initGrid(v2f dim = {1.0f, 1.0f});
 
+        //Neighbor Related Function
         void genNeighbors();
         bool hasNeighbors(Node*);
 
@@ -110,6 +102,45 @@ class AStar
         float heuristics(Node*, Node*);
 };
 
+namespace ecs
+{
+    class Navigate
+    {
+        private:
+            std::vector<Node*> nodes;
+            
+            //Get The Current Position Within The Node Vector
+            u16 current_node_pos;
+
+            //Reference to world grid
+            AStar* grid;
+
+            //Has The Path Been Fully Traversed?
+            bool finished;
+        public:
+            //Constructor
+            Navigate();
+
+            //Function
+            float* nodePos();
+            void genPath(Node*, Node*);
+            void reset();
+            bool nextNode();
+
+            //Getter
+            AStar* getAStar();
+            bool getStatus();
+
+            //Setter
+            void setAStar(AStar*);
+            void setStatus(bool);
+    };
+}
+
+//Move an Entity to a Position or Entity with a Transform
+void moveTo(ecs::Entity*, v2f);
+void moveTo(ecs::Entity*, ecs::Entity*);
+void moveTo(ecs::Entity*, Node*);
 //Enemy Generation
 enum EnemyT 
 {
@@ -117,11 +148,33 @@ enum EnemyT
     BANDIT,   //1
     ALIEN     //2
 };
-void initEnemy(ecs::Entity*);
+
 void loadEnemyTex(
-    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>&
 );
 
-//Move an Entity to a Position or Entity with a Transform
-void moveTo(ecs::Entity*, v2f);
-void moveTo(ecs::Entity*, ecs::Entity*);
+class Enemy
+{
+    private:
+        ecs::Entity* ent;
+        u16 atk_Timer;
+        u16 path_Timer;
+        bool can_damage;
+        bool can_gen_path;
+    public:
+        //Constructor
+        Enemy(ecs::Entity*);
+        Enemy(ecs::Entity*, v2f t_mod);
+        
+        //Function
+        void initEnemy();
+        bool doDamage(ecs::Entity*, ecs::Entity*);
+        void action(World*);
+
+        //Getter
+        u16 getAtkTimer();
+        u16 getPathTimer();
+        bool getCanDamage();
+        bool getCanGenPath();
+
+};

@@ -4,6 +4,9 @@
 #include <cstdlib>
 #include <string>
 #include <ctime>
+#include <unistd.h>
+
+extern ecs::Entity* player;
 
 //Renderability Check
 bool canRender(ecs::Entity* ent)
@@ -123,9 +126,9 @@ AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
     grid_size[0] = grid_dim[0];
     grid_size[1] = grid_dim[1];
     origin_pos = origin;
-    v2f node_dim = {tile_dim[0], tile_dim[1]};
+    origin_step = {tile_dim[0], tile_dim[1]};
     //Initialize Grid Nodes
-    initGrid(node_dim);
+    initGrid(origin_step);
     DINFO("Completed World A* Node Generation\n");
 }
 
@@ -134,6 +137,7 @@ AStar::AStar(v2u size)
     //Initalize Variables
     grid_size = size;
     origin_pos = {0.0f, 0.0f};
+    origin_step = {0, 0};
 
     //Initalize Grid Nodes
     initGrid();
@@ -146,6 +150,7 @@ AStar::AStar(u16 x_size, u16 y_size)
     grid_size[0] = x_size;
     grid_size[1] = y_size;
     origin_pos = {0.0f, 0.0f};
+    origin_step = {0, 0};
 
     //Initalize Grid Nodes
     initGrid();
@@ -157,10 +162,62 @@ void AStar::toggleObstacle(u16 x, u16 y)
 {
     if (node_grid[x][y].obstacle) {
         node_grid[x][y].obstacle = false;
-        DINFOF("Is Not an Obstacle");
+        DINFO("Is Not an Obstacle");
     }
     node_grid[x][y].obstacle = true;
-    DINFOF("Is an Obstacle");
+    DINFO("Is an Obstacle");
+}
+
+//Set Obstacles Nodes If Node are on either a Water Tile, or The Tile With Decor
+void AStar::setObstacles(World* w)
+{
+    if (w->cells.empty()) {
+        DERROR("Error, World Empty\n");
+        return;
+    }
+    auto cells = w->cells;
+    for (u16 x = 0; x < cells.size(); x++) {
+        if (cells[x].empty()) {
+            DWARN("Error, Tile Column is Missing\n");
+            continue;
+        }
+        for (u16 y = 0; y < cells[x].size(); y++) {
+            if (cells[x][y].empty()) {
+                DWARNF("Error, Tile (%d, %d) is Missing\n", x, y);
+                continue;
+            }
+            auto cell = cells[x][y];
+            if (!cell[0]){
+                DWARNF("Cannot find entity to cell (%d, %d)\n", x, y);
+                continue;
+            }
+            auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(cell[0]);
+            Node* node = findClosestNode(p_trans->pos);
+            if (cell.size() > 1) {
+                bool has_treasure;
+                for (auto micro : cell) {
+                    auto [m_sprite] = ecs::ecs.component().fetch<SPRITE>(micro);
+                    if (m_sprite->ssheet == "placeholder") {
+                        has_treasure = true;
+                        break;
+                    }
+                }
+                if (has_treasure) {
+                    DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
+                    node->obstacle = true;
+                    continue;
+                }
+            }
+            auto [sprite] = ecs::ecs.component().fetch<SPRITE>(cell[0]);
+            if (sprite->ssheet == "warm-water" ||
+                sprite->ssheet == "cold-water" ||
+                sprite->ssheet == "lava-001"
+            ) {
+                DINFOF("Set Tile (%d, %d) to Obstacle\n", x, y);
+                node->obstacle = true;
+            }
+        }
+    }
 }
 
 //Returns The Node Grid's Size
@@ -169,13 +226,76 @@ v2u AStar::size()
     return grid_size;
 }
 
+v2f AStar::getStep()
+{
+    return origin_step;
+}
+
+void AStar::resetNodes()
+{
+    for (u16 x = 0; x < grid_size[0]; x++) {
+        for (u16 y = 0; y < grid_size[1]; y++) {
+            node_grid[x][y].visited = false;
+            node_grid[x][y].global_dist = INFINITY;
+            node_grid[x][y].local_dist = INFINITY;
+            node_grid[x][y].parent = nullptr;
+        }
+    }
+}
+
+//Find The Distance between Two Points
+float AStar::distance(Node* a, Node* b)
+{
+    if (a == nullptr) {
+        DERROR("Node 'a' does not exist\n");
+        return 0.0f;
+    }
+    if (b == nullptr) {
+        DERROR("Node 'b' does not exist\n");
+        return 0.0f;
+    }
+    return sqrtf(
+        (
+            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
+            *
+            ((float)a->getLocal()[0] - (float)b->getLocal()[0])
+        ) 
+        +
+        (
+            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
+            *
+            ((float)a->getLocal()[1] - (float)b->getLocal()[1])
+        )
+    );
+}
+
+float AStar::heuristics(Node* a, Node* b)
+{
+    return distance(a, b);
+}
+
+
 //Retrieves The Node requested in the AStar
 Node* AStar::getNode(u16 x, u16 y)
 {
-    if (x >= grid_size[0] && y >= grid_size[1]) {
+    if (x >= grid_size[0] || y >= grid_size[1]) {
+        DWARNF("Cannot find Node (%d, %d), Out of Bounds\n", x, y);
         return nullptr;
     }
     return &node_grid[x][y];
+}
+
+Node* AStar::findClosestNode(v2f pos)
+{
+    v2f find {floorf(pos[0]), floorf(pos[1])};
+    v2f select {
+        roundf(find[0] / origin_step[0]),
+        roundf(find[1] / origin_step[1])
+    };
+
+    //Get Node
+    Node* result = getNode(select[0], select[1]);
+    return result;
 }
 
 //Set Node Positions & Conditionals
@@ -186,7 +306,7 @@ void AStar::initGrid(v2f dim)
     
     //Error & Halt Initialization if Any Dimension is 0 
     if ((dim[0] <= 0.0f) && (dim[1] <= 0.0f)) {
-        DERROR("Dimensions of World Position Cannot Be Zero.");
+        DERROR("Dimensions of World Position Cannot Be Zero\n");
         return;
     }
 
@@ -212,6 +332,7 @@ void AStar::initGrid(v2f dim)
 
     //Fill Each Node's Neighbors Vector Matrix
     genNeighbors();
+    DINFO("Finished Initializing AStar Grid\n");
 }
 
 void AStar::genNeighbors()
@@ -259,16 +380,23 @@ bool AStar::hasNeighbors(Node* node)
 Node* AStar::aStar(v2u begin_node, v2u ending_node)
 {
     //Pointer to Start Node
-    Node* start = &node_grid[begin_node[0]][begin_node[1]];
-
+    Node* start = getNode(begin_node[0], begin_node[1]);
+    if (start == nullptr) {
+        DERROR("Start Node Failed to initialize");
+        return nullptr;
+    }
+    
     //Pointer to Goal Node
-    Node* goal = &node_grid[ending_node[0]][ending_node[1]];
+    Node* goal = getNode(ending_node[0],ending_node[1]);
+    if (goal == nullptr) {
+        DERROR("Goal Node Failed to initialize");
+        return nullptr;
+    }
 
     resetNodes();
     if (!hasNeighbors(start)) {
         return nullptr;
     }
-
     //Initialize Start Node
     start->local_dist = 0.0f;
     start->global_dist = heuristics(start, goal);
@@ -344,67 +472,20 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     return nullptr;
 }
 
-void AStar::resetNodes()
-{
-    for (u16 x = 0; x < grid_size[0]; x++) {
-        for (u16 y = 0; y < grid_size[1]; y++) {
-            node_grid[x][y].visited = false;
-            node_grid[x][y].global_dist = INFINITY;
-            node_grid[x][y].local_dist = INFINITY;
-            node_grid[x][y].parent = nullptr;
-        }
-    }
-}
-
-//Find The Distance between Two Points
-float AStar::distance(Node* a, Node* b)
-{
-    return sqrtf(
-        (
-            (a->getLocal()[0] - b->getLocal()[0])
-            *
-            (a->getLocal()[0] - b->getLocal()[0])
-        ) 
-        +
-        (
-            (a->getLocal()[1] - b->getLocal()[1])
-            *
-            (a->getLocal()[1] - b->getLocal()[1])
-        )
-    );
-}
-
-float AStar::heuristics(Node* a, Node* b)
-{
-    return distance(a, b);
-}
-
-void initEnemy(ecs::Entity* foe)
-{
-    //Initialize Components
-    auto [health, sprite, transform, physics, navigate] = 
-    ecs::ecs.component().assign<HEALTH, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(
-        foe
-    );
-
-    //Set Component Variables
-    health->max = 50.0f;
-    health->health = health->max;
-    sprite->ssheet = "placeholder";
-    sprite->render_order = 14;
-    transform->pos = {0.0f, 0.0f};
-    physics->acc = {0.0f, 0.0f};
-    physics->vel = {0.0f, 0.0f};
-}
-
 void moveTo(ecs::Entity* ent, v2f target)
 {
     auto [physics, transform] = 
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
+    if (physics == nullptr || transform == nullptr) {
+        DWARN(
+        "Moving Entity does not have PHYSICS and/or TRANSFORM Component(s)\n"
+        );
+        return;
+    }
     v2f dif {target[0] - transform->pos[0], target[1] - transform->pos[1]};
-    //if The Difference is Within 0.5 Error Zero Velocity & Accel, & Return
-    if ((dif[0] < 0.5f && dif[0] > -0.5f) &&
-        (dif[1] < 0.5f && dif[1] > -0.5f)
+    //if The Difference is Within 0.3 Error Zero Velocity & Accel, & Return
+    if ((dif[0] < 0.3f && dif[0] > -0.3f) &&
+        (dif[1] < 0.3f && dif[1] > -0.3f)
     ) {
         physics->acc = {0.0f, 0.0f};
         physics->vel = {0.0f, 0.0f};
@@ -412,16 +493,16 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
 
     //Set Acceleration
-    float accel = 50.0f;
+    float accel = 30.0f;
     float dist = v2fDist(target, transform->pos);
     float reduce = 1.0f;
-    if (dist < accel) {
-        reduce = dist / accel;
+    if (dist < (accel /4.0f)) {
+        reduce = dist / (accel / 4.0f);
     }
     v2f dir = v2fNormal(dif);
     v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
-    physics->acc[0] = move[0];
-    physics->acc[1] = move[1];
+    physics->vel[0] = move[0];
+    physics->vel[1] = move[1];
 
     //Set Acceleration to 0 if The Entity Axis is Within Target
     if (
@@ -429,8 +510,8 @@ void moveTo(ecs::Entity* ent, v2f target)
         (transform->pos[0] < target[0] + move[0] + 0.1f)
     ) {
         DINFOF("%d Entity within Target X Range.\n", ent->id);
-        physics->acc[0] = 0.0f;
-        physics->vel[0] *= 0.9f;
+        physics->acc[1] = 0.0f;
+        physics->vel[0] *= 0.999f;
     }
 
     if (
@@ -439,26 +520,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     ) {
         DINFOF("%d Entity within Target Y Range.\n", ent->id);
         physics->acc[1] = 0.0f;
-        physics->vel[1] *= 0.9f;
-    }
-
-    //Speed Limit
-    float top_speed = 50.0f;
-    if (physics->vel[0] > top_speed) {
-        physics->vel[0] = top_speed;
-        physics->acc[0] = 0.0f;
-    }
-    if (physics->vel[0] < -top_speed) {
-        physics->vel[0] = -top_speed;
-        physics->acc[0] = 0.0f;
-    }
-    if (physics->vel[1] > top_speed) {
-        physics->vel[1] = top_speed;
-        physics->acc[1] = 0.0f;
-    }
-    if (physics->vel[1] < -top_speed) {
-        physics->vel[1] = -top_speed;
-        physics->acc[1] = 0.0f;
+        physics->vel[1] *= 0.999f;
     }
 }
 
@@ -475,33 +537,294 @@ void moveTo(ecs::Entity* ent, ecs::Entity* target)
     moveTo(ent, tar->pos);
 }
 
-/*
 void loadEnemyTex(
-    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets
+    std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>& ssheets
 )
+{
+    DINFO("Start Loading Enemy Sprites\n");
+    SpriteSheetLoader loader {ssheets};
+    loader.loadStatic(
+        "enemy-idle",
+        loadTexture("./resources/textures/enemies/gobo-idle.webp", true),
+        {1, 1}, {32, 32}, false
+    ).loadStatic(
+        "enemy-front",
+        loadTexture("./resources/textures/enemies/gobo-front.webp", true),
+        {1, 6}, {42, 36}, true
+    ).loadStatic(
+        "enemy-back",
+        loadTexture("./resources/textures/enemies/gobo-back.webp", true),
+        {1, 6}, {42, 36}, true
+    ).loadStatic(
+        "enemy-left",
+        loadTexture("./resources/textures/enemies/gobo-left.webp", true),
+        {1, 6}, {42, 36}, true
+    );
+    DINFO("Finished Loading Enemy Sprites\n");
+}
+
+Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f})
 {}
-*/
+
+Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
+{
+    atk_Timer = (u16)(t_mod[0] * 1000.0f);
+    path_Timer = (u16)(t_mod[1] * 1000.0f);
+    can_damage = true;
+    can_gen_path = true;
+    this->ent = ent;
+    initEnemy();
+}
+
+void Enemy::initEnemy()
+{
+    //Initialize Components
+    auto [health, collide, sprite, transform, physics, navigate] = 
+    ecs::ecs.component()
+        .assign<HEALTH, COLLIDER, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(ent);
+
+    //Set Component Variables
+    health->max = 50.0f;
+    health->health = health->max;
+    sprite->ssheet = "enemy-idle";
+    sprite->render_order = 14;
+    transform->pos = {floatRand(1000.0f, 100.0f), floatRand(1000.0f, 100.0f)};
+    physics->acc = {0.0f, 0.0f};
+    physics->vel = {0.0f, 0.0f};
+    collide->passable = true;
+    collide->dim = {16, 16};
+}
+
+bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
+{
+    auto [p_collide, p_transform, health] = ecs::ecs.component().fetch
+                                        <COLLIDER, TRANSFORM, HEALTH>(ent2);
+    auto [s_collide, s_transform] = ecs::ecs.component().fetch
+                                                    <COLLIDER, TRANSFORM>(ent);
+    if (collided(p_transform, s_transform, p_collide, s_collide)) {
+        if ((health->health > 0)){
+            health->health -= 1;
+        }
+        return true;
+    }
+    return false;
+}
+
+void Enemy::action(World* w)
+{
+    float m_mag = 25.0f;
+    bool in_bounds = true;
+    auto cells = w->cells;
+    auto [navi, s_trans, phys, sprite] = (
+        ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS, SPRITE>(ent)
+    );
+    auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
+    static std::chrono::high_resolution_clock::time_point last_time;
+    float* node_pos = navi->nodePos();
+    
+    //Check if nodePos Returned a nullptr
+    if (node_pos == nullptr) {
+        navi->setStatus(true);
+    }
+    //Check if The Player is Within Bounds
+    v2f star_w_size = v2f {
+        navi->getAStar()->size()[0] * navi->getAStar()->getStep()[0] - m_mag,
+        navi->getAStar()->size()[1] * navi->getAStar()->getStep()[1] - m_mag
+    };
+    if ((p_trans->pos[0] < 0 || p_trans->pos[0] > star_w_size[0]) ||
+        (p_trans->pos[1] < 0 || p_trans->pos[1] > star_w_size[1])
+    ) {
+        in_bounds = false;
+    }
+
+    //Check if The Enemy is Due for another A* Pass.
+    if (in_bounds) {
+        if (can_gen_path) {
+            navi->genPath(
+                navi->getAStar()->findClosestNode(p_trans->pos),
+                navi->getAStar()->findClosestNode(s_trans->pos)
+            );
+            can_gen_path = false;
+        } else {
+            auto current = std::chrono::high_resolution_clock::now();
+            auto t_elasped = (
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                current - last_time
+                )
+            );
+            if (t_elasped.count() >= path_Timer) {
+                can_gen_path = true;
+            }
+        }
+    
+        //Move Towards Next Node in The Path, Otherwise Move Towards The Player
+        if (navi->getStatus() || node_pos == nullptr) {
+            moveTo(ent, player);
+        } else {
+            if (
+                (node_pos[0] < (s_trans->pos[0] + 0.5f)) &&
+                (node_pos[0] > (s_trans->pos[0] - 0.5f)) &&
+                (node_pos[1] < (s_trans->pos[1] + 0.5f)) &&
+                (node_pos[1] > (s_trans->pos[1] - 0.5f))
+            ) {
+                if (navi->nextNode()) {
+                    DINFO("Position Reached, Heading to Next Node\n");
+                } else {
+                    DINFO("Destination Reached, Finished Status Enabled\n");
+                }
+            } else {
+                moveTo(ent, {node_pos[0], node_pos[1]});
+            }
+        }
+        //Check if The Enemy has Hit The Player
+        if (can_damage) {
+            if(doDamage(ent, player)) {
+                last_time = std::chrono::high_resolution_clock::now();
+                can_damage = false;
+            }
+        } else {
+            auto current = std::chrono::high_resolution_clock::now();
+            auto t_elasped = (
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    current - last_time
+                )
+            );
+            if (t_elasped.count() >= atk_Timer) {
+                can_damage = true;
+            }
+        }    
+    } else {
+        phys->acc = {0.0f, 0.0f};
+        phys->vel = {0.0f, 0.0f};
+    }
+
+    //Set Sprite based on velocity
+    if (
+        (phys->vel[0] <= 0.1f && phys->vel[1] <= 0.1f) &&
+        (phys->vel[0] >= -0.1f && phys->vel[1] >= -0.1f)
+    ) {
+        sprite->ssheet = "enemy-idle";
+    }
+    if (phys->vel[0] > 0.1f && phys->vel[1] > 0.1f) {
+        if (phys->vel[0] > phys->vel[1]) {
+            sprite->ssheet = "enemy-left";
+            sprite->invert_y = true;
+        } else {
+            sprite->ssheet = "enemy-back";
+        }
+    }
+    if (phys->vel[0] < -0.1f && phys->vel[1] < -0.1f) {
+        if (phys->vel[0] <= phys->vel[1]) {
+            sprite->ssheet = "enemy-left";
+            sprite->invert_y = false;
+        } else {
+            sprite->ssheet = "enemy-front";
+        }
+    }
+    delete node_pos;
+}
+
+
+u16 Enemy::getAtkTimer()
+{
+    return atk_Timer;
+}
+
+u16 Enemy::getPathTimer()
+{
+    return path_Timer;
+}
+
+bool Enemy::getCanDamage()
+{
+    return can_damage;
+}
+
+bool Enemy::getCanGenPath()
+{
+    return can_gen_path;
+}
+
 ecs::Navigate::Navigate()
 {
-    current = 0;
+    current_node_pos = 0;
+    grid = nullptr;
+    finished = false;
 }
 
-v2f ecs::Navigate::nodePos()
+float* ecs::Navigate::nodePos()
 {
-    if (current >= nodes.size()) {
+    //Collect Current Node World Position
+    if (current_node_pos >= nodes.size()) {
         DWARN("Path Overshoot, Returning Default Value.\n");
-        return {0.0f, 0.0f};
+        return nullptr;
     }
-    return nodes[current];
-}
-
-void ecs::Navigate::genPath(Node* chain)
-{
-    reset();
+    v2f temp;
+    temp = nodes[current_node_pos]->getWorld();
+    
+    //Generate New Float to be Returned
+    float* result = new float[2];
+    result[0] = temp[0];
+    result[1] = temp[1];
+    
+    return result;
 }
 
 void ecs::Navigate::reset()
 {
-    current = 0;
+    current_node_pos = 0;
     nodes.clear();
+    finished = false;
+}
+
+void ecs::Navigate::genPath(Node* start, Node* end)
+{
+    if (start == nullptr || end == nullptr) {
+        DERROR("Invalid Nodes Have Been Passed\n");
+        return;
+    }
+    reset();
+    Node* start_node = start;
+    Node* goal_node = end;
+    grid->aStar(start->getLocal(), end->getLocal());
+    Node* current = goal_node;
+    std::vector<Node*> temp;
+    while (current != nullptr && current != start_node) {
+        if (current != goal_node) {
+            nodes.push_back(current);
+        }
+        current = current->parent;
+    }
+    DINFO("Finished Generating Path.\n");
+}
+
+bool ecs::Navigate::nextNode()
+{
+    
+    if (current_node_pos < nodes.size()) {
+        current_node_pos++;
+        return true;
+    }
+    finished = true;
+    return false;
+}
+
+AStar* ecs::Navigate::getAStar()
+{
+    return grid;
+}
+
+bool ecs::Navigate::getStatus()
+{
+    return finished;
+}
+
+void ecs::Navigate::setAStar(AStar* astar)
+{
+    grid = astar;
+}
+
+void ecs::Navigate::setStatus(bool status)
+{
+    finished = status;
 }

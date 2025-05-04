@@ -262,13 +262,10 @@ void initializeEntity(ecs::Entity* spaceship)
 	}
 
 
-
-
 	if (health) {
-		health -> health = 5.0f; 
 		health -> max = 100.0f;
-
-	}
+		health -> health = health -> max;
+	}	
 
 	if (transform) {
 		transform -> pos[0] = 40.0f;
@@ -317,7 +314,7 @@ void initializeEntity(ecs::Entity* spaceship)
 		DINFO("Transform component not found.\n");
 	}
 
-	DINFOF("\n");
+	//DINFOF("\n");
 
 }
 
@@ -364,8 +361,8 @@ void loadShipAndAsteroids(
 {
 	SpriteSheetLoader loader {shipAndAsteroidsSheets};  
 	//loader instance using custom map defined above
-	DINFOF("Loading asteroid base.png sprites...\n") 
-		loader
+	DINFOF("Loading asteroid base.png sprites...\n"); 
+	loader
 
 
 		.loadStatic("asteroid", 
@@ -431,7 +428,7 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
 	float CameraY = transform->pos[1];
 
 
-	std::cout << "Camera pos: (" << CameraX << ", " << CameraY << ")\n";
+	//std::cout << "Camera pos: (" << CameraX << ", " << CameraY << ")\n";
 
 
 
@@ -549,7 +546,7 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 
 
 	if (!spaceshipTransform || !asteroidTransform){
-		DINFOF("We are missing components for collision");
+		DWARN("We are missing components for collision");
 		return false; 
 	}
 
@@ -570,7 +567,7 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 void moveAsteroids(ecs::Entity* spaceship) 
 {
 	if (!spaceship) {
-		DINFOF("Spaceship is null\n");
+		DERROR("Spaceship is null\n");
 		return; 
 	}
 
@@ -621,77 +618,77 @@ void moveAsteroids(ecs::Entity* spaceship)
 			sprite->frame++; // begin incrementing sprite frame 
 			DINFOF("Exploding frame is: %d\n", sprite->frame);
 
-
 			if (sprite->frame >= 10) { //slight cool down
 				DINFOF("Asteroid *poof* aka returned\n");
 				ecs::ecs.entity().ret(const_cast<ecs::Entity*>(asteroid));
 
-				continue; // skip to next asteroid 
+				continue; // skip to next asteroid
 			}
 
 			continue; //skip
 		}
 
-		// collision check and health reduction
-		if (checkCircleCollision(spaceship, asteroid)) {
-			if (asteroidComp->exploding == false) { 
-				asteroidComp->exploding = true; //set exploding true 
-				DINFOF("Collison Detected!\n") 
-					sprite->ssheet = "asteroid-explode";
-				sprite->frame = 2;
-				if (asteroidComp->exploding) {
-					sprite->frame++; // begin incrementing sprite frame 
-					DINFOF("Exploding frame is: %d\n", sprite->frame);
+
+			// collision check and health reduction
+			if (checkCircleCollision(spaceship, asteroid)) {
+				if (asteroidComp->exploding == false) { 
+					asteroidComp->exploding = true; //set exploding true 
+					DINFOF("Collison Detected!\n") 
+						sprite->ssheet = "asteroid-explode";
+					sprite->frame = 2;
+					if (asteroidComp->exploding) {
+						sprite->frame++; // begin incrementing sprite frame 
+						DINFOF("Exploding frame is: %d\n", sprite->frame);
+					}
+
+					auto [shipHealth] = ecs::ecs.component().fetch<HEALTH>(spaceship);
+
+					if (shipHealth) {
+						shipHealth->health -= 1.0f; 
+						DINFOF("Spaceship damaged, health is now: %.2f\n", 
+								shipHealth->health);
+					} else {
+						DINFO("no health comp\n");
+
+					}
 				}
 
-				auto [shipHealth] = ecs::ecs.component().fetch<HEALTH>(spaceship);
-
-				if (shipHealth) {
-					shipHealth->health -= 1.0f; 
-					DINFOF("Spaceship damaged, health is now: %.2f\n", 
-							shipHealth->health);
-				} else {
-					DINFO("no health comp\n");
-
-				}
 			}
-
 		}
+
 	}
 
-}
 
 
+	void decrementResources(GameState &state, ecs::Entity* spaceship) 
+	{
+		auto [fuel,oxygen] = ecs::ecs.component().fetch<ecs::Fuel, ecs::Oxygen>(spaceship); 
 
-void decrementResources(GameState &state, ecs::Entity* spaceship) 
-{
-	auto [fuel,oxygen] = ecs::ecs.component().fetch<ecs::Fuel, ecs::Oxygen>(spaceship); 
 
+		if (fuel && fuel->fuel > 0.0f && oxygen && oxygen->oxygen > 0.0f) {
+			fuel->fuel -= 0.5f;
+			oxygen->oxygen -= 0.5f; 
 
-	if (fuel && fuel->fuel > 0.0f && oxygen && oxygen->oxygen > 0.0f) {
-		fuel->fuel -= 0.5f;
-		oxygen->oxygen -= 0.5f; 
+			if (fuel->fuel < 0.0f || oxygen->oxygen < 0.0f) { 
+				fuel->fuel = 0.0f;
+				oxygen->oxygen = 0.0f;
 
-		if (fuel->fuel < 0.0f || oxygen->oxygen < 0.0f) { 
-			fuel->fuel = 0.0f;
-			oxygen->oxygen = 0.0f;
-
-			state = GAMEOVER;
+				state = GAMEOVER;
+			}
 		}
+
 	}
 
-}
 
+	float getDeltaTime() { //used for smooth movement 
 
-float getDeltaTime() { //used for smooth movement 
+		static auto last = steady_clock::now(); 
+		auto old = last;
+		last = steady_clock::now(); 
+		auto frameTime = last - old; 
+		return duration_cast<duration<float>>(frameTime).count(); 
 
-	static auto last = steady_clock::now(); 
-	auto old = last;
-	last = steady_clock::now(); 
-	auto frameTime = last - old; 
-	return duration_cast<duration<float>>(frameTime).count(); 
-
-}
+	}
 
 
 
