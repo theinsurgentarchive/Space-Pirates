@@ -255,21 +255,21 @@ void PlanetCoorGenerator(float values[3])
 
 float PlanetSize(float rndNum)
 {
-    //chance rndNum to a % probability to define Size (0.5x to 5.0x)
+    //chance rndNum to a % probability to define Size (0.5x to 3.5x)
     float sizeChance = ((rndNum - 100) / 899) * 100;
     
     if (sizeChance > 92.5)
-        return 5.0f;
+        return 3.5f;
     else if (sizeChance > 82.5)
-        return 3.0f;
+        return 2.5f;
     else if (sizeChance > 67.5)
         return 2.0f;
     else if (sizeChance > 45.0)
-        return 1.0f;
+        return 1.50f;
     else if (sizeChance > 12.5)
-        return 0.75f;
+        return 1.0f;
     else
-        return 0.5f;
+        return 0.75f;
 }
 
 float PlanetSmooth([[maybe_unused]]float rndNum)
@@ -467,22 +467,18 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
 
 
 //Planet Collision
-// bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* Planet) {
-//     auto [spaceshipTransform] = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
-//     auto [planetTransform] = ecs::ecs.component().fetch<ecs::Planet>(Planet);
+bool PlanetCollision(const ecs::Entity* Planet) {
 
-//     if (!spaceshipTransform || !planetTransform){
-//         DINFOF("We are missing components for collision");
-//         return false; 
-//     }
+    auto [traits] = ecs::ecs.component().fetch<ecs::Planet>(Planet);
 
-//     float dx = spaceshipTransform->pos[0] - planetTransform->PosX;
-//     float dy = spaceshipTransform->pos[1] - planetTransform->PosY;
-//     float distance = sqrt(pow(dx, 2) + pow(dy, 2)); 
+    if (!traits){
+        std::cout << "We are missing components for collision" << std::endl;
+    }
 
-//     float spaceshipRadius = 30.0f;  
-//     float asteroidRadius = 20.0f; // temp, get real size / 2
+    float dx = -traits->PosX;
+    float dy = -traits->PosY;
 
-//     return distance < (spaceshipRadius + asteroidRadius); //circle collision formula
-// }
+    return (((dy <= 1) && (dy >= -1)) && ((dx >= - 1) && (dx <= 1)));
+    //gl.state = PLAYING;
+}
 

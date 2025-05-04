@@ -286,7 +286,6 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 ecs::Entity* player;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
-ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
@@ -317,10 +316,7 @@ int main()
 	Enemy foe(dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
-	planetPtr2 = ecs::GeneratePlanet();
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-	[[maybe_unused]] auto [planetAttr2] = ecs::ecs.component()
-													.fetch<PLANET>(planetPtr2);
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
@@ -355,7 +351,8 @@ int main()
 
 	
 	ps.sample();
- 
+
+	float dt = getDeltaTime();  
   	v2u t_grid_size = {
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
@@ -367,6 +364,7 @@ int main()
 		astar->findClosestNode({0.0f, 0.0f}),
 		astar->findClosestNode({1000.0f, 1000.0f})
 	);
+
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
@@ -657,10 +655,33 @@ int check_keys(XEvent *e)
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
-			static float movement_mag = 45.0;
+			static float movement_mag = 75.0;
 			
       if (key == XK_e) {
+			
 				gl.state = SPACE;
+				//DESTROY PLANET
+				ecs::ecs.entity().ret(planetPtr);
+				
+				// [[maybe_unused]] auto map_tiles = ecs::ecs.query<TRANSFORM, SPRITE>();
+				// for (auto* tile:map_tiles) {
+				// 	auto* entity = tile;
+				// 	ecs::ecs.entity().ret(entity);
+				// }
+				
+				//REGENERATE REGENERATE PLANET
+				
+				planetPtr = ecs::GeneratePlanet();
+				auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+				
+				// WorldGenerationSettings settings {
+				// 	planetAttr->temperature,
+				// 	planetAttr->humidity,
+				// 	static_cast<u16>(planetAttr->size * 50),
+				// 	static_cast<u32>(2)};
+				//settings.origin = {0,0};
+				//loadTextures(ssheets);
+
 				return 0;
 			}
 			switch(key) {
@@ -699,7 +720,7 @@ int check_keys(XEvent *e)
 
 	if (gl.state == SPACE) {
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-		float parallaxScale = 0.0001f;
+		float parallaxScale = 0.0003f;
     
 		[[maybe_unused]] auto [transform,sprite,physics] = (
 			ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship)
@@ -707,10 +728,14 @@ int check_keys(XEvent *e)
     
 		if (e->type == KeyPress) {
 
-			static float space_movement_mag = 600.0;
+			static float space_movement_mag = 800.0;
 
 			if (key == XK_e) {
-				gl.state = PLAYING;
+
+				if (PlanetCollision(planetPtr)) {
+					gl.state = PLAYING;
+				}
+				
 				return 0;
 			}
 
@@ -776,10 +801,11 @@ void physics(Enemy& foe, World* w)
 	}
 	if (player) {
 		auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
-		if (health->health <= 0.0f) {
-			DINFO("Player Died, GAME OVER...");
-			gl.state = GAMEOVER;
-		}
+
+		// if (health->health <= 0.0f) {
+		// 	DINFO("Player Died, GAME OVER...");
+		// 	gl.state = GAMEOVER;
+		// }
 	}
 	if (gl.spaceship) {
 		auto [spaceshipHealth] = ecs::ecs.component()
@@ -1036,12 +1062,8 @@ void render() {
 			
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
-			
-		
 
 			DisableFor2D();
-			
-
 			break;
 			
 		}
