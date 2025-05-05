@@ -1,3 +1,7 @@
+//
+//program: mchitorog.cpp
+//author: Mihail Chitorog
+//
 #include "mchitorog.h"
 #include "balrowhany.h"
 #include "jsandoval.h"
@@ -15,6 +19,14 @@ const std::string SFX_MENU_PATH = AUDIO_PATH + "sfx/menu/";
 const std::string SFX_GAMEPLAY_PATH = AUDIO_PATH + "sfx/gameplay/";
 const std::string MUSIC_MENU_PATH = AUDIO_PATH + "music/menu/";
 const std::string MUSIC_GAMEPLAY_PATH = AUDIO_PATH + "music/gameplay/";
+
+FootstepState g_footstepState = {
+    false, // isWalking
+    std::chrono::high_resolution_clock::now(), // lastFootstepTime
+    std::chrono::milliseconds(600), // footstepInterval
+    false, // isSoundPlaying
+    std::chrono::milliseconds(600) 
+};
 
 MusicType AudioManager::getCurrentMusic() const {
 	return currentMusic;
@@ -240,13 +252,27 @@ bool AudioManager::loadMusic() {
 // Play a sound effect
 void AudioManager::playSound(SoundType sound) {
 #ifdef USE_OPENAL_SOUND
-	if (!audioInitialized || !soundEnabled) return;
+    if (!audioInitialized || !soundEnabled) return;
 
-	auto it = soundSources.find(sound);
-	if (it != soundSources.end()) {
-		alSourcePlay(it->second);
-		DINFOF("Playing sound: %d\n", sound);
-	}
+    auto it = soundSources.find(sound);
+    if (it != soundSources.end()) {
+        ALint state;
+        alGetSourcei(it->second, AL_SOURCE_STATE, &state);
+        
+        // For footstep sounds specifically, handle differently
+        if (sound == FOOTSTEP_GRASS || sound == FOOTSTEP_SNOW || sound == FOOTSTEP_LAVA) {
+            // If already playing, don't interrupt it
+            if (state == AL_PLAYING) {
+                return;
+            }
+            
+            // Set footstep-specific properties
+            alSourcef(it->second, AL_GAIN, soundVolume / 100.0f * 1.2f); // Slightly louder
+            alSourcef(it->second, AL_PITCH, 0.9f + ((float)rand() / RAND_MAX) * 0.2f); // Random pitch variation
+        }
+        
+        alSourcePlay(it->second);
+    }
 #endif
 }
 
@@ -415,6 +441,8 @@ void initAudioSystem() {
 	AudioManager::getInstance()->initAudio();
 	AudioManager::getInstance()->loadSoundEffects();
 	AudioManager::getInstance()->loadMusic();
+	
+	initializePlayerSprites();
 }
 
 // Shutdown audio system
@@ -811,4 +839,207 @@ void render_pause_controls_screen(int xres, int yres) {
 
 	DINFO("=== EXIT render_pause_controls_screen ===\n");
 
+}
+
+
+// Tracks the last direction the player was moving
+static PlayerDirection lastPlayerDirection = DIR_DOWN;
+
+
+void initializePlayerSprites() {
+    // This function simply logs that we're going to use new player sprites
+    DINFO("Initializing player directional sprites...\n");
+    DINFO("Make sure 'player-idle-back' and 'player-right-stand' are loaded in texture loader.\n");
+}
+
+void updatePlayerMovementSprite(ecs::Entity* player, PlayerDirection direction) {
+    if (!player) return;
+    
+    auto [sprite, physics] = ecs::ecs.component().fetch<SPRITE, PHYSICS>(player);
+    
+    if (!sprite || !physics) {
+        DWARN("Player missing sprite or physics component\n");
+        return;
+    }
+    
+    // Store the direction for use when stopping
+    lastPlayerDirection = direction;
+    
+    DINFOF("Setting player direction to: %d\n", direction);
+    
+    // Set appropriate movement sprite based on direction
+    switch (direction) {
+        case DIR_RIGHT:
+            sprite->ssheet = "player-right";
+            sprite->invert_y = false;
+            physics->vel = {75.0f, 0.0f};
+            break;
+            
+        case DIR_LEFT:
+            sprite->ssheet = "player-right";
+            sprite->invert_y = true;
+            physics->vel = {-75.0f, 0.0f};
+            break;
+            
+        case DIR_UP:
+            sprite->ssheet = "player-back";
+            sprite->invert_y = false;
+            physics->vel = {0.0f, 75.0f};
+            break;
+            
+        case DIR_DOWN:
+            sprite->ssheet = "player-front";
+            sprite->invert_y = false;
+            physics->vel = {0.0f, -75.0f};
+            break;
+    }
+    // Play footstep sound
+    playFootstepSound();
+}
+
+void updatePlayerIdleSprite(ecs::Entity* player) {
+    if (!player) return;
+
+    auto [sprite, physics] = ecs::ecs.component().fetch<SPRITE, PHYSICS>(player);
+
+    if (!sprite || !physics) {
+        DWARN("Player missing sprite or physics component\n");
+        return;
+    }
+
+    // Stop player movement
+    physics->vel = {0.0f, 0.0f};
+
+    DINFOF("Setting player idle direction based on last direction: %d\n", lastPlayerDirection);
+
+    // Set idle sprite based on last direction
+    switch (lastPlayerDirection) {
+        case DIR_RIGHT:
+            sprite->ssheet = "player-right-stand";
+            sprite->invert_y = false;
+            break;
+
+        case DIR_LEFT:
+            sprite->ssheet = "player-right-stand";
+            sprite->invert_y = true;
+            break;
+
+        case DIR_UP:
+            sprite->ssheet = "player-idle-back";
+            sprite->invert_y = false;
+            break;
+
+        case DIR_DOWN:
+            sprite->ssheet = "player-idle";
+            sprite->invert_y = false;
+            break;
+    }
+
+    // Reset animation frame
+    sprite->frame = 0;
+}
+
+void handlePlayerMovementInput(int key, ecs::Entity* player) {
+    switch(key) {
+        case XK_Right:
+            updatePlayerMovementSprite(player, DIR_RIGHT);
+            break;
+        case XK_Left:
+            updatePlayerMovementSprite(player, DIR_LEFT);
+            break;
+        case XK_Up:
+            updatePlayerMovementSprite(player, DIR_UP);
+            break;
+        case XK_Down:
+            updatePlayerMovementSprite(player, DIR_DOWN);
+            break;
+    }
+}
+
+void handlePlayerKeyRelease(ecs::Entity* player) {
+    if (!player) return;
+
+    auto [sprite, physics] = ecs::ecs.component().fetch<SPRITE, PHYSICS>(player);
+
+    if (!sprite || !physics) return;
+
+    // Force a specific sprite, bypassing the direction logic for testing
+    sprite->ssheet = "player-idle-back";  // Always use back sprite on release
+    sprite->invert_y = false;
+    physics->vel = {0.0f, 0.0f};
+
+    DINFO("TEST: Force-set player to player-idle-back\n");
+}
+
+void playFootstepSound() {
+    auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
+    if (!transform) return;
+    
+    auto [planet] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+    if (planet) {
+        float temp = planet->temperature;
+        float humidity = planet->humidity;
+        
+        // Determine sound type based on planet conditions
+        SoundType soundType;
+        if (temp >= -10.0f && temp <= 10.0f && humidity >= 0.2f && humidity <= 0.6f) {
+            soundType = FOOTSTEP_SNOW;
+        }
+        else if (temp >= 40.0f || (temp >= 30.0f && humidity <= 0.2f)) {
+            soundType = FOOTSTEP_LAVA;
+        }
+        else {
+            soundType = FOOTSTEP_GRASS;
+        }
+        
+        // Play the sound
+        playGameSound(soundType);
+    } else {
+        playGameSound(FOOTSTEP_GRASS);
+    }
+}
+
+void updateFootstepSounds() {
+    if (!player) return;
+
+    [[maybe_unused]]static int debugCounter = 0;
+    static auto lastDebugTime = std::chrono::high_resolution_clock::now();
+
+    auto [physics, transform] = ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(player);
+    if (!physics || !transform) return;
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+
+    // Only print debug info once per second
+    auto timeSinceLastDebug = std::chrono::duration_cast<std::chrono::milliseconds>(
+        currentTime - lastDebugTime);
+    if (timeSinceLastDebug.count() > 1000) {
+        DINFOF("Footstep Debug: isWalking=%d, vel=(%f,%f)\n",
+               g_footstepState.isWalking, physics->vel[0], physics->vel[1]);
+        lastDebugTime = currentTime;
+    }
+
+    // Check if player is moving
+    bool isCurrentlyMoving = (fabs(physics->vel[0]) > 0.1f || fabs(physics->vel[1]) > 0.1f);
+
+    auto timeSinceLastFootstep = std::chrono::duration_cast<std::chrono::milliseconds>(
+        currentTime - g_footstepState.lastFootstepTime);
+
+    // Update walking state
+    if (isCurrentlyMoving != g_footstepState.isWalking) {
+        g_footstepState.isWalking = isCurrentlyMoving;
+        DINFOF("Walking state changed to: %d\n", g_footstepState.isWalking);
+
+        // If just started walking, reset timer to play sound immediately
+        if (isCurrentlyMoving) {
+            g_footstepState.lastFootstepTime = currentTime - g_footstepState.footstepInterval;
+        }
+    }
+
+    // Play footstep sound at regular intervals while walking
+    if (g_footstepState.isWalking && timeSinceLastFootstep >= g_footstepState.footstepInterval) {
+        DINFOF("Playing footstep! Time since last: %ld ms\n", timeSinceLastFootstep.count());
+        playFootstepSound();
+        g_footstepState.lastFootstepTime = currentTime;
+    }
 }

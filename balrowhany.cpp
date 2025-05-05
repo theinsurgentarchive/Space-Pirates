@@ -587,7 +587,6 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
    // float spaceshipRadius = (spaceshipScale * 144) / 2; 
     // asteroid  scale * width / 2
     //float asteroidRadius = ( asteroidScale * 96 ) / 2; 
-
     float spaceshipRadius = 30.0f; 
     float asteroidRadius = 30.0f;  
 
