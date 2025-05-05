@@ -284,7 +284,6 @@ void initializeEntity(ecs::Entity* spaceship)
 
 	auto [getHealth,getOxygen,getFuel,getTransform] = ecs::ecs.component().fetch<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM>(spaceship);
 
-	//cout << "Spaceship intialized with health, oxygen, & fuel" << endl;
 	if (getHealth) {
 		DINFOF("Health: %.2f / %.2f\n", 
 				getHealth -> health <<  getHealth -> max);  
@@ -304,7 +303,8 @@ void initializeEntity(ecs::Entity* spaceship)
 
 	if (getFuel) {
 		DINFOF("Fuel: %.2f / %.2f\n", getFuel->fuel, getFuel->max);
-		DINFO("Fuel component not found."); 
+	} else {
+		DINFO("Fuel component not found.\n"); 
 	}
 
 	if (getTransform) {
@@ -362,7 +362,7 @@ void loadShipAndAsteroids(   //rename to loadSpaceSprites
 {
     SpriteSheetLoader loader {shipAndAsteroidsSheets};  
     //loader instance using custom map defined above
-    	DINFOF("Loading asteroid base.png sprites...\n") 
+    	DINFO("Loading asteroid base.png sprites...\n");
     loader
     
 
@@ -382,7 +382,7 @@ void loadShipAndAsteroids(   //rename to loadSpaceSprites
     .loadStatic("ship-right", 
         loadTexture(
             "./resources/textures/space/ship-right.png", true), {1,1}, {32,32})
-     DINFOF("finished loading asteroid and ship sprites.\n")
+     DINFO("finished loading asteroid and ship sprites.\n")
 
      .loadStatic("fuel", 
         loadTexture(
@@ -404,7 +404,7 @@ ecs::Entity* createAsteroid(float x, float y, int directionRandomizer)
     ecs::Entity* asteroid = ecs::ecs.entity().checkout();
 
     if (!asteroid) {
-        DINFOF("Failed to create asteroid entity.\n");
+        DINFO("Failed to create asteroid entity.\n");
         return nullptr;
     }
 
@@ -429,7 +429,7 @@ ecs::Entity* createAsteroid(float x, float y, int directionRandomizer)
     sprite->frame = 0;
 
     [[maybe_unused]]auto physics = ecs::ecs.component().assign<ecs::Physics>(asteroid);
-    //cout << "Asteroid created with sprite: " << sprite->ssheet << ", frame: " << sprite->frame << endl;
+    DINFOF("Asteroid created with sprite: %s, frame: %i", sprite->ssheet, sprite->frame);
     return asteroid;
 }
 
@@ -507,7 +507,7 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
 
         ecs::Entity* asteroid  = createAsteroid(x, y, directionRandomizer); // create asteroid with properties
         if (!asteroid) {
-            cout << "Failed to inrialize asteroid" << endl;
+            DWARN("Failed to initialize asteroid\n");
             continue; //skip to next iteration
         }
         
@@ -540,7 +540,7 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres)
 				
                 
         
-                DINFOF("Spawning Asteroids \n");
+                DINFO("Spawning Asteroids \n");
                 //cout << "Spawning asteroid" << endl;
                 [[maybe_unused]]auto transform = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
 				generateAsteroids(rand() % 2 + 4, xres, yres, spaceship); //spawn count 
@@ -557,7 +557,7 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres)
 			}
 
             if (spaceship == nullptr){
-                DINFOF("Error: Spaceship Null!\n");
+                DERROR("Error: Spaceship Null!\n");
                 return; //debug 
             }
 
@@ -576,7 +576,7 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 
 
     if (!spaceshipTransform || !asteroidTransform){
-        DINFOF("We are missing components for collision");
+        DWARN("We are missing components for collision");
         return false; 
     }
 
@@ -605,7 +605,7 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
 void moveAsteroids(ecs::Entity* spaceship) 
 {
     if (!spaceship) {
-        DINFOF("Spaceship is null\n");
+        DERROR("Spaceship is null\n");
         return; 
     }
 
@@ -679,7 +679,7 @@ void moveAsteroids(ecs::Entity* spaceship)
 
             
             if (sprite->frame >= 10) { //slight cool down
-                 DINFOF("Asteroid *poof* aka returned\n");
+                 DINFO("Asteroid *poof* aka returned\n");
                  ecs::ecs.entity().ret(const_cast<ecs::Entity*>(asteroid));
                
                 continue; // skip to next asteroid 
@@ -692,7 +692,7 @@ void moveAsteroids(ecs::Entity* spaceship)
         if (checkCircleCollision(spaceship, asteroid)) {
             if (asteroidComp->exploding == false) { 
                 asteroidComp->exploding = true; //set exploding true 
-                DINFOF("Collison Detected!\n") 
+                DINFO("Collison Detected!\n") 
                 sprite->ssheet = "asteroid-explode";
                 sprite->frame = 2;
                 if (asteroidComp->exploding) {
@@ -707,7 +707,7 @@ void moveAsteroids(ecs::Entity* spaceship)
                     DINFOF("Spaceship damaged, health is now: %.2f\n", 
                             shipHealth->health);
                 } else {
-                    DINFO("no health comp\n");
+                    DINFO("No health comp\n");
 
                 }
             }
@@ -755,7 +755,7 @@ ecs::Entity* createCollectible(float x, float y)
     ecs::Entity* collectible = ecs::ecs.entity().checkout(); 
 
     if (!collectible) {
-        cout << "failed to create collectible" << endl;
+        DWARN("Failed to create collectible\n");
         return nullptr; 
     }
 
@@ -765,7 +765,7 @@ ecs::Entity* createCollectible(float x, float y)
     auto [col,transform,sprite] = ecs::ecs.component().assign<ecs::Collectible,ecs::Transform,ecs::Sprite>(collectible);
 
     if (!col || !transform || !sprite) {
-        cout << "components missing for creating a collectible" << endl;
+        DWARN("Components missing for creating a collectible\n");
         return nullptr; 
     }
 
@@ -872,7 +872,7 @@ void spawnCollectibles(ecs::Entity* spaceship, int xres, int yres)
 
         ecs::Entity* collectible = createCollectible(x, y);
         if (!collectible) {
-            cout << "Failed to create collectible" << endl;
+            DWARN("Failed to create collectible\n");
             return; 
         }
 
@@ -893,7 +893,7 @@ bool collectiblePickedUp(ecs::Entity* spaceship, const ecs::Entity* collectible)
     auto [colTransform] = ecs::ecs.component().fetch<TRANSFORM>(collectible);
 
     if (!transform || !colTransform) {
-        cout << "missing components for collectible pickup" << endl;
+        DWARN("Missing components for collectible pickup\n");
         return false; 
     }
 
@@ -914,7 +914,7 @@ void handleCollectiblePickup(ecs::Entity* spaceship, const ecs::Entity* collecti
     auto [oxygen] = ecs::ecs.component().fetch<ecs::Oxygen>(spaceship);
     auto [fuel] = ecs::ecs.component().fetch<ecs::Fuel>(spaceship);
     if (!col) {
-        cout << "missing collectible component" << endl;
+        DWARN("Missing collectible component\n");
         return;
     }
         
@@ -950,7 +950,7 @@ void handleCollectibleInteractions(ecs::Entity* spaceship) //chat help
     for (auto* collectible : collectibles) {
         auto [collectibleTransform] = ecs::ecs.component().fetch<TRANSFORM>(collectible);
         if (!collectibleTransform || !shipTransform) {
-            cout << "missing collectible transform" << endl;
+            DWARN("Missing collectible transform\n");
             continue; 
         }
 
@@ -963,7 +963,7 @@ void handleCollectibleInteractions(ecs::Entity* spaceship) //chat help
         float distance = sqrt(pow(Cx - Sx, 2) + pow(Cy - Sy, 2));
 
         if (distance > 1000) { // checks 
-            cout << "Collcetible out of bounds, returning to pool" << endl;
+            DWARN("Collectible out of bounds, returning to pool\n");
             ecs::ecs.entity().ret(collectible);
             continue; 
         }
