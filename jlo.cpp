@@ -1355,8 +1355,11 @@ namespace ecs
 							g_playerState.lastIdleSprite = "player-idle";
 						}
 
-						std::cout << "Player moving: " << sprite->ssheet << ", lastIdle: "
-							<< g_playerState.lastIdleSprite << std::endl;
+						DINFOF(
+							"Player moving: %s, lastIdle: %s\n",
+							sprite->ssheet,
+							g_playerState.lastIdleSprite
+						);
 					}
 					else if (g_playerState.isMoving) {
 						// Player just stopped moving - force idle sprite
@@ -1369,8 +1372,10 @@ namespace ecs
 						ssheet = ssheets[sprite->ssheet];
 						if (ssheet == nullptr) continue;
 
-						std::cout << "Player stopped: setting idle sprite: "
-							<< sprite->ssheet << std::endl;
+						DINFOF(
+							"Player stopped: setting idle sprite: %s\n",
+							sprite->ssheet
+						);
 					}
 				}
 			}
