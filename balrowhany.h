@@ -5,6 +5,7 @@
 #define OXYGEN ecs::Oxygen
 #define FUEL ecs::Fuel
 #define ASTEROID ecs::Asteroid
+#define COLLECTIBLE ecs::Collectible
 
 // Game States for Menu Logic
 enum GameState {
@@ -36,11 +37,18 @@ namespace ecs {
         float health; 
         float movementSpeed;
         bool exploding = false;
+        int direction; // 1-4 directions 5-8 corners <-- replace SpawnPoint
+
 
     };
 
-    struct SpawnPoint {
-        int direction; // 1-4 directions 5-8 corners  
+    //struct SpawnPoint {
+      //  int direction; // 1-4 directions 5-8 corners  
+    //};
+
+    struct Collectible {
+        int type;  // 0 = oxygen 1 = fuel
+        int value;  //resource increment of oxygen or fuel
     };
 }
 
@@ -65,3 +73,11 @@ void decrementResources(GameState &state, ecs::Entity* spaceship);
 
 float getDeltaTime(); 
 
+
+ecs::Entity* createCollectible(float x, float y);
+
+void spawnCollectibles(ecs::Entity* spaceship, int xres, int yres);
+
+bool collectiblePickedUp(ecs::Entity* spaceship, const ecs::Entity* collectible);
+void handleCollectiblePickup(ecs::Entity* spaceship, const ecs::Entity* collectible);
+void handleCollectibleInteractions(ecs::Entity* spaceship); 
