@@ -1119,14 +1119,18 @@ void physics(Enemy& foe, World* w)
 		updateFootstepSounds();
 	}
 }
+void SampleSpaceEntities() {  // written by chat
+    auto asteroids = ecs::ecs.query<ASTEROID, SPRITE, TRANSFORM>();
+    auto collectibles = ecs::ecs.query<COLLECTIBLE, SPRITE, TRANSFORM>();
 
-void SampleSpaceEntities() //chatgpt 
-{ // sample space entities, made jlo renderSystem > ._entities public for access
-	auto spaceEntities = ecs::ecs.query<ASTEROID>(); 
-	if (gl.spaceship) {
-		spaceEntities.push_back(gl.spaceship); // add spaceship to entity list
-	}
-	spaceRenderer._entities = spaceEntities; //render only these (filtered)
+    std::vector<const ecs::Entity*> spaceEntities;
+    spaceEntities.insert(spaceEntities.end(), asteroids.begin(), asteroids.end());
+    spaceEntities.insert(spaceEntities.end(), collectibles.begin(), collectibles.end());
+
+    if (gl.spaceship)
+        spaceEntities.push_back(gl.spaceship);
+
+    spaceRenderer._entities = spaceEntities;
 }
 
 
@@ -1297,7 +1301,10 @@ void render() {
 
 				}
 
-				spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
+				spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]);
+				spawnCollectibles(gl.spaceship, gl.res[0], gl.res[1]);
+				handleCollectibleInteractions(gl.spaceship); 
+
 
 				//sample only asteroid and ship entities 
 				SampleSpaceEntities();
