@@ -1,3 +1,8 @@
+//
+//program: mchitorog.h
+//author: Mihail Chitorog
+//
+
 #pragma once
 
 #include <string>
@@ -13,6 +18,13 @@
 #include <AL/alc.h>
 #include <AL/alut.h>
 #endif
+
+namespace ecs {
+    class Entity;  
+}
+
+extern ecs::Entity* player;
+extern ecs::Entity* planetPtr;
 
 // Sound effect types
 enum SoundType {
@@ -40,6 +52,14 @@ enum MusicType {
     GAME_OVER_MUSIC
 };
 
+// Enum for tracking player direction
+enum PlayerDirection {
+    DIR_DOWN,
+    DIR_UP,
+    DIR_LEFT,
+    DIR_RIGHT
+};
+
 // Constants for menu actions
 const int MENU_ACTION_NONE = 0;
 const int MENU_ACTION_EXIT = 1;
@@ -51,6 +71,17 @@ const int PAUSE_ACTION_NONE = 0;
 const int PAUSE_ACTION_RESUME = 30;
 const int PAUSE_ACTION_CONTROLS = 21;
 const int PAUSE_ACTION_MAINMENU = 22;
+
+struct FootstepState {
+    bool isWalking{false};
+    std::chrono::time_point<std::chrono::high_resolution_clock> lastFootstepTime{};
+    std::chrono::milliseconds footstepInterval{400}; 
+    bool isSoundPlaying{false};
+    std::chrono::milliseconds soundDuration{400}; 
+};
+
+extern FootstepState g_footstepState;
+void updateFootstepSounds();
 
 class AudioManager {
 private:
@@ -148,3 +179,18 @@ void playFootstepSound();
 void render_pause_menu(int xres, int yres, int selected_option);
 int handle_pause_keys(int key, GameState &state, GameState &previous_state, int &selected_option, MusicType previous_music);
 void render_pause_controls_screen(int xres, int yres);
+
+// Function to update player sprites when moving
+void updatePlayerMovementSprite(ecs::Entity* player, PlayerDirection direction);
+
+// Function to update player sprites when stopping
+void updatePlayerIdleSprite(ecs::Entity* player);
+
+// Function to initialize player sprites
+void initializePlayerSprites();
+
+// Function to detect movement keys and update sprites
+void handlePlayerMovementInput(int key, ecs::Entity* player);
+
+// Function to handle key release for player
+void handlePlayerKeyRelease(ecs::Entity* player);

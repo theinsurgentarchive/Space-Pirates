@@ -391,10 +391,10 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
 {
     std::vector<float> heightMap = GenerateHeightMap(); 
     static int firsttime = 1;
-    int i, j, i2, j2, j3;
+    [[maybe_unused]]int i, j, i2, j2, j3;
     static Flt verts[9][16][3];
     static Flt norms[9][16][3];
-    static Flt tx[9][17][2];
+    [[maybe_unused]]static Flt tx[9][17][2];
 
     if (firsttime) {
         firsttime = 0;

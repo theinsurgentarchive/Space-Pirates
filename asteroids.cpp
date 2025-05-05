@@ -266,7 +266,7 @@ class X11_wrapper {
 			if (blank == None)
 				std::cout << "error: out of memory." << std::endl;
 			cursor = XCreatePixmapCursor(
-									dpy, blank, blank, &dummy, &dummy, 0, 0);
+					dpy, blank, blank, &dummy, &dummy, 0, 0);
 			XFreePixmap(dpy, blank);
 			//this makes the cursor. then set it using this function
 			XDefineCursor(dpy, win, cursor);
@@ -300,7 +300,6 @@ void handle_playing_state(int key);
 void handle_space_state(int key);
 void handle_playing_key_release();
 void handle_space_key_release();
-void updateFootstepSounds();
 
 
 //Start - Justin
@@ -325,7 +324,7 @@ void sig_handle([[maybe_unused]] int sig)
 }
 // load space sheets
 std::unordered_map<std::string, std::shared_ptr
-										<SpriteSheet>> shipAndAsteroidsSheets;
+<SpriteSheet>> shipAndAsteroidsSheets;
 void loadShipAndAsteroids(std::unordered_map
 		<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
@@ -348,19 +347,19 @@ int main()
 			static_cast<u16>(planetAttr->size * 50),
 			static_cast<u32>(2)};
 	settings.origin = {0,0};
-    // Initialize audio system
-    initAudioSystem();
+	// Initialize audio system
+	initAudioSystem();
 
 	// Initialize Textures
 	loadTextures(ssheets);  //load planet textures
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
-    
-    // Set initial music according to game state (starting in MENU state)
-    updateAudioState(gl.state);
+
+	// Set initial music according to game state (starting in MENU state)
+	updateAudioState(gl.state);
 
 	player = ecs::ecs.entity().checkout();
 	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
-				.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
 	Camera camera = {
 		transform->pos,
 		gl.res
@@ -376,18 +375,18 @@ int main()
 
 	ps.sample();
 
-	float dt = getDeltaTime();  
-  	v2u t_grid_size = {
+	[[maybe_unused]]float dt = getDeltaTime();  
+	v2u t_grid_size = {
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
 	};
-  	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
+	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->setAStar(astar);
 	navc->genPath(
-		astar->findClosestNode({0.0f, 0.0f}),
-		astar->findClosestNode({1000.0f, 1000.0f})
-	);
+			astar->findClosestNode({0.0f, 0.0f}),
+			astar->findClosestNode({1000.0f, 1000.0f})
+		     );
 
 	name->name = "Simon";
 	name->offset = {0,-25};
@@ -405,6 +404,7 @@ int main()
 	rs.sample();
 	ps.sample();
 	init_opengl();
+	checkRequiredSprites();
 	logOpen();
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
@@ -412,12 +412,12 @@ int main()
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
-    while (!done) {
-        while (x11.getXPending()) {
-            XEvent e = x11.getXNextEvent();
-            x11.check_resize(&e);
-            check_mouse(&e);
-            done = check_keys(&e);
+	while (!done) {
+		while (x11.getXPending()) {
+			XEvent e = x11.getXNextEvent();
+			x11.check_resize(&e);
+			check_mouse(&e);
+			done = check_keys(&e);
 		}
 		switch (gl.state) { //camera switch 
 			case SPACE:
@@ -443,21 +443,21 @@ int main()
 				c = nullptr;
 				break; 
 		}
-        clock_gettime(CLOCK_REALTIME, &timeCurrent);
-        //moveTo(gl.dummy, player);		
+		clock_gettime(CLOCK_REALTIME, &timeCurrent);
+		//moveTo(gl.dummy, player);		
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
-        timeCopy(&timeStart, &timeCurrent);
-        getAudioManager()->update();
+		timeCopy(&timeStart, &timeCurrent);
+		getAudioManager()->update();
 		physics(foe, &w);
 		render();
-        x11.swapBuffers();
-        usleep(1000);
-    }
-    shutdownAudioSystem();
-    cleanup_fonts();
-    logClose();
+		x11.swapBuffers();
+		usleep(1000);
+	}
+	shutdownAudioSystem();
+	cleanup_fonts();
+	logClose();
 	delete astar;
-    return 0;
+	return 0;
 }
 GLuint tex;
 void init_opengl(void)
@@ -531,10 +531,10 @@ void init_opengl(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexImage2D(
-		GL_TEXTURE_2D, 0, 3,
-		planet4Image->width, planet4Image->height, 0,
-		GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get()
-	);
+			GL_TEXTURE_2D, 0, 3,
+			planet4Image->width, planet4Image->height, 0,
+			GL_RGB, GL_UNSIGNED_BYTE, planet4Image->data.get()
+		    );
 
 	initialize_fonts();
 	// Load game title texture
@@ -545,10 +545,10 @@ void init_opengl(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	// Use GL_RGBA instead of GL_RGB to handle alpha channel
 	glTexImage2D(
-		GL_TEXTURE_2D, 0, GL_RGBA,
-		titleImage->width, titleImage->height, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, buildAlphaData(titleImage).get()
-	);
+			GL_TEXTURE_2D, 0, GL_RGBA,
+			titleImage->width, titleImage->height, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, buildAlphaData(titleImage).get()
+		    );
 
 }
 
@@ -630,7 +630,7 @@ void check_mouse(XEvent *e)
 
 int check_keys(XEvent *e)
 {
-	static int shift = 0;
+	[[maybe_unused]]static int shift = 0;
 	static int exit_request = 0;
 
 	// Not a keyboard event
@@ -728,7 +728,7 @@ int check_keys(XEvent *e)
 		if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
 			switch (gl.state) {
 				case PLAYING:
-					handle_playing_key_release();
+					handlePlayerKeyRelease(player);
 					break;
 
 				case SPACE:
@@ -736,7 +736,7 @@ int check_keys(XEvent *e)
 					break;
 
 				default:
-				break;
+					break;
 			}
 		}
 	}
@@ -749,32 +749,32 @@ int check_keys(XEvent *e)
 		}
 		if (e->type == KeyRelease) {
 			if (key == XK_Up || key == XK_Down ||
-				key == XK_Left || key == XK_Right
-			) {
+					key == XK_Left || key == XK_Right
+			   ) {
 				sc->ssheet = "player-idle";
 				sc->invert_y = false;
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
 			static float movement_mag = 75.0;
-			
-      if (key == XK_e) {
-			
+
+			if (key == XK_e) {
+
 				gl.state = SPACE;
 				//DESTROY PLANET
 				ecs::ecs.entity().ret(planetPtr);
-				
+
 				// [[maybe_unused]] auto map_tiles = ecs::ecs.query<TRANSFORM, SPRITE>();
 				// for (auto* tile:map_tiles) {
 				// 	auto* entity = tile;
 				// 	ecs::ecs.entity().ret(entity);
 				// }
-				
+
 				//REGENERATE REGENERATE PLANET
-				
+
 				planetPtr = ecs::GeneratePlanet();
-				auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-				
+				[[maybe_unused]]auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+
 				// WorldGenerationSettings settings {
 				// 	planetAttr->temperature,
 				// 	planetAttr->humidity,
@@ -822,11 +822,11 @@ int check_keys(XEvent *e)
 	if (gl.state == SPACE) {
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		float parallaxScale = 0.0003f;
-    
+
 		[[maybe_unused]] auto [transform,sprite,physics] = (
-			ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship)
-		);
-    
+				ecs::ecs.component().fetch<TRANSFORM,SPRITE,PHYSICS>(gl.spaceship)
+				);
+
 		if (e->type == KeyPress) {
 
 			static float space_movement_mag = 800.0;
@@ -836,7 +836,7 @@ int check_keys(XEvent *e)
 				if (PlanetCollision(planetPtr)) {
 					gl.state = PLAYING;
 				}
-				
+
 				return 0;
 			}
 
@@ -873,15 +873,15 @@ int check_keys(XEvent *e)
 				case XK_a:
 					done = 1;
 					break;
-				} 
-			}
-			else if (e->type == KeyRelease) {
-				sprite->ssheet = "ship-right";
-				sprite ->invert_y = false;
-				physics->vel = {0,0};
-			}
+			} 
 		}
-		return exit_request;
+		else if (e->type == KeyRelease) {
+			sprite->ssheet = "ship-right";
+			sprite ->invert_y = false;
+			physics->vel = {0,0};
+		}
+	}
+	return exit_request;
 }
 
 // Helper functions for each state
@@ -921,7 +921,7 @@ int handle_menu_state(int key)
 
 int handle_paused_state(int key)
 {
-	int pause_result = handle_pause_keys(key, gl.state, gl.previous_state, gl.pause_selected_option, gl.previous_music);
+	[[maybe_unused]]int pause_result = handle_pause_keys(key, gl.state, gl.previous_state, gl.pause_selected_option, gl.previous_music);
 
 	if (key == XK_Return && gl.pause_selected_option == 1) {
 		// Going to controls from pause
@@ -1008,35 +1008,29 @@ int handle_credits_state(int key)
 
 void handle_playing_state(int key)
 {
+	handlePlayerMovementInput(key, player);
+
 	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(player);
-	
-	static auto lastFootstepTime = std::chrono::high_resolution_clock::now();
-    	static const auto footstepInterval = std::chrono::milliseconds(600); 
-	
+
+	//[[maybe_unused]]static auto lastFootstepTime = std::chrono::high_resolution_clock::now();
+	//static const autofootstepInterval = std::chrono::milliseconds(600); 
+
 	if (pc && sc) {
-		static float movement_mag = 20.0;
-		bool isMoving = false;
+		[[maybe_unused]]static float movement_mag = 20.0;
+		[[maybe_unused]]bool isMoving = false;
 		switch(key) {
 			case XK_Right:
-				sc->ssheet = "player-right";
-				pc->vel = {movement_mag, 0};
+				updatePlayerMovementSprite(player, DIR_RIGHT);
 				break;
 			case XK_Left:
-				sc->invert_y = true;
-				sc->ssheet = "player-right";
-				pc->vel = {-movement_mag, 0};
+				updatePlayerMovementSprite(player, DIR_LEFT);
 				break;
 			case XK_Up:
-				sc->ssheet = "player-back";
-				pc->vel = {0, movement_mag};
+				updatePlayerMovementSprite(player, DIR_UP);
 				break;
 			case XK_Down:
-				sc->ssheet = "player-front";
-				pc->vel = {0, -movement_mag};
+				updatePlayerMovementSprite(player, DIR_DOWN);
 				break;
-		}
-		if (isMoving) {
-			playFootstepSound();
 		}
 	}
 }
@@ -1074,12 +1068,7 @@ void handle_space_state(int key)
 
 void handle_playing_key_release()
 {
-	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(player);
-	if (pc && sc) {
-		sc->ssheet = "player-idle";
-		sc->invert_y = false;
-		pc->vel = {0, 0};
-	}
+    handlePlayerKeyRelease(player);
 }
 
 void handle_space_key_release()
@@ -1108,6 +1097,7 @@ void physics(Enemy& foe, World* w)
 		if(dummy) {
 			foe.action(w);
 		}
+		updateFootstepSounds();
 	}
 	if (player) {
 		auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
@@ -1119,15 +1109,15 @@ void physics(Enemy& foe, World* w)
 	}
 	if (gl.spaceship) {
 		auto [spaceshipHealth] = ecs::ecs.component()
-											.fetch<ecs::Health>(gl.spaceship);
+			.fetch<ecs::Health>(gl.spaceship);
 		if (spaceshipHealth->health <= 0.0f) {
 			DINFO("Player Died, GAME OVER...");
 			gl.state = GAMEOVER; 
 		}
 	}
 	else if (gl.state == PLAYING) {
-        updateFootstepSounds();
-    }
+		updateFootstepSounds();
+	}
 }
 
 void SampleSpaceEntities() //chatgpt 
@@ -1164,11 +1154,11 @@ void render() {
 			glLoadIdentity();
 
 			render_menu_screen(
-				gl.res[0], gl.res[1],
-				menuBackgroundTexture,
-				gl.titleTexture,
-				gl.selected_option
-			); 
+					gl.res[0], gl.res[1],
+					menuBackgroundTexture,
+					gl.titleTexture,
+					gl.selected_option
+					); 
 
 			glPopMatrix(); // POP 2
 			glMatrixMode(GL_PROJECTION);
@@ -1179,10 +1169,10 @@ void render() {
 			glPushMatrix(); // PUSH 3
 			glLoadIdentity();
 			gluPerspective(
-				45.0f,
-				(GLfloat) gl.res[0] / (GLfloat) gl.res[1],
-				0.1f, 100.0f
-			);
+					45.0f,
+					(GLfloat) gl.res[0] / (GLfloat) gl.res[1],
+					0.1f, 100.0f
+				      );
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix(); // PUSH 4
@@ -1255,37 +1245,37 @@ void render() {
 			DisableFor2D();
 			if (player) {   //player health bar
 				auto [playerHealth] = ecs::ecs.component()
-													.fetch<ecs::Health>(player);
+					.fetch<ecs::Health>(player);
 				if (playerHealth) 
 					drawUIBar(
-						"Health",
-						playerHealth->health,
-						playerHealth->max, 20,
-						gl.res[1] - 50, 0xF00FF00
-					);
+							"Health",
+							playerHealth->health,
+							playerHealth->max, 20,
+							gl.res[1] - 50, 0xF00FF00
+						 );
 			}
 			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
 			break; 
 
 		case SPACE:
-		{
-			glMatrixMode(GL_PROJECTION);
-			glPushMatrix(); // PUSH 3
-			glLoadIdentity();
-			gluPerspective(
-				45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1],
-				0.1f, 100.0f
-			);
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix(); // PUSH 4
-			glLoadIdentity();
-			gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-			EnableFor3D();
-			glPushMatrix();
-			DrawPlanet(traits-> AngY, traits-> PosX, traits-> PosY, traits-> 
+			{
+				glMatrixMode(GL_PROJECTION);
+				glPushMatrix(); // PUSH 3
+				glLoadIdentity();
+				gluPerspective(
+						45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1],
+						0.1f, 100.0f
+					      );
+				glMatrixMode(GL_MODELVIEW);
+				glPushMatrix(); // PUSH 4
+				glLoadIdentity();
+				gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+				EnableFor3D();
+				glPushMatrix();
+				DrawPlanet(traits-> AngY, traits-> PosX, traits-> PosY, traits-> 
 						PosZ, gl.lightPosition, traits->size, traits->rotationX, 
 						traits->rotationY, traits->smooth, traits->temperature);
-			glPopMatrix();
+				glPopMatrix();
 
 				glMatrixMode(GL_PROJECTION);
 				glLoadIdentity();
@@ -1530,48 +1520,3 @@ void render() {
 	}
 }
 
-void playFootstepSound() {
-    auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
-    if (!transform) return;
-    
-    auto [planet] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-    if (planet) {
-        float temp = planet->temperature;
-        float humidity = planet->humidity;
-        
-        if (temp >= -10.0f && temp <= 10.0f && humidity >= 0.2f && humidity <= 0.6f) {
-            playGameSound(FOOTSTEP_SNOW);
-        }
-        else if (temp >= 40.0f || (temp >= 30.0f && humidity <= 0.2f)) {
-            playGameSound(FOOTSTEP_LAVA);
-        }
-        else {
-            playGameSound(FOOTSTEP_GRASS);
-        }
-    } else {
-        playGameSound(FOOTSTEP_GRASS);
-    }
-}
-
-void updateFootstepSounds() {
-    static auto lastFootstepTime = std::chrono::high_resolution_clock::now();
-    static const auto footstepInterval = std::chrono::milliseconds(600); 
-
-    auto [physics, transform] = ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(player);
-
-    if (physics && transform) {
-        // Check if player is moving (has velocity)
-        bool isMoving = (physics->vel[0] != 0 || physics->vel[1] != 0);
-
-        if (isMoving) {
-            auto currentTime = std::chrono::high_resolution_clock::now();
-            auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFootstepTime);
-
-            // Play footstep sound if enough time has passed
-            if (elapsedTime >= footstepInterval) {
-                playFootstepSound();
-                lastFootstepTime = currentTime;
-            }
-        }
-    }
-}

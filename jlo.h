@@ -140,6 +140,8 @@ using v2f = Vec2<float>;
 using cmask = std::bitset<_MAX_COMPONENTS>;
 using time_point = std::chrono::high_resolution_clock::time_point;
 
+void checkRequiredSprites();
+
 void show_jlo(Rect* r);
 extern u16 counter;
 extern void loadTextures(
