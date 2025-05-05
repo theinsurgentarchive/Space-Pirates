@@ -23,7 +23,10 @@ enum SoundType {
     PLAYER_DEATH,
     GAME_WIN,
     GAME_LOSE,
-    POWER_UP
+    POWER_UP,
+    FOOTSTEP_GRASS,   
+    FOOTSTEP_SNOW,
+    FOOTSTEP_LAVA
 };
 
 // Music types for different game states
@@ -31,10 +34,23 @@ enum MusicType {
     MENU_MUSIC,
     MENU_PAUSE_MUSIC,
     GAME_MUSIC,
+    SPACE_MUSIC,
     BOSS_MUSIC,
     VICTORY_MUSIC,
     GAME_OVER_MUSIC
 };
+
+// Constants for menu actions
+const int MENU_ACTION_NONE = 0;
+const int MENU_ACTION_EXIT = 1;
+const int MENU_ACTION_NAVIGATE = 2;
+const int MENU_ACTION_SELECT = 3;
+
+// Pause menu actions
+const int PAUSE_ACTION_NONE = 0;
+const int PAUSE_ACTION_RESUME = 30;
+const int PAUSE_ACTION_CONTROLS = 21;
+const int PAUSE_ACTION_MAINMENU = 22;
 
 class AudioManager {
 private:
@@ -110,6 +126,8 @@ public:
     
     // Update function to be called each frame
     void update();
+    MusicType getCurrentMusic() const;
+    void setCurrentMusic(MusicType music) { currentMusic = music; }
 };
 
 // Global accessor function
@@ -121,5 +139,12 @@ void shutdownAudioSystem();
 void playGameSound(SoundType sound);
 void playGameMusic(MusicType music);
 void updateAudioState(GameState state);
+void changeGameState(GameState& currentState, GameState newState);
 void render_credits_screen(int xres, int yres, GLuint menuBackgroundTexture);
 void resetGLState(int xres, int yres);
+void render_title_logo(int xres, int yres, GLuint titleTexture);
+void playFootstepSound();
+// Pause menu functions
+void render_pause_menu(int xres, int yres, int selected_option);
+int handle_pause_keys(int key, GameState &state, GameState &previous_state, int &selected_option, MusicType previous_music);
+void render_pause_controls_screen(int xres, int yres);

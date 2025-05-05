@@ -61,49 +61,58 @@ extern void timeCopy(struct timespec *dest, struct timespec *source);
 //-----------------------------------------------------------------------------
 
 class Global {
-public:
-	v2u res;
-	char keys[65536];
-	int mouse_cursor_on;
-	GLuint walkTexture;
-	GLuint titleTexture;
-	GLfloat lightAmbient[4];
-	GLfloat lightDiffuse[4];
-	GLfloat lightSpecular[4];
-	GLfloat lightPosition[4];
-	float planetPos[3];
-	float planetRot[3];
-	float planetAng[3];
-	GameState state; 
-	int selected_option; // 0 = start, 1 = controls, 2 = exit
-	ecs::Entity* spaceship;
-	Global() {
-		res[0] = 720;
-		res[1] = 480;
-		memset(keys, 0, 65536);
-		// mouse value 1 = true = mouse is a regular mouse.
-		state = MENU; // default 
-		mouse_cursor_on = 1;
+	public:
+		v2u res;
+		char keys[65536];
+		int mouse_cursor_on;
+		GLuint walkTexture;
+		GLuint titleTexture;
+		GLfloat lightAmbient[4];
+		GLfloat lightDiffuse[4];
+		GLfloat lightSpecular[4];
+		GLfloat lightPosition[4];
+		float planetPos[3];
+		float planetRot[3];
+		float planetAng[3];
+		GameState state;
+		GameState previous_state;	
+		GameState controls_from_state; // track where we came to controls from
+		int pause_selected_option; 
+		int selected_option; // 0 = start, 1 = controls, 2 = exit
+		MusicType previous_music;
+		ecs::Entity* spaceship;
+		ecs::Entity* dummy;
+		Global() {
+			res[0] = 800;
+			res[1] = 600;
+			memset(keys, 0, 65536);
+			// mouse value 1 = true = mouse is a regular mouse.
+			state = MENU; // default 
+			previous_state = MENU;
+			controls_from_state = MENU;
+			pause_selected_option = 0;
+			previous_music = MENU_MUSIC;
+			mouse_cursor_on = 1;
 
-		//planet shadow
-		//GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
-		GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
-		GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
+			//planet shadow
+			//GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
+			GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
+			GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
 
-		GLfloat lp[] = { 100.0f, 60.0f, -140.0f, 1.0f };
-		lp[0] = rnd() * 200.0 - 100.0;
-		lp[1] = rnd() * 100.0 + 20.0;
-		lp[2] = rnd() * 300.0 - 150.0;
-		memcpy(lightPosition, lp, sizeof(GLfloat)*4);
-		memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
-		memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
-		memcpy(lightPosition, lp, sizeof(GLfloat)*4);
+			GLfloat lp[] = { 100.0f, 60.0f, -140.0f, 1.0f };
+			lp[0] = rnd() * 200.0 - 100.0;
+			lp[1] = rnd() * 100.0 + 20.0;
+			lp[2] = rnd() * 300.0 - 150.0;
+			memcpy(lightPosition, lp, sizeof(GLfloat)*4);
+			memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
+			memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
+			memcpy(lightPosition, lp, sizeof(GLfloat)*4);
 
-		float bp[3]={0.0,2.0,-7.0};
-		float ba[3]={0.0,0.0,0.0};
-		memcpy(planetPos, bp, sizeof(float)*3);
-		memcpy(planetRot, ba, sizeof(float)*3);
-		memcpy(planetAng, ba, sizeof(float)*3);
+			float bp[3]={0.0,2.0,-7.0};
+			float ba[3]={0.0,0.0,0.0};
+			memcpy(planetPos, bp, sizeof(float)*3);
+			memcpy(planetRot, ba, sizeof(float)*3);
+			memcpy(planetAng, ba, sizeof(float)*3);
 		}
 }; 
 Global gl;
@@ -135,61 +144,61 @@ class Game {
 
 //X Windows variables
 class X11_wrapper {
-private:
-	Display *dpy;
-	Window win;
-	GLXContext glc;
-public:
-	X11_wrapper() { }
-	X11_wrapper(int w, int h) {
-		GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
-		//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
-		XSetWindowAttributes swa;
-		setup_screen_res(gl.res[0],gl.res[1]);
-		dpy = XOpenDisplay(NULL);
-		if (dpy == NULL) {
-			std::cout << "\n\tcannot connect to X server" << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		Window root = DefaultRootWindow(dpy);
-		XWindowAttributes getWinAttr;
-		XGetWindowAttributes(dpy, root, &getWinAttr);
-		int fullscreen = 0;
-		gl.res[0] = w;
-		gl.res[1] = h;
-		if (!w && !h) {
-			//Go to fullscreen.
-			gl.res[0] = getWinAttr.width;
-			gl.res[1] = getWinAttr.height;
-			//When window is fullscreen, there is no client window
-			//so keystrokes are linked to the root window.
-			XGrabKeyboard(dpy, root, False,
-				GrabModeAsync, GrabModeAsync, CurrentTime);
-			fullscreen=1;
-		}
-		XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
-		if (vi == NULL) {
-			std::cout << "\n\tno appropriate visual found\n" << std::endl;
-			exit(EXIT_FAILURE);
-		} 
-		Colormap cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
-		swa.colormap = cmap;
-		swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask |
-			PointerMotionMask | MotionNotify | ButtonPress | ButtonRelease |
-			StructureNotifyMask | SubstructureNotifyMask;
-		unsigned int winops = CWBorderPixel|CWColormap|CWEventMask;
-		if (fullscreen) {
-			winops |= CWOverrideRedirect;
-			swa.override_redirect = True;
-		}
-		win = XCreateWindow(dpy, root, 0, 0, gl.res[0], gl.res[1], 0,
-				vi->depth, InputOutput, vi->visual, winops, &swa);
-		//win = XCreateWindow(dpy, root, 0, 0, gl.res[0], gl.res[1], 0,
-		//vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
-		set_title();
-		glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
-		glXMakeCurrent(dpy, win, glc);
-		show_mouse_cursor(0);
+	private:
+		Display *dpy;
+		Window win;
+		GLXContext glc;
+	public:
+		X11_wrapper() { }
+		X11_wrapper(int w, int h) {
+			GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+			//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
+			XSetWindowAttributes swa;
+			setup_screen_res(gl.res[0],gl.res[1]);
+			dpy = XOpenDisplay(NULL);
+			if (dpy == NULL) {
+				std::cout << "\n\tcannot connect to X server" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			Window root = DefaultRootWindow(dpy);
+			XWindowAttributes getWinAttr;
+			XGetWindowAttributes(dpy, root, &getWinAttr);
+			int fullscreen = 0;
+			gl.res[0] = w;
+			gl.res[1] = h;
+			if (!w && !h) {
+				//Go to fullscreen.
+				gl.res[0] = getWinAttr.width;
+				gl.res[1] = getWinAttr.height;
+				//When window is fullscreen, there is no client window
+				//so keystrokes are linked to the root window.
+				XGrabKeyboard(dpy, root, False,
+						GrabModeAsync, GrabModeAsync, CurrentTime);
+				fullscreen=1;
+			}
+			XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
+			if (vi == NULL) {
+				std::cout << "\n\tno appropriate visual found\n" << std::endl;
+				exit(EXIT_FAILURE);
+			} 
+			Colormap cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
+			swa.colormap = cmap;
+			swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask |
+				PointerMotionMask | MotionNotify | ButtonPress | ButtonRelease |
+				StructureNotifyMask | SubstructureNotifyMask;
+			unsigned int winops = CWBorderPixel|CWColormap|CWEventMask;
+			if (fullscreen) {
+				winops |= CWOverrideRedirect;
+				swa.override_redirect = True;
+			}
+			win = XCreateWindow(dpy, root, 0, 0, gl.res[0], gl.res[1], 0,
+					vi->depth, InputOutput, vi->visual, winops, &swa);
+			//win = XCreateWindow(dpy, root, 0, 0, gl.res[0], gl.res[1], 0,
+			//vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &swa);
+			set_title();
+			glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
+			glXMakeCurrent(dpy, win, glc);
+			show_mouse_cursor(0);
 		}
 		~X11_wrapper() {
 			XDestroyWindow(dpy, win);
@@ -265,19 +274,34 @@ public:
 			//it will undo the last change done by XDefineCursor
 			//(thus do only use ONCE XDefineCursor and then XUndefineCursor):
 		}
-	} x11(gl.res[0],gl.res[1]);
-		
-			// glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+} x11(gl.res[0],gl.res[1]);
+
+// glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 // ---> for fullscreen x11(0, 0);
 
 //function prototypes
 void init_opengl(void);
 void check_mouse(XEvent *e);
+
 int check_keys(XEvent *e);
 void physics(Enemy&, World*);
+
 void render();
-// For transparent title.png background
+// For transparent title.webp background
 std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
+
+// Forward declarations for helper functions
+int handle_menu_state(int key);
+int handle_paused_state(int key);
+int handle_controls_state(int key);
+int handle_pause_controls_state(int key);
+int handle_credits_state(int key);
+void handle_playing_state(int key);
+void handle_space_state(int key);
+void handle_playing_key_release();
+void handle_space_key_release();
+void updateFootstepSounds();
+
 
 //Start - Justin
 //==========================================================================
@@ -320,9 +344,9 @@ int main()
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
-		planetAttr->humidity,
-		static_cast<u16>(planetAttr->size * 50),
-		static_cast<u32>(2)};
+			planetAttr->humidity,
+			static_cast<u16>(planetAttr->size * 50),
+			static_cast<u32>(2)};
 	settings.origin = {0,0};
     // Initialize audio system
     initAudioSystem();
@@ -347,9 +371,9 @@ int main()
 		gl.res
 	};
 	spaceCamera = &space_Camera; 
-	
 
-	
+
+
 	ps.sample();
 
 	float dt = getDeltaTime();  
@@ -395,16 +419,25 @@ int main()
             check_mouse(&e);
             done = check_keys(&e);
 		}
-		switch (gl.state){ //camera switch 
+		switch (gl.state) { //camera switch 
 			case SPACE:
 				c = spaceCamera; 
 				break; 
 			case PLAYING:
 				c = &camera; 
+				break;
+			case PAUSED:
+				// Keep the previous camera based on what state we paused from
+				if (gl.previous_state == SPACE) {
+					c = spaceCamera;
+				} else if (gl.previous_state == PLAYING) {
+					c = &camera;
+				}
 				break; 
 			case GAMEOVER:
 				sleep(4);
 				done = true;
+
 				break;
 			default: 
 				c = nullptr;
@@ -506,7 +539,7 @@ void init_opengl(void)
 	initialize_fonts();
 	// Load game title texture
 	glGenTextures(1, &gl.titleTexture);
-	Image *titleImage = new Image("./resources/textures/title.png");
+	Image *titleImage = new Image("./resources/textures/title.webp");
 	glBindTexture(GL_TEXTURE_2D, gl.titleTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -597,48 +630,116 @@ void check_mouse(XEvent *e)
 
 int check_keys(XEvent *e)
 {
-	[[maybe_unused]]static int shift = 0;
-	[[maybe_unused]]static int exit_request = 0;
-	if (e->type != KeyRelease && e->type != KeyPress) {
-		//not a keyboard event
-		return 0;
-	}
+	static int shift = 0;
+	static int exit_request = 0;
 
 	// Not a keyboard event
 	if (e->type != KeyRelease && e->type != KeyPress) {
-		return exit_request;
+		return 0;
 	}
+
 	int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
 
+	// Handle key press events
 	if (e->type == KeyPress) {
-		exit_request = handle_menu_keys(key, gl.state, gl.selected_option);
-		if (exit_request) {
-			return exit_request;
-		}
-		// Add handling for ESC key in PLAYING state
-		if (key == XK_Escape && gl.state == PLAYING) {
-			// Pause game music
-			getAudioManager()->pauseMusic();
-			// Play menu music
-			playGameMusic(MENU_MUSIC);
-			// Change state to MENU
-			gl.state = MENU;
-			return 0;
-		}
-		
-
-
-		if (key == XK_Escape && gl.state == SPACE) {  // TEMP FOR EASE
-			gl.state = MENU; 
-			return 0;
+		// Check if shift is pressed
+		if (key == XK_Shift_L || key == XK_Shift_R) {
+			shift = 1;
 		}
 
-		if (key == XK_Escape && gl.state == CREDITS) {
-			gl.state = MENU; 
-			return 0;
+		// Handle escape key based on current state
+		if (key == XK_Escape) {
+			switch (gl.state) {
+				case PLAYING:
+				case SPACE:
+					gl.previous_state = gl.state;
+					gl.previous_music = getAudioManager()->getCurrentMusic();
+					gl.state = PAUSED;
+					gl.pause_selected_option = 0;
+					getAudioManager()->pauseMusic();
+					return 0;
+
+				case MENU:
+					return 1; // Exit the game
+
+				case PAUSED:
+					playGameSound(MENU_CLICK);
+					gl.state = gl.previous_state;
+					updateAudioState(gl.state);
+					return 0;
+
+				case CREDITS:
+					playGameSound(MENU_CLICK);
+					gl.state = MENU;
+					updateAudioState(gl.state);
+					return 0;
+
+				case CONTROLS:  // Add this case
+					playGameSound(MENU_CLICK);
+					if (gl.controls_from_state == PAUSED) {
+						getAudioManager()->stopMusic();
+						getAudioManager()->setCurrentMusic(gl.previous_music);
+						gl.state = PAUSED;
+					} else {
+						gl.state = MENU;
+						updateAudioState(gl.state);
+					}
+					return 0;
+
+				default:
+					return 0;
+			}
+		}
+
+		// State-specific key handling
+		switch (gl.state) {
+			case MENU:
+				return handle_menu_state(key);
+
+			case PAUSED:
+				return handle_paused_state(key);
+
+			case CONTROLS:
+				return handle_controls_state(key);
+
+			case CREDITS:
+				return handle_credits_state(key);
+
+			case PLAYING:
+				handle_playing_state(key);
+				break;
+
+			case SPACE:
+				handle_space_state(key);
+				break;
+
+			default:
+				break;
 		}
 	}
 
+	// Handle key release events
+	if (e->type == KeyRelease) {
+		if (key == XK_Shift_L || key == XK_Shift_R) {
+			shift = 0;
+		}
+
+		// Handle movement key releases
+		if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
+			switch (gl.state) {
+				case PLAYING:
+					handle_playing_key_release();
+					break;
+
+				case SPACE:
+					handle_space_key_release();
+					break;
+
+				default:
+				break;
+			}
+		}
+	}
 	// Playing state handling
 	if (gl.state == PLAYING) {
 		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
@@ -772,21 +873,230 @@ int check_keys(XEvent *e)
 				case XK_a:
 					done = 1;
 					break;
-				}
-
-			} else if (e->type == KeyRelease) {
-				sprite->ssheet = "ship-right"; 
+				} 
+			}
+			else if (e->type == KeyRelease) {
+				sprite->ssheet = "ship-right";
 				sprite ->invert_y = false;
 				physics->vel = {0,0};
 			}
+		}
+		return exit_request;
+}
 
-		} return exit_request;
-	} //bracket fix
+// Helper functions for each state
+int handle_menu_state(int key)
+{
+	int menu_result = handle_menu_keys(key, gl.state, gl.selected_option);
 
+	if (menu_result == 1) { // Exit request
+		return 1;
+	}
+	else if (menu_result >= 10) { // A menu option was selected
+		int option = menu_result - 10;
+		switch(option) {
+			case 0: // Start
+				gl.state = PLAYING;
+				updateAudioState(gl.state);
+				break;
+			case 1: // Controls
+				gl.controls_from_state = MENU;
+				gl.state = CONTROLS;
+				updateAudioState(gl.state);
+				break;
+			case 2: // Credits
+				gl.state = CREDITS;
+				updateAudioState(gl.state);
+				break;
+			case 3: // Space
+				gl.state = SPACE;
+				updateAudioState(gl.state);
+				break;
+			case 4: // Exit
+				return 1;
+		}
+	}
+	return 0;
+}
 
+int handle_paused_state(int key)
+{
+	int pause_result = handle_pause_keys(key, gl.state, gl.previous_state, gl.pause_selected_option, gl.previous_music);
+
+	if (key == XK_Return && gl.pause_selected_option == 1) {
+		// Going to controls from pause
+		gl.controls_from_state = PAUSED;
+	}
+
+	return 0;
+}
+
+int handle_controls_state(int key)
+{
+	if (key == XK_Escape || key == XK_Return) {
+		playGameSound(MENU_CLICK);
+		if (gl.controls_from_state == PAUSED) {
+			// Return to pause menu
+			getAudioManager()->stopMusic();
+			getAudioManager()->setCurrentMusic(gl.previous_music);
+			gl.state = PAUSED;
+		} else {
+			// Return to main menu
+			gl.state = MENU;
+			updateAudioState(gl.state);
+		}
+		return 0;
+	}
+
+	// Toggle music with 'M' key
+	if (key == XK_m || key == XK_M) {
+		playGameSound(MENU_CLICK);
+		getAudioManager()->toggleMusic();
+		return 0;
+	}
+
+	// Toggle sound effects with 'S' key
+	if (key == XK_s || key == XK_S) {
+		getAudioManager()->toggleSound();
+		if (getAudioManager()->isSoundEnabled()) {
+			playGameSound(MENU_CLICK);
+		}
+		return 0;
+	}
+
+	return 0;
+}
+
+int handle_pause_controls_state(int key)
+{
+	if (key == XK_Escape || key == XK_Return) {
+		playGameSound(MENU_CLICK);
+		gl.state = PAUSED;
+		return 0;
+	}
+
+	// Toggle music with 'M' key
+	if (key == XK_m || key == XK_M) {
+		playGameSound(MENU_CLICK);
+		getAudioManager()->toggleMusic();
+		return 0;
+	}
+
+	// Toggle sound effects with 'S' key
+	if (key == XK_s || key == XK_S) {
+		getAudioManager()->toggleSound();
+		if (getAudioManager()->isSoundEnabled()) {
+			playGameSound(MENU_CLICK);
+		}
+		return 0;
+	}
+
+	DINFO("=== EXIT handle_pause_controls_state ===\n");
+	return 0;
+}
+
+int handle_credits_state(int key)
+{
+	if (key == XK_Return) {
+		playGameSound(MENU_CLICK);
+		gl.state = MENU;
+		updateAudioState(gl.state);
+		return 0;
+	}
+	return 0;
+}
+
+void handle_playing_state(int key)
+{
+	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(player);
+	
+	static auto lastFootstepTime = std::chrono::high_resolution_clock::now();
+    	static const auto footstepInterval = std::chrono::milliseconds(600); 
+	
+	if (pc && sc) {
+		static float movement_mag = 20.0;
+		bool isMoving = false;
+		switch(key) {
+			case XK_Right:
+				sc->ssheet = "player-right";
+				pc->vel = {movement_mag, 0};
+				break;
+			case XK_Left:
+				sc->invert_y = true;
+				sc->ssheet = "player-right";
+				pc->vel = {-movement_mag, 0};
+				break;
+			case XK_Up:
+				sc->ssheet = "player-back";
+				pc->vel = {0, movement_mag};
+				break;
+			case XK_Down:
+				sc->ssheet = "player-front";
+				pc->vel = {0, -movement_mag};
+				break;
+		}
+		if (isMoving) {
+			playFootstepSound();
+		}
+	}
+}
+
+void handle_space_state(int key)
+{
+	auto [transform, sprite, physics] = ecs::ecs.component().fetch<TRANSFORM, SPRITE, PHYSICS>(gl.spaceship);
+	if (transform && sprite && physics) {
+		static float space_movement_mag = 600.0;
+		switch(key) {
+			case XK_Right:
+				sprite->ssheet = "ship-right";
+				physics->vel = {space_movement_mag, 0};
+				decrementResources(gl.state, gl.spaceship);
+				break;
+			case XK_Left:
+				sprite->invert_y = true;
+				sprite->ssheet = "ship-right";
+				physics->vel = {-space_movement_mag, 0};
+				decrementResources(gl.state, gl.spaceship);
+				break;
+			case XK_Up:
+				sprite->ssheet = "ship-front-back";
+				physics->vel = {0, space_movement_mag};
+				decrementResources(gl.state, gl.spaceship);
+				break;
+			case XK_Down:
+				sprite->ssheet = "ship-front-back";
+				physics->vel = {0, -space_movement_mag};
+				decrementResources(gl.state, gl.spaceship);
+				break;
+		}
+	}
+}
+
+void handle_playing_key_release()
+{
+	auto [pc, sc] = ecs::ecs.component().fetch<PHYSICS, SPRITE>(player);
+	if (pc && sc) {
+		sc->ssheet = "player-idle";
+		sc->invert_y = false;
+		pc->vel = {0, 0};
+	}
+}
+
+void handle_space_key_release()
+{
+	auto [sprite, physics] = ecs::ecs.component().fetch<SPRITE, PHYSICS>(gl.spaceship);
+	if (sprite && physics) {
+		sprite->ssheet = "ship-right";
+		sprite->invert_y = false;
+		physics->vel = {0, 0};
+	}
+}
 
 void physics(Enemy& foe, World* w)
 {
+	if (gl.state == PAUSED) {
+		return; 
+	}
 	ps.update((float)1/20);
 	if (gl.state == MENU){
 		gl.planetAng[2] += 1.0;
@@ -815,10 +1125,13 @@ void physics(Enemy& foe, World* w)
 			gl.state = GAMEOVER; 
 		}
 	}
+	else if (gl.state == PLAYING) {
+        updateFootstepSounds();
+    }
 }
 
- void SampleSpaceEntities() //chatgpt 
- { // sample space entities, made jlo renderSystem > ._entities public for access
+void SampleSpaceEntities() //chatgpt 
+{ // sample space entities, made jlo renderSystem > ._entities public for access
 	auto spaceEntities = ecs::ecs.query<ASTEROID>(); 
 	if (gl.spaceship) {
 		spaceEntities.push_back(gl.spaceship); // add spaceship to entity list
@@ -828,7 +1141,6 @@ void physics(Enemy& foe, World* w)
 
 
 void render() {
-	DINFOF("rendering state: %d\n", gl.state);
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
@@ -882,21 +1194,21 @@ void render() {
 			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] - 4.5, gl.planetPos[1] - 3,
 					gl.planetPos[2], gl.lightPosition, planet2Texture, 3, 1, 1
-				  );
+				      );
 			glPopMatrix(); // POP 5
 
 			glPushMatrix(); // PUSH 6
 			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] + 5.5, gl.planetPos[1],
 					gl.planetPos[2], gl.lightPosition, planetTexture, 2.25, 1, 0
-				  );
+				      );
 			glPopMatrix(); // POP 6
 
 			glPushMatrix(); // PUSH 7
 			DrawPlanetMenu(
 					gl.planetAng[2], gl.planetPos[0] + 1.4, gl.planetPos[1] - 7,
 					gl.planetPos[2], gl.lightPosition, planet4Texture, 1, 0, 1
-				  );
+				      );
 			glPopMatrix(); // POP 7
 
 			glPopMatrix(); // POP 4
@@ -911,7 +1223,7 @@ void render() {
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-			render_control_screen(gl.res[0], gl.res[1], menuBackgroundTexture);
+			render_control_screen(gl.res[0], gl.res[1], menuBackgroundTexture, gl.controls_from_state);
 			break;
 
 		case CREDITS:
@@ -975,97 +1287,210 @@ void render() {
 						traits->rotationY, traits->smooth, traits->temperature);
 			glPopMatrix();
 
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+				glMatrixMode(GL_PROJECTION);
+				glLoadIdentity();
+				glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix(); 
-			glLoadIdentity();
+				glMatrixMode(GL_MODELVIEW);
+				glPushMatrix(); 
+				glLoadIdentity();
 
-			//applying camera
-	
-			c->update();
+				//applying camera
 
-			// merge space sprites into ssheets once
-			static bool spaceSheetsLoaded = false;
-			if (!spaceSheetsLoaded) {
-    			ssheets.insert(
-					shipAndAsteroidsSheets.begin(),
-					shipAndAsteroidsSheets.end()
-				);
-   				spaceSheetsLoaded = true; 
-				
+				c->update();
+
+				// merge space sprites into ssheets once
+				static bool spaceSheetsLoaded = false;
+				if (!spaceSheetsLoaded) {
+					ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
+					spaceSheetsLoaded = true; 
+
+				}
+
+				spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
+
+				//sample only asteroid and ship entities 
+				SampleSpaceEntities();
+				//spaceRenderer.update((float)1/10);
+				float dt = getDeltaTime(); 
+				spaceRenderer.update(dt);
+
+
+				glPopMatrix();  
+
+
+
+
+				// ==== ui bar render === // 
+				glMatrixMode(GL_PROJECTION); //fix health from not moving 
+				glPushMatrix();
+				glLoadIdentity();
+				glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+				glMatrixMode(GL_MODELVIEW);
+				glPushMatrix();
+				glLoadIdentity();
+
+				DisableFor2D();
+
+
+				if (gl.spaceship) {
+					auto [spaceshipHealth] = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+					if (spaceshipHealth->health <= 0.0f) {
+						gl.state = GAMEOVER; 
+						return; 
+					}
+				}
+
+
+				if (gl.spaceship) { //draw ui space bars
+					auto [spaceshipHealth,oxygen,fuel] = ecs::ecs.component().fetch<ecs::Health,ecs::Oxygen,ecs::Fuel>(gl.spaceship);			
+					if (spaceshipHealth) {
+						drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
+					}
+					if (oxygen) {
+						drawUIBar("Oxygen", oxygen->oxygen, oxygen->max, 20, gl.res[1] - 90, 0x00FFFF);
+					}
+					if (fuel) {
+						drawUIBar("Fuel", fuel->fuel, fuel->max, 20, gl.res[1] - 130, 0xFF9900);
+					}
+				}
+
+
+				// ---- restore ---- 
+				glMatrixMode(GL_MODELVIEW);
+				glPopMatrix();
+
+				glMatrixMode(GL_PROJECTION);
+				glPopMatrix();
+
+
+
+				DisableFor2D();
+
+
+				break;
 			}
 
-			spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]); 
+		case PAUSED:
+			{
+				if (gl.previous_state == PLAYING) {
+					// Render the frozen PLAYING state
+					glMatrixMode(GL_PROJECTION);
+					glLoadIdentity();
+					glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+					glMatrixMode(GL_MODELVIEW);
+					glLoadIdentity();
 
-			//sample only asteroid and ship entities 
-			SampleSpaceEntities();
-			//spaceRenderer.update((float)1/10);
-			float dt = getDeltaTime(); 
-			spaceRenderer.update(dt);
-			
-			glPopMatrix();  
-			
+					glPushMatrix();
+					c->update();
+					rs.update(0); // Pass 0 for dt to freeze animation
+					glPopMatrix();
 
-			
-
-			// ==== ui bar render === // 
-			glMatrixMode(GL_PROJECTION); //fix health from not moving 
-			glPushMatrix();
-			glLoadIdentity();
-			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
-
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glLoadIdentity();
-
-			DisableFor2D();
-
-			if (gl.spaceship) { //draw ui space bars
-				auto [spaceshipHealth,oxygen,fuel] = (
-					ecs::ecs.component()
-						.fetch<ecs::Health,ecs::Oxygen,ecs::Fuel>(gl.spaceship)
-				);			
-				if (spaceshipHealth) {
-					drawUIBar(
-						"Health",
-						spaceshipHealth->health,
-						spaceshipHealth->max, 20,
-						gl.res[1] - 50, 0xF00FF00
-					);
+					// Render player health bar
+					DisableFor2D();
+					if (player) {
+						auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(player);
+						if (playerHealth) {
+							drawUIBar("Health", playerHealth->health, playerHealth->max, 20, gl.res[1] - 50, 0xF00FF00);
+						}
+					}
 				}
-				if (oxygen) {
-					drawUIBar(
-						"Oxygen",
-						oxygen->oxygen,
-						oxygen->max, 20,
-						gl.res[1] - 90, 0x00FFFF
-					);
+				else if (gl.previous_state == SPACE) {
+					// Render the frozen SPACE state
+					// 3D Planet rendering
+					glMatrixMode(GL_PROJECTION);
+					glPushMatrix();
+					glLoadIdentity();
+					gluPerspective(45.0f, (GLfloat)gl.res[0] / (GLfloat)gl.res[1], 0.1f, 100.0f);
+					glMatrixMode(GL_MODELVIEW);
+					glPushMatrix();
+					glLoadIdentity();
+					gluLookAt(0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+					EnableFor3D();
+
+					glPushMatrix();
+					DrawPlanet(traits->AngY, traits->PosX, traits->PosY, traits->PosZ, 
+							gl.lightPosition, traits->size, traits->rotationX, 
+							traits->rotationY, traits->smooth, traits->temperature);
+					glPopMatrix();
+
+					// Restore matrices for 3D
+					glPopMatrix(); // MODELVIEW
+					glMatrixMode(GL_PROJECTION);
+					glPopMatrix();	
+
+					// 2D Space rendering
+					glMatrixMode(GL_PROJECTION);
+					glLoadIdentity();
+					glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+					glMatrixMode(GL_MODELVIEW);
+					glPushMatrix();
+					glLoadIdentity();
+
+					// Apply camera
+					c->update();
+
+					// Marge space sprites into ssheets once
+					static bool spaceSheetsLoaded = false;
+					if (!spaceSheetsLoaded) {
+						ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
+						spaceSheetsLoaded = true;
+					}
+
+					SampleSpaceEntities();
+					spaceRenderer.update(0); // Pass 0 to freeze animation
+
+					glPopMatrix();
+
+					// UI bars
+					glMatrixMode(GL_PROJECTION);
+					glPushMatrix();
+					glLoadIdentity();
+					glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+					glMatrixMode(GL_MODELVIEW);
+					glPushMatrix();
+					glLoadIdentity();
+
+					DisableFor2D();
+
+					// Draw UI space bars
+					if (gl.spaceship) {
+						auto [spaceshipHealth,oxygen,fuel] = ecs::ecs.component()
+							.fetch<ecs::Health,ecs::Oxygen,ecs::Fuel>(gl.spaceship);
+						if (spaceshipHealth) {
+							drawUIBar("Health", spaceshipHealth->health, spaceshipHealth->max, 
+									20, gl.res[1] - 50, 0xF00FF00);
+						}
+						if (oxygen) {
+							drawUIBar("Oxygen", oxygen->oxygen, oxygen->max, 
+									20, gl.res[1] - 90, 0x00FFFF);
+						}
+						if (fuel) {
+							drawUIBar("Fuel", fuel->fuel, fuel->max, 
+									20, gl.res[1] - 130, 0xFF9900);
+						}
+					}
+
+					glMatrixMode(GL_MODELVIEW);
+					glPopMatrix();
+					glMatrixMode(GL_PROJECTION);
+					glPopMatrix();
+
+					DisableFor2D();
 				}
-				if (fuel) {
-					drawUIBar(
-						"Fuel",
-						fuel->fuel,
-						fuel->max, 20,
-						gl.res[1] - 130, 0xFF9900
-					);
-				}
+
+				// Now render the pause menu on top
+				glMatrixMode(GL_PROJECTION);
+				glLoadIdentity();
+				glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+				glMatrixMode(GL_MODELVIEW);
+				glLoadIdentity();
+
+				render_pause_menu(gl.res[0], gl.res[1], gl.pause_selected_option);
+				break;
 			}
 
-
-			// ---- restore ---- 
-			glMatrixMode(GL_MODELVIEW);
-			glPopMatrix();
-			
-			glMatrixMode(GL_PROJECTION);
-			glPopMatrix();
-
-			DisableFor2D();
-			break;
-			
-		}
 
 		case GAMEOVER:
 			getAudioManager()->stopMusic();
@@ -1081,7 +1506,7 @@ void render() {
 			glLoadIdentity();
 			DisableFor2D();
 
-			
+
 			Rect r;
 			r.left = gl.res[0] / 2;
 			r.bot = gl.res[1] / 2;
@@ -1104,4 +1529,49 @@ void render() {
 
 	}
 }
-			
+
+void playFootstepSound() {
+    auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
+    if (!transform) return;
+    
+    auto [planet] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+    if (planet) {
+        float temp = planet->temperature;
+        float humidity = planet->humidity;
+        
+        if (temp >= -10.0f && temp <= 10.0f && humidity >= 0.2f && humidity <= 0.6f) {
+            playGameSound(FOOTSTEP_SNOW);
+        }
+        else if (temp >= 40.0f || (temp >= 30.0f && humidity <= 0.2f)) {
+            playGameSound(FOOTSTEP_LAVA);
+        }
+        else {
+            playGameSound(FOOTSTEP_GRASS);
+        }
+    } else {
+        playGameSound(FOOTSTEP_GRASS);
+    }
+}
+
+void updateFootstepSounds() {
+    static auto lastFootstepTime = std::chrono::high_resolution_clock::now();
+    static const auto footstepInterval = std::chrono::milliseconds(600); 
+
+    auto [physics, transform] = ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(player);
+
+    if (physics && transform) {
+        // Check if player is moving (has velocity)
+        bool isMoving = (physics->vel[0] != 0 || physics->vel[1] != 0);
+
+        if (isMoving) {
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFootstepTime);
+
+            // Play footstep sound if enough time has passed
+            if (elapsedTime >= footstepInterval) {
+                playFootstepSound();
+                lastFootstepTime = currentTime;
+            }
+        }
+    }
+}
