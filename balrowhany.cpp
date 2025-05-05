@@ -486,7 +486,6 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
 				break;         
 		}
 		//create Asteroid entity with it's properties in x, y position
-		std::cout << "Spawning asteroid at: (" << x << ", " << y << ")\n"; //test1
 		ecs::Entity* asteroid = createAsteroid(x, y); 
 
 		// assign that Asteroid with spawnPoint for randomized direction 
