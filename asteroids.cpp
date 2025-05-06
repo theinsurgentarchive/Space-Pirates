@@ -349,7 +349,7 @@ int main()
 	while (intro) {
 		static auto last_time = std::chrono::high_resolution_clock::now();
 		i_tc->pos = {0.0f, 0.0f};
-		i_sc->ssheet = "Splash-Screen"
+		i_sc->ssheet = "Splash-Screen";
 		render();
 		x11.swapBuffers();
 		usleep(1000);
