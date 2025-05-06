@@ -312,7 +312,7 @@ ecs::Entity* dummy;
 ecs::Entity* planetPtr;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
-const Camera* c;
+Camera* c;
 const Camera* spaceCamera; 
 std::unordered_map<std::string,std::shared_ptr<Texture>> textures;
 std::unordered_map<std::string,std::shared_ptr<SpriteSheet>> ssheets;
@@ -441,7 +441,7 @@ int main()
 		}
 		switch (gl.state) { //camera switch 
 			case SPACE:
-				c = spaceCamera; 
+				c = &space_Camera; 
 				break; 
 			case PLAYING:
 				c = &camera; 
@@ -449,7 +449,7 @@ int main()
 			case PAUSED:
 				// Keep the previous camera based on what state we paused from
 				if (gl.previous_state == SPACE) {
-					c = spaceCamera;
+					c = &space_Camera;
 				} else if (gl.previous_state == PLAYING) {
 					c = &camera;
 				}
@@ -797,8 +797,18 @@ int check_keys(XEvent *e)
 			}
 		} else if (e->type == KeyPress) {
 			static float movement_mag = 75.0;
+            static bool bound = true;
             if (key == XK_u) {
-                
+                auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
+                if (!bound) {
+                    c->bind(transform->pos);
+                } else {
+                    static v2f pos;
+                    pos[0] = transform->pos[0];
+                    pos[1] = transform->pos[1];
+                    c->bind(pos);
+                }
+                bound ^= 1;
             }
 
 			if (key == XK_e) {
