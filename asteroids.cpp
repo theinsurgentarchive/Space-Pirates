@@ -309,7 +309,6 @@ void handle_space_key_release();
 ecs::Entity* player;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
-ecs::Entity* splash;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
@@ -396,7 +395,7 @@ int main()
 
 	name->name = "Simon";
 	name->offset = {0,-25};
-	sprite->ssheet = "player-idle";
+	sprite->ssheet = "SPLASH";
 	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
@@ -418,13 +417,6 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	splash = ecs::ecs.entity().checkout();
-	auto [i_sc, i_tc] = ecs::ecs.component().assign<SPRITE, TRANSFORM>(
-		splash
-	);
-	i_tc->pos = {transform->pos[0], transform->pos[1]};
-	i_sc->ssheet = "player-front";
-	i_sc->render_order = UINT16_MAX - 2;
 	cout << "loading into intro\n";
 	while (intro) {
 		static auto last_time = std::chrono::high_resolution_clock::now();
@@ -444,7 +436,7 @@ int main()
 		}
 	}
 	cout << "Intro Ended\n";
-	ecs::ecs.entity().ret(splash);
+	sprite->ssheet = "player-idle";
 	gl.state = MENU;
 	while (!done) {
 		while (x11.getXPending()) {
