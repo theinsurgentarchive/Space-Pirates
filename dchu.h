@@ -6,6 +6,9 @@
 #define COMBAT ecs::Combat
 #define NAVIGATE ecs::Navigate
 
+//Load Splash Screen
+void loadSplash(std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>&);
+
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 

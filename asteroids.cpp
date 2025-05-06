@@ -87,7 +87,7 @@ class Global {
 			res[1] = 600;
 			memset(keys, 0, 65536);
 			// mouse value 1 = true = mouse is a regular mouse.
-			state = MENU; // default 
+			state = SPLASH; // default 
 			previous_state = MENU;
 			controls_from_state = MENU;
 			pause_selected_option = 0;
@@ -309,6 +309,7 @@ void handle_space_key_release();
 ecs::Entity* player;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
+ecs::Entity* splash;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
@@ -328,8 +329,43 @@ std::unordered_map<std::string, std::shared_ptr
 void loadShipAndAsteroids(std::unordered_map
 		<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
+bool intro = true;
+u16 intro_timer = 15;
 int main()
 {
+	init_opengl();
+	logOpen();
+	srand(time(NULL));
+	clock_gettime(CLOCK_REALTIME, &timePause);
+	clock_gettime(CLOCK_REALTIME, &timeStart);
+	x11.set_mouse_position(200, 200);
+	x11.show_mouse_cursor(gl.mouse_cursor_on);
+	rs.sample();
+	splash = ecs::ecs.entity().checkout();
+	auto [i_sc, i_tc] = ecs::ecs.component().assign<SPRITE, TRANSFORM>(
+		splash
+	);
+	loadSplash(ssheets);
+	while (intro) {
+		static auto last_time = std::chrono::high_resolution_clock::now();
+		i_tc->pos = {0.0f, 0.0f};
+		i_sc->ssheet = "Splash-Screen"
+		render();
+		x11.swapBuffers();
+		usleep(1000);
+		
+		auto current = std::chrono::high_resolution_clock::now();
+    	auto t_elasped = (
+    	    std::chrono::duration_cast<std::chrono::milliseconds>(
+    	        current - last_time
+    	    )
+    	);
+		if (t_elasped.count() >= intro_timer) {
+			intro = false;
+		}
+	}
+	ecs::ecs.entity().ret(splash);
+	gl.state = MENU;
 	ThreadPool tp {4};
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
@@ -401,16 +437,8 @@ int main()
 	c = &camera;
 	World w {settings};
 	astar->setObstacles(&w);
-	rs.sample();
 	ps.sample();
-	init_opengl();
 	checkRequiredSprites();
-	logOpen();
-	srand(time(NULL));
-	clock_gettime(CLOCK_REALTIME, &timePause);
-	clock_gettime(CLOCK_REALTIME, &timeStart);
-	x11.set_mouse_position(200, 200);
-	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
 	while (!done) {
 		while (x11.getXPending()) {
@@ -1146,6 +1174,21 @@ void render() {
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
 	switch(gl.state) {
+		case SPLASH:
+			// Reset for game state
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+
+			glPushMatrix();
+			rs.update(getDeltaTime());
+			glPopMatrix();
+
+			DisableFor2D();
+			break;
 		case MENU:
 			// Setup for 2D rendering (menu interface)
 			glMatrixMode(GL_PROJECTION);

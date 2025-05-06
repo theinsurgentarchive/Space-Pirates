@@ -8,6 +8,21 @@
 
 extern ecs::Entity* player;
 
+//Load Splash Screen Texture
+void loadSplash(
+    std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>& ssheets
+)
+{
+    DINFO("Start Loading Splash Screen\n");
+    SpriteSheetLoader loader {ssheets};
+    loader.loadStatic(
+        "SPLASH",
+        loadTexture("./resources/textures/SPLASH.webp", true),
+        {1, 1}, {0, 0}, false //PlaceHolder Values
+    );
+    DINFO("Finished Loading Splash Screen\n");
+}
+
 //Renderability Check
 bool canRender(ecs::Entity* ent)
 {
