@@ -21,11 +21,11 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
 		switch(key) {
 			case XK_Up:
 				playGameSound(MENU_CLICK);
-				selected_option = (selected_option - 1 + 5) % 5;
+				selected_option = (selected_option - 1 + 4) % 4;
 				break;
 			case XK_Down:
 				playGameSound(MENU_CLICK);
-				selected_option = (selected_option + 1) % 5;
+				selected_option = (selected_option + 1) % 4;
 				break;
 			case XK_Return:
 				playGameSound(MENU_CLICK);
@@ -121,9 +121,8 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,
 	r.center = 1;
 
 
-	const char* options[] = {"START", "CONTROLS", "CREDITS", "SPACE",
-		"EXIT"}; 
-	for (int i = 0; i < 5; i++) {
+	const char* options[] = {"START", "CONTROLS", "CREDITS", "EXIT"}; 
+	for (int i = 0; i < 4; i++) {
 		int color = (i == selected_option) ? 0x00FF99FF : 0x00FFFFFF;
 		// menu option color change
 		ggprint17(&r, 40, color, options[i]);
@@ -718,20 +717,23 @@ void decrementResources(GameState &state, ecs::Entity* spaceship)
 {
     auto [fuel,oxygen] = ecs::ecs.component().fetch<ecs::Fuel, ecs::Oxygen>(spaceship); 
 
+    if (fuel && fuel->fuel > 0.0f){
+        fuel->fuel -= 0.8f;
+        if (fuel->fuel < 0.0f) { 
+            fuel->fuel = 0.0f;
+            state = GAMEOVER;
+        }
+    }
 
-    if (fuel && fuel->fuel > 0.0f && oxygen && oxygen->oxygen > 0.0f) {
-		fuel->fuel -= 0.5f;
-		oxygen->oxygen -= 0.5f; 
-
-		if (fuel->fuel < 0.0f || oxygen->oxygen < 0.0f) { 
-			fuel->fuel = 0.0f;
-			oxygen->oxygen = 0.0f;
-
-			state = GAMEOVER;
-		}
-	}
-
+    if (oxygen && oxygen->oxygen > 0.0f) {
+        oxygen->oxygen -= 0.4f; 
+        if (oxygen->oxygen < 0.0f) { 
+            oxygen->oxygen = 0.0f;
+            state = GAMEOVER;
+        }
+    }
 }
+   
 
 
 float getDeltaTime() { //used for smooth movement 
