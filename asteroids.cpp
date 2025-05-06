@@ -310,7 +310,6 @@ const ecs::Entity* player;
 const ecs::Entity* spaceship;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
-ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
