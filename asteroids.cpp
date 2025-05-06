@@ -330,7 +330,7 @@ void loadShipAndAsteroids(std::unordered_map
 		<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 bool intro = true;
-u16 intro_timer = 15;
+u16 intro_timer = 60;
 int main()
 {
 	ThreadPool tp {4};
@@ -421,7 +421,6 @@ int main()
 	loadSplash(ssheets);
 	cout << "loading into intro\n";
 	while (intro) {
-		
 		static auto last_time = std::chrono::high_resolution_clock::now();
 		i_tc->pos = {0.0f, 0.0f};
 		i_sc->ssheet = "Splash-Screen";
@@ -431,7 +430,7 @@ int main()
 		
 		auto current = std::chrono::high_resolution_clock::now();
     	auto t_elasped = (
-    	    std::chrono::duration_cast<std::chrono::milliseconds>(
+    	    std::chrono::duration_cast<std::chrono::seconds>(
     	        current - last_time
     	    )
     	);
