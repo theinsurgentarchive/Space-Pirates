@@ -333,56 +333,6 @@ bool intro = true;
 u16 intro_timer = 15;
 int main()
 {
-	init_opengl();
-	logOpen();
-	srand(time(NULL));
-	clock_gettime(CLOCK_REALTIME, &timePause);
-	clock_gettime(CLOCK_REALTIME, &timeStart);
-	x11.set_mouse_position(200, 200);
-	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	rs.sample();
-	splash = ecs::ecs.entity().checkout();
-	auto [i_sc, i_tc] = ecs::ecs.component().assign<SPRITE, TRANSFORM>(
-		splash
-	);
-	// Initialize audio system
-	initAudioSystem();
-
-	// Initialize Textures
-	loadTextures(ssheets);  //load planet textures
-	loadShipAndAsteroids(ssheets); // load ship and asteroids
-
-	// Set initial music according to game state (starting in MENU state)
-	updateAudioState(gl.state);
-
-	player = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
-		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
-	Camera camera = {
-		transform->pos,
-		gl.res
-	};
-	loadSplash(ssheets);
-	while (intro) {
-		static auto last_time = std::chrono::high_resolution_clock::now();
-		i_tc->pos = {0.0f, 0.0f};
-		i_sc->ssheet = "Splash-Screen";
-		render();
-		x11.swapBuffers();
-		usleep(1000);
-		
-		auto current = std::chrono::high_resolution_clock::now();
-    	auto t_elasped = (
-    	    std::chrono::duration_cast<std::chrono::milliseconds>(
-    	        current - last_time
-    	    )
-    	);
-		if (t_elasped.count() >= intro_timer) {
-			intro = false;
-		}
-	}
-	ecs::ecs.entity().ret(splash);
-	gl.state = MENU;
 	ThreadPool tp {4};
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
@@ -400,6 +350,23 @@ int main()
 			static_cast<u16>(planetAttr->size * 50),
 			static_cast<u32>(2)};
 	settings.origin = {0,0};
+	// Initialize audio system
+	initAudioSystem();
+
+	// Initialize Textures
+	loadTextures(ssheets);  //load planet textures
+	loadShipAndAsteroids(ssheets); // load ship and asteroids
+
+	// Set initial music according to game state (starting in MENU state)
+	updateAudioState(gl.state);
+
+	player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
+		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	Camera camera = {
+		transform->pos,
+		gl.res
+	};
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
@@ -407,9 +374,9 @@ int main()
 	};
 	spaceCamera = &space_Camera; 
 
-
-
 	ps.sample();
+	rs.sample();
+	
 
 	[[maybe_unused]]float dt = getDeltaTime();  
 	v2u t_grid_size = {
@@ -440,6 +407,38 @@ int main()
 	ps.sample();
 	checkRequiredSprites();
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
+	init_opengl();
+	logOpen();
+	srand(time(NULL));
+	clock_gettime(CLOCK_REALTIME, &timePause);
+	clock_gettime(CLOCK_REALTIME, &timeStart);
+	x11.set_mouse_position(200, 200);
+	x11.show_mouse_cursor(gl.mouse_cursor_on);
+	splash = ecs::ecs.entity().checkout();
+	auto [i_sc, i_tc] = ecs::ecs.component().assign<SPRITE, TRANSFORM>(
+		splash
+	);
+	loadSplash(ssheets);
+	while (intro) {
+		static auto last_time = std::chrono::high_resolution_clock::now();
+		i_tc->pos = {0.0f, 0.0f};
+		i_sc->ssheet = "Splash-Screen";
+		render();
+		x11.swapBuffers();
+		usleep(1000);
+		
+		auto current = std::chrono::high_resolution_clock::now();
+    	auto t_elasped = (
+    	    std::chrono::duration_cast<std::chrono::milliseconds>(
+    	        current - last_time
+    	    )
+    	);
+		if (t_elasped.count() >= intro_timer) {
+			intro = false;
+		}
+	}
+	ecs::ecs.entity().ret(splash);
+	gl.state = MENU;
 	while (!done) {
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
@@ -1165,31 +1164,30 @@ void SampleSpaceEntities() {  // written by chat
 void render() {
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
+	
 	Rect r;
 	r.left = 100;
 	r.bot = gl.res[1] - 20;
-	if (gl.state == SPLASH) {
-		// Reset for game state
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
-		glPushMatrix();
-		rs.update(getDeltaTime());
-		glPopMatrix();
-
-		DisableFor2D();
-		return;
-	}
 	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(player);
 	auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
 	switch(gl.state) {
+		case SPLASH:
+			// Reset for game state
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+
+			glPushMatrix();
+			rs.update(getDeltaTime());
+			glPopMatrix();
+
+			DisableFor2D();
+			break;
 		case MENU:
 			// Setup for 2D rendering (menu interface)
 			glMatrixMode(GL_PROJECTION);
@@ -1567,6 +1565,7 @@ void render() {
 
 		default: 
 			break; 
+
 	}
 }
 
