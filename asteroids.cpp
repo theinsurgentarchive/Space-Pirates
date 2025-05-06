@@ -420,7 +420,7 @@ int main()
 	);
 	loadSplash(ssheets);
 	i_tc->pos = {gl.res[0], gl.res[1]};
-	i_sc->ssheet = "SPLASH";
+	i_sc->ssheet = "player-idle";
 	cout << "loading into intro\n";
 	while (intro) {
 		static auto last_time = std::chrono::high_resolution_clock::now();
