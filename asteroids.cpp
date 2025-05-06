@@ -1102,7 +1102,7 @@ void handle_space_key_release()
 	}
 }
 
-void physics(Enemy& foe, World* w)
+void physics(Enemy& foe)
 {
 	if (gl.state == PAUSED) {
 		return; 
