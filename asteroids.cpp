@@ -404,8 +404,7 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	cout << "loading into intro\n";
-	cout << gl.res[0] << gl.res[1] << endl;
+	DINFO("loading into intro\n");
 	while (intro) {
 		static auto last_time = std::chrono::high_resolution_clock::now();
 
@@ -423,7 +422,7 @@ int main()
 			intro = false;
 		}
 	}
-	cout << "Intro Ended\n";
+	DINFO("Intro Ended\n");
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
