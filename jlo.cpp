@@ -26,15 +26,15 @@
 #include "image.h"
 
 std::array<Biome, 5> biomes = {
-    Biome(FOREST, v2f{10.0f, 25.0f}, v2f{0.4f, 0.8f}, 
+    Biome(FOREST, v2f{10.0f, 35.0f}, v2f{0.2f, 1.0f}, 
         "Moderate temperature, lush tree-filled areas."),
-    Biome(DESERT, v2f{30.0f, 50.0f}, v2f{0.0f, 0.2f}, 
+    Biome(DESERT, v2f{30.0f, 85.0f}, v2f{0.0f, 0.8f}, 
         "Hot and dry, minimal precipitation and vegetation."),
-    Biome(TAIGA, v2f{-10.0f, 10.0f}, v2f{0.2f, 0.6f}, 
+    Biome(TAIGA, v2f{-40.0f, 10.0f}, v2f{0.1f, 0.8f}, 
         "Cold, coniferous forest with long winters."),
-    Biome(MEADOW, v2f{-5.0f, 15.0f}, v2f{0.4f, 0.8f}, 
+    Biome(MEADOW, v2f{0.0f, 20.0f}, v2f{0.4f, 1.0f}, 
         "Cold, wet grasslands often found in mountainous regions."),
-    Biome(HELL, v2f{40.0f, _MAX_TEMPERATURE}, v2f{0.0f, 0.1f}, 
+    Biome(HELL, v2f{40.0f, _MAX_TEMPERATURE}, v2f{0.0f, 0.6f}, 
         "Extreme temperatures and dry conditions, inhospitable to life.")
 };
 
@@ -60,7 +60,7 @@ extern const Camera* c;
 extern std::vector<Collision> cols;
 extern std::atomic<bool> done;
 extern ThreadPool* pool;
-extern ecs::Entity* player;
+extern const ecs::Entity* player;
 extern const ecs::Entity* islandWithMaxArea(std::vector<std::vector<const ecs::Entity*>> tiles);
 void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
@@ -460,7 +460,7 @@ std::vector<std::string> Biome::decor(BiomeType type)
     Camera of the game, center of the camera is bound to 'pos_'.
 */
 
-Camera::Camera(v2f& pos, v2u& dim) : pos_{pos}, dim_{dim} {}
+Camera::Camera(v2f& pos, v2u& dim, v2u& margin) : pos_{pos}, dim_{dim}, margin_{margin} {}
 
 void Camera::bind(v2f& pos)
 {
@@ -485,8 +485,10 @@ bool Camera::visible(v2f curr) const
 {
     float wh = dim_.get()[0] >> 1;
     float hh = dim_.get()[1] >> 1;
-    v2f v1 {pos_.get()[0] - wh, pos_.get()[1] - hh};
-    v2f v2 {pos_.get()[0] + wh, pos_.get()[1] + hh};
+    u16 wm = margin_.get()[0] >> 1;
+    u16 hm = margin_.get()[1] >> 1;
+    v2f v1 {pos_.get()[0] - wh - wm, pos_.get()[1] - hh - hm};
+    v2f v2 {pos_.get()[0] + wh + wm, pos_.get()[1] + hh + hm};
     return curr[0] >= v1[0] && curr[0] <= v2[0] &&
     curr[1] >= v1[1] && curr[1] <= v2[1];
 }
@@ -708,6 +710,7 @@ const ecs::Entity* createWorldTile(WorldGenerationSettings& settings,
         static_cast<float>(sprite_dim[1] * cell_pos[1] * transform->scale[1])
     };
     sprite->ssheet = tile_meta.ssheet;
+    sprite->render_order = 65536 - 3;
     if (sprite->ssheet.find("water") != std::string::npos || 
     sprite->ssheet.find("lava") != std::string::npos) {
         auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
@@ -717,33 +720,51 @@ const ecs::Entity* createWorldTile(WorldGenerationSettings& settings,
     return entity;
 }
 
-const ecs::Entity* createChest(WorldGenerationSettings&, const v2u&, const v2i&)
+const ecs::Entity* createChest(WorldGenerationSettings& settings, const v2u& sprite_dim, const v2i& cell_pos)
 {
     const ecs::Entity* entity = ecs::ecs.entity().checkout();
-    auto [transform,sprite] = ecs::ecs.component()
-        .assign<TRANSFORM,SPRITE>(entity);
+    auto [transform,sprite,collider,chest] = ecs::ecs.component()
+        .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
     transform->pos = settings.origin + v2f {
-        static_cast<float>(sprite_dim[0] * cell_pos[0] * transform->scale[0]),
-        static_cast<float>(sprite_dim[1] * cell_pos[1] * transform->scale[1])
+        static_cast<float>(sprite_dim[0] * cell_pos[0]),
+        static_cast<float>(sprite_dim[1] * cell_pos[1])
     };
     sprite->ssheet = "chest";
+    sprite->render_order = 65536 - 1;
+    collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
+    collider->callback = [chest](const ecs::Entity* first, const ecs::Entity* second) {
+        if (!chest->opened) {
+            chest->opened = true;
+        }
+    };
+
     return entity;
 }
 
-void populateWithChests(World& world, const v2u& grid_size, const std::mt19937 generator)
+void populateWithChests(World& world, const v2u& grid_size, std::mt19937& generator)
 {
-    std::uniform_int_distribution<int> x_dist {0,static_cast<int>(grid_size[0])};
-    std::uniform_int_distribution<int> y_dist {0,static_cast<int>(grid_size[1])};
+    using WorldCell = std::vector<const ecs::Entity*>;
+    i32 chest_count = 2;
+    float alpha = 0.05;
     auto chest = ssheets.find("chest");
-    if (chest != ssheets.end()) {
-        for (int i = 0; i < 2; ++i) {
-            v2i cell_pos = {x_dist(generator),y_dist(generator)};
-            std::vector<const ecs::Entity*> cell = world.cells[cell_pos[0]][cell_pos[1]];
+    if (chest == ssheets.end())
+        return;
+    std::shared_ptr<SpriteSheet> chest_ssheet = chest->second;
+    std::vector<std::pair<WorldCell*, Vec2<i32>>> local_cells;
+    for (int i = 0; i < grid_size[1]; ++i) {
+        for (int j = 0; j < grid_size[0]; ++j) {
+            WorldCell& cell = world.cells[i][j];
             auto [collider] = ecs::ecs.component().fetch<COLLIDER>(cell[0]);
-            if (cell.size() == 1 && collider->passable) {
-                world.cells.push_back(createChest(world.getSettings(),chest->second->sprite_dim,cell_pos));
-            } 
+            if (cell.size() != 1 || (collider != nullptr && !collider->passable))
+                continue;
+            local_cells.push_back({&cell, {i,j}});
         }
+    }
+    std::shuffle(local_cells.begin(),local_cells.end(),generator);
+    for (int i = 0; i < chest_count; ++i) {
+        auto pair = local_cells[i];
+        WorldCell* cell = pair.first;
+        cell->push_back(createChest(world.getSettings(),chest_ssheet->sprite_dim,pair.second));
     }
 }
 
@@ -753,7 +774,7 @@ WorldGenerationSettings& World::getSettings()
 }
 
 World::World(WorldGenerationSettings settings) 
-    : generator_{std::random_device{}()}, settings_{settings}
+    : settings_{settings},generator_{std::random_device{}()}
 {
     Biome biome = selectBiome(
         settings.temperature,
@@ -801,7 +822,7 @@ World::World(WorldGenerationSettings settings)
                 auto [dtransform,dsprite] = ecs::ecs.component()
                     .assign<TRANSFORM,SPRITE>(decor);
                 dsprite->ssheet = decors[decor_index];
-                dsprite->render_order = INT_MAX - j;
+                dsprite->render_order = 65536 - 2;
                 dtransform->pos = transform->pos;
                 dtransform->pos[1] += (decor_sd[1] / 2);
                 cells[i][j].push_back(decor);

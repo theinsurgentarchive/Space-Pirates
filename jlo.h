@@ -31,6 +31,7 @@
 #define PHYSICS ecs::Physics
 #define HEALTH ecs::Health
 #define COLLIDER ecs::Collider
+#define CHEST ecs::Chest
 
 #define _RESET "\033[0m"
 #define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
@@ -219,10 +220,11 @@ class Camera
         std::vector<const ecs::Entity*> findVisible(
             std::vector<const ecs::Entity*>& entities,
             ThreadPool& pool) const;
-        Camera(v2f& pos, v2u& dim);
+        Camera(v2f& pos, v2u& dim, v2u& margin);
     private:
         std::reference_wrapper<v2f> pos_;
         std::reference_wrapper<v2u> dim_;
+        std::reference_wrapper<v2u> margin_;
         void visibleHelper(
             std::vector<const ecs::Entity*>& entities, 
             std::vector<const ecs::Entity*>& visible_entities,
@@ -416,6 +418,11 @@ namespace ecs
         v2f pos;
         v2f scale {1,1};
         float rotation;
+    };
+
+    struct Chest
+    {
+        bool opened {false};
     };
 
     struct Health

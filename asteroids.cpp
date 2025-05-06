@@ -281,7 +281,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 //==========================================================================
 // M A I N
 //==========================================================================
-ecs::Entity* ptr;
+const ecs::Entity* player;
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
@@ -339,16 +339,18 @@ int main()
     updateAudioState(gl.state);
 
     // ecs::ecs.component().bulkAssign<PHYSICS,SPRITE,TRANSFORM,HEALTH,NAME,COLLIDER>(ptr);
-	ptr = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(ptr);
+	player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+    v2u margin = {64,64};
 	Camera camera = {
 		transform->pos,
-		gl.res
+		gl.res,
+        margin
 	};
-	name->name = "Simon";
+	name->name = "my_semun";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
-	sprite->render_order = 15;
+	sprite->render_order = 65536 - 2;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
 	health->health = 50;
@@ -600,10 +602,10 @@ int check_keys(XEvent *e)
 
 	// Playing state handling
 	if (gl.state == PLAYING) {
-		if (!ecs::ecs.component().has<PHYSICS>(ptr)) {
+		if (!ecs::ecs.component().has<PHYSICS>(player)) {
 			return 0;
 		}
-		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(ptr);
+		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
 		if (e->type == KeyRelease) {
 			if (key == XK_Up || key == XK_Down || key == XK_Left || key == XK_Right) {
 				sc->ssheet = "player-idle";
@@ -706,7 +708,7 @@ void render() {
 	Rect r;
 	r.left = 100;
 	r.bot = gl.res[1] - 20;
-	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(ptr);
+	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(player);
 	auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
@@ -803,8 +805,8 @@ void render() {
 			glPopMatrix();
 
 			DisableFor2D();
-			if (ptr) {   //player health bar
-				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(ptr);
+			if (player) {   //player health bar
+				auto [playerHealth] = ecs::ecs.component().fetch<ecs::Health>(player);
 				playerHealth->health = 100.0f; 
 				playerHealth -> max = 100.0f;
 				if (playerHealth) 
