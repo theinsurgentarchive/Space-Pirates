@@ -6,6 +6,7 @@
 #include <vector>
 #include <queue>
 #include <deque>
+#include <random>
 #include <array>
 #include <shared_mutex>
 #include <condition_variable>
@@ -147,6 +148,8 @@ using v2i = Vec2<i32>;
 using v2f = Vec2<float>;
 using cmask = std::bitset<_MAX_COMPONENTS>;
 using time_point = std::chrono::high_resolution_clock::time_point;
+
+void checkRequiredSprites();
 
 void show_jlo(Rect* r);
 extern u16 counter;
@@ -665,4 +668,5 @@ class PlayerFactory
         Camera& camera_;
 };
 
+bool collided(TRANSFORM*, TRANSFORM*, COLLIDER*, COLLIDER*);
 #include "jlo.tpp"

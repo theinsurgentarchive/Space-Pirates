@@ -255,21 +255,21 @@ void PlanetCoorGenerator(float values[3])
 
 float PlanetSize(float rndNum)
 {
-    //chance rndNum to a % probability to define Size (0.5x to 5.0x)
+    //chance rndNum to a % probability to define Size (0.5x to 3.5x)
     float sizeChance = ((rndNum - 100) / 899) * 100;
     
     if (sizeChance > 92.5)
-        return 5.0f;
+        return 3.5f;
     else if (sizeChance > 82.5)
-        return 3.0f;
+        return 2.5f;
     else if (sizeChance > 67.5)
         return 2.0f;
     else if (sizeChance > 45.0)
-        return 1.0f;
+        return 1.50f;
     else if (sizeChance > 12.5)
-        return 0.75f;
+        return 1.0f;
     else
-        return 0.5f;
+        return 0.75f;
 }
 
 float PlanetSmooth([[maybe_unused]]float rndNum)
@@ -391,10 +391,10 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
 {
     std::vector<float> heightMap = GenerateHeightMap(); 
     static int firsttime = 1;
-    int i, j, i2, j2, j3;
+    [[maybe_unused]]int i, j, i2, j2, j3;
     static Flt verts[9][16][3];
     static Flt norms[9][16][3];
-    static Flt tx[9][17][2];
+    [[maybe_unused]]static Flt tx[9][17][2];
 
     if (firsttime) {
         firsttime = 0;
@@ -462,4 +462,23 @@ void DrawPlanet(float planetAngY, float planetPosX, float planetPosY,
 
     glEnd();
     glPopMatrix();
+
 }
+
+
+//Planet Collision
+bool PlanetCollision(const ecs::Entity* Planet) {
+
+    auto [traits] = ecs::ecs.component().fetch<ecs::Planet>(Planet);
+
+    if (!traits){
+        std::cout << "We are missing components for collision" << std::endl;
+    }
+
+    float dx = -traits->PosX;
+    float dy = -traits->PosY;
+
+    return (((dy <= 1) && (dy >= -1)) && ((dx >= - 1) && (dx <= 1)));
+    //gl.state = PLAYING;
+}
+
