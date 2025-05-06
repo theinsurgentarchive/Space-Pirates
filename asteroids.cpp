@@ -420,7 +420,7 @@ int main()
 	);
 	loadSplash(ssheets);
 	i_tc->pos = {0.0f, 0.0f};
-	i_sc->ssheet = "SPLASH";
+	i_sc->ssheet = "player-front";
 	i_sc->render_order = 20;
 	cout << "loading into intro\n";
 	while (intro) {
