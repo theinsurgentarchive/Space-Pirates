@@ -330,7 +330,7 @@ void loadShipAndAsteroids(std::unordered_map
 		<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 bool intro = true;
-u16 intro_timer = 60;
+u16 intro_timer = 15;
 int main()
 {
 	ThreadPool tp {4};
