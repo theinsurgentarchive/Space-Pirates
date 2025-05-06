@@ -18,7 +18,7 @@ void loadSplash(
     loader.loadStatic(
         "SPLASH",
         loadTexture("./resources/textures/SPLASH.webp", true),
-        {1, 1}, {0, 0}, false //PlaceHolder Values
+        {1, 18}, {1200, 675}, false //PlaceHolder Values
     );
     DINFO("Finished Loading Splash Screen\n");
 }
