@@ -165,7 +165,9 @@ class X11_wrapper {
 			XGetWindowAttributes(dpy, root, &getWinAttr);
 			int fullscreen = 0;
 			gl.res[0] = w;
+			cout << gl.res[0];
 			gl.res[1] = h;
+			cout << gl.res[1] << endl;
 			if (!w && !h) {
 				//Go to fullscreen.
 				gl.res[0] = getWinAttr.width;
