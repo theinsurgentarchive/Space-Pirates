@@ -712,7 +712,7 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale, bool invertY)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Biome selectBiome(float temperature, float humidity, u32 seed)
+Biome selectBiome(float temperature, [[maybe_unused]]float humidity, u32 seed)
 {
 	std::vector<int> indices(biomes.size());
 	std::iota(indices.begin(), indices.end(), 0);
@@ -722,11 +722,8 @@ Biome selectBiome(float temperature, float humidity, u32 seed)
 	for (int i : indices) {
 		auto& biome = biomes[i];
 		if (temperature >= biome.temperature[0] && 
-				temperature <= biome.temperature[1] &&
-				humidity >= biome.humidity[0] && 
-				humidity <= biome.humidity[1]) {
+				temperature <= biome.temperature[1])
 			return biome;
-		}
 	}
 	return biomes[0];
 }
