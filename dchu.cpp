@@ -14,12 +14,12 @@ void loadSplash(
 )
 {
     DINFO("Start Loading Splash Screen\n");
-    SpriteSheetLoader loader {ssheets};
-    loader.loadStatic(
-        "SPLASH",
-        loadTexture("./resources/textures/SPLASH.png", true),
-        {1, 1}, {0, 0}, false //PlaceHolder Values
-    );
+    //SpriteSheetLoader loader {ssheets};
+    //loader.loadStatic(
+    //    "SPLASH",
+    //    loadTexture("./resources/textures/SPLASH.png", true),
+    //    {1, 1}, {0, 0}, false //PlaceHolder Values
+    //);
     DINFO("Finished Loading Splash Screen\n");
 }
 
