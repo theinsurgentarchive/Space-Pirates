@@ -578,22 +578,33 @@ void loadEnemyTex(
     DINFO("Finished Loading Enemy Sprites\n");
 }
 
-Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f})
+Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f}, 48.0f)
 {}
 
-Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
+Enemy::Enemy(ecs::Entity* ent, v2f t_mod, World* w, float mag)
 {
     atk_Timer = (u16)(t_mod[0] * 1000.0f);
     path_Timer = (u16)(t_mod[1] * 1000.0f);
     can_damage = true;
     can_gen_path = true;
     this->ent = ent;
-    initEnemy();
+    initEnemy(w, mag);
 }
 
-void Enemy::initEnemy()
+void Enemy::initEnemy(World* w, float mag = 48.0f)
 {
+    float m_mag = mag;
     //Initialize Components
+    if (w->cells.empty()) {
+        DWARN("Error, World Empty\n");
+    }
+    if (w == nullptr) {
+        DWARN("Error, World Not Found\n");
+    }
+    auto cells = w->cells;
+    v2f w_max = {cells.size(), cells[0].size()};
+    w_max[0] *= m_mag;
+    w_max[1] *= m_mag;
     auto [health, collide, sprite, transform, physics, navigate] = 
     ecs::ecs.component()
         .assign<HEALTH, COLLIDER, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(ent);
@@ -603,7 +614,7 @@ void Enemy::initEnemy()
     health->health = health->max;
     sprite->ssheet = "enemy-idle";
     sprite->render_order = 14;
-    transform->pos = {floatRand(1000.0f, 100.0f), floatRand(1000.0f, 100.0f)};
+    transform->pos = {floatRand(w_max[0], 100.0f), floatRand(w_max[1], 10.0f)};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
@@ -625,11 +636,10 @@ bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
     return false;
 }
 
-void Enemy::action(World* w)
+void Enemy::action()
 {
     float m_mag = 25.0f;
     bool in_bounds = true;
-    auto cells = w->cells;
     auto [navi, s_trans, phys, sprite] = (
         ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS, SPRITE>(ent)
     );

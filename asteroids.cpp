@@ -341,7 +341,6 @@ int main()
 	gl.spaceship = ecs::ecs.entity().checkout(); 
 	initializeEntity(gl.spaceship);
 	dummy = ecs::ecs.entity().checkout();
-	Enemy foe(dummy);
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
@@ -385,14 +384,6 @@ int main()
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
 	};
-	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
-	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
-	navc->setAStar(astar);
-	navc->genPath(
-			astar->findClosestNode({0.0f, 0.0f}),
-			astar->findClosestNode({1000.0f, 1000.0f})
-		     );
-
 	sprite->ssheet = "SPLASH";
 	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
@@ -403,8 +394,6 @@ int main()
 	loadEnemyTex(ssheets);
 	loadSplash(ssheets);
 	c = &camera;
-	World w {settings};
-	astar->setObstacles(&w);
 	ps.sample();
 	checkRequiredSprites();
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
@@ -437,6 +426,12 @@ int main()
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
+	World w {settings};
+	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
+	Enemy foe(dummy, {0.1f, 2.0f}, &w, 48.0f);
+	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
+	navc->setAStar(astar);
+	astar->setObstacles(&w);
 	gl.state = MENU;
 	while (!done) {
 		while (x11.getXPending()) {
@@ -1121,7 +1116,7 @@ void physics(Enemy& foe, World* w)
 		// ecs::updatePlanetSpin();
 	} else if (gl.state == PLAYING) {
 		if(dummy) {
-			foe.action(w);
+			foe.action();
 		}
 		updateFootstepSounds();
 	}

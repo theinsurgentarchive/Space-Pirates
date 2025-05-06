@@ -167,12 +167,12 @@ class Enemy
     public:
         //Constructor
         Enemy(ecs::Entity*);
-        Enemy(ecs::Entity*, v2f t_mod);
+        Enemy(ecs::Entity*, v2f t_mod, World*, float);
         
         //Function
-        void initEnemy();
+        void initEnemy(World*, float);
         bool doDamage(ecs::Entity*, ecs::Entity*);
-        void action(World*);
+        void action();
 
         //Getter
         u16 getAtkTimer();
