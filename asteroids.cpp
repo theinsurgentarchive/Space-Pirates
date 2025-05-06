@@ -284,7 +284,7 @@ void init_opengl(void);
 void check_mouse(XEvent *e);
 
 int check_keys(XEvent *e);
-void physics(Enemy&, World*);
+void physics(Enemy&);
 
 void render();
 // For transparent title.webp background
@@ -469,7 +469,7 @@ int main()
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
 		timeCopy(&timeStart, &timeCurrent);
 		getAudioManager()->update();
-		physics(foe, &w);
+		physics(foe);
 		render();
 		x11.swapBuffers();
 		usleep(1000);
