@@ -354,7 +354,6 @@ int main()
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
-	planetPtr2 = ecs::GeneratePlanet();
 	dummy = ecs::ecs.entity().checkout();
 	Enemy foe(dummy);
 	ThreadPool tp {4};
