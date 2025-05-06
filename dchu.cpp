@@ -578,7 +578,7 @@ void loadEnemyTex(
     DINFO("Finished Loading Enemy Sprites\n");
 }
 
-Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f}, 48.0f)
+Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f}, nullptr, 48.0f)
 {}
 
 Enemy::Enemy(ecs::Entity* ent, v2f t_mod, World* w, float mag)
