@@ -332,9 +332,6 @@ ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 //Load Splash Animation
 std::unordered_map<std::string, std::shared_ptr
 <SpriteSheet>> splashSSheets;
-void loadSplash(
-	std::unordered_map<std::string,
-	std::shared_ptr<SpriteSheet>> splashSSheets);
 bool intro = true;
 u16 intro_timer = 15;
 int main()
