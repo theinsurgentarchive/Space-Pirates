@@ -364,7 +364,7 @@ int main()
 		planetAttr->humidity,
 		static_cast<u16>(planetAttr->size * 30),
 		static_cast<u32>(2),
-		static_cast<int>(planetAttr->size * 2)
+		static_cast<int>(planetAttr->size * 5)
 	};
 	settings.origin = {0,0};
 	// Initialize audio system
