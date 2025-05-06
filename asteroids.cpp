@@ -345,6 +345,23 @@ int main()
 	auto [i_sc, i_tc] = ecs::ecs.component().assign<SPRITE, TRANSFORM>(
 		splash
 	);
+	// Initialize audio system
+	initAudioSystem();
+
+	// Initialize Textures
+	loadTextures(ssheets);  //load planet textures
+	loadShipAndAsteroids(ssheets); // load ship and asteroids
+
+	// Set initial music according to game state (starting in MENU state)
+	updateAudioState(gl.state);
+
+	player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
+		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	Camera camera = {
+		transform->pos,
+		gl.res
+	};
 	loadSplash(ssheets);
 	while (intro) {
 		static auto last_time = std::chrono::high_resolution_clock::now();
@@ -383,23 +400,6 @@ int main()
 			static_cast<u16>(planetAttr->size * 50),
 			static_cast<u32>(2)};
 	settings.origin = {0,0};
-	// Initialize audio system
-	initAudioSystem();
-
-	// Initialize Textures
-	loadTextures(ssheets);  //load planet textures
-	loadShipAndAsteroids(ssheets); // load ship and asteroids
-
-	// Set initial music according to game state (starting in MENU state)
-	updateAudioState(gl.state);
-
-	player = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
-		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
-	Camera camera = {
-		transform->pos,
-		gl.res
-	};
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
@@ -1169,26 +1169,27 @@ void render() {
 	Rect r;
 	r.left = 100;
 	r.bot = gl.res[1] - 20;
+	if (gl.state == SPLASH) {
+		// Reset for game state
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		glPushMatrix();
+		rs.update(getDeltaTime());
+		glPopMatrix();
+
+		DisableFor2D();
+		return;
+	}
 	auto [tc] = ecs::ecs.component().fetch<TRANSFORM>(player);
 	auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
 	switch(gl.state) {
-		case SPLASH:
-			// Reset for game state
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
-
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-
-			glPushMatrix();
-			rs.update(getDeltaTime());
-			glPopMatrix();
-
-			DisableFor2D();
-			break;
 		case MENU:
 			// Setup for 2D rendering (menu interface)
 			glMatrixMode(GL_PROJECTION);
@@ -1566,7 +1567,6 @@ void render() {
 
 		default: 
 			break; 
-
 	}
 }
 
