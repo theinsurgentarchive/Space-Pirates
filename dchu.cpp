@@ -17,8 +17,8 @@ void loadSplash(
     SpriteSheetLoader loader {ssheets};
     loader.loadStatic(
         "SPLASH",
-        loadTexture("./resources/textures/SPLASH.webp", true),
-        {1, 18}, {1200, 675}, false //PlaceHolder Values
+        loadTexture("./resources/textures/SPLASH.webp", false),
+        {1, 18}, {1200, 675}, true //PlaceHolder Values
     );
     DINFO("Finished Loading Splash Screen\n");
 }

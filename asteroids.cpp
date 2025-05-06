@@ -393,8 +393,6 @@ int main()
 			astar->findClosestNode({1000.0f, 1000.0f})
 		     );
 
-	name->name = "Simon";
-	name->offset = {0,-25};
 	sprite->ssheet = "SPLASH";
 	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
@@ -436,6 +434,8 @@ int main()
 		}
 	}
 	cout << "Intro Ended\n";
+	name->name = "Simon";
+	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
 	gl.state = MENU;
 	while (!done) {
