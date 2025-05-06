@@ -138,9 +138,9 @@ namespace ecs
 }
 
 //Move an Entity to a Position or Entity with a Transform
-void moveTo(ecs::Entity*, v2f);
-void moveTo(ecs::Entity*, ecs::Entity*);
-void moveTo(ecs::Entity*, Node*);
+void moveTo(const ecs::Entity*, v2f);
+void moveTo(const ecs::Entity*, const ecs::Entity*);
+void moveTo(const ecs::Entity*, Node*);
 //Enemy Generation
 enum EnemyT 
 {
@@ -168,7 +168,7 @@ class Enemy
         
         //Function
         void initEnemy();
-        bool doDamage(ecs::Entity*, ecs::Entity*);
+        bool doDamage(const ecs::Entity*, const ecs::Entity*);
         void action(World*);
 
         //Getter

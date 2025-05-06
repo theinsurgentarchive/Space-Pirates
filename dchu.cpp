@@ -6,10 +6,10 @@
 #include <ctime>
 #include <unistd.h>
 
-extern ecs::Entity* player;
+extern const ecs::Entity* player;
 
 //Renderability Check
-bool canRender(ecs::Entity* ent)
+bool canRender(const ecs::Entity* ent)
 {
     bool display = true;
     //Check entity for Transform & Sprite Component
@@ -472,7 +472,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     return nullptr;
 }
 
-void moveTo(ecs::Entity* ent, v2f target)
+void moveTo(const ecs::Entity* ent, v2f target)
 {
     auto [physics, transform] = 
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
@@ -524,7 +524,7 @@ void moveTo(ecs::Entity* ent, v2f target)
     }
 }
 
-void moveTo(ecs::Entity* ent, ecs::Entity* target)
+void moveTo(const ecs::Entity* ent, const ecs::Entity* target)
 {
     auto [tar] = ecs::ecs.component().fetch<TRANSFORM>(target);
     if (tar == nullptr) {
@@ -587,7 +587,7 @@ void Enemy::initEnemy()
     health->max = 50.0f;
     health->health = health->max;
     sprite->ssheet = "enemy-idle";
-    sprite->render_order = 14;
+    sprite->render_order = 65536-2;
     transform->pos = {floatRand(1000.0f, 100.0f), floatRand(1000.0f, 100.0f)};
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
@@ -595,7 +595,7 @@ void Enemy::initEnemy()
     collide->dim = {16, 16};
 }
 
-bool Enemy::doDamage(ecs::Entity* ent, ecs::Entity* ent2)
+bool Enemy::doDamage(const ecs::Entity* ent, const ecs::Entity* ent2)
 {
     auto [p_collide, p_transform, health] = ecs::ecs.component().fetch
                                         <COLLIDER, TRANSFORM, HEALTH>(ent2);

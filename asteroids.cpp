@@ -306,7 +306,8 @@ void handle_space_key_release();
 //==========================================================================
 // M A I N
 //==========================================================================
-ecs::Entity* player;
+const ecs::Entity* player;
+const ecs::Entity* spaceship;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
 ecs::RenderSystem rs {ecs::ecs,60};
@@ -330,22 +331,41 @@ void loadShipAndAsteroids(std::unordered_map
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 int main()
 {
-	ThreadPool tp {4};
+	LootTable loot_table;
+	loot_table.addLoot({
+		{LOOT_OXYGEN, 5.0f, 1.0f},
+		{LOOT_OXYGEN, 10.0f, 1.5f},
+		{LOOT_OXYGEN, 2.0f, 0.5f},
+		{LOOT_FUEL, 5.0f, 1.0f},
+		{LOOT_FUEL, 8.0f, 2.0f},
+		{LOOT_FUEL, 3.0f, 0.8f},
+        {PLAYER_HEALTH, 5.0f, 1.0f},
+        {SHIP_HEALTH, 3.0f, 1.0f},
+        {SHIP_HEALTH, 8.0f, 0.5f},
+        {SHIP_HEALTH, 15.0f, 0.75f},
+        {PLAYER_HEALTH, 8.0f, 0.5f},
+        {PLAYER_HEALTH, 15.0f, 0.25f},
+	});
+	
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
-	initializeEntity(gl.spaceship);
-	dummy = ecs::ecs.entity().checkout();
-	Enemy foe(dummy);
+	spaceship = gl.spaceship;
+	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
+	dummy = ecs::ecs.entity().checkout();
+	Enemy foe(dummy);
+	ThreadPool tp {4};
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
-			planetAttr->humidity,
-			static_cast<u16>(planetAttr->size * 50),
-			static_cast<u32>(2)};
+		planetAttr->humidity,
+		static_cast<u16>(planetAttr->size * 30),
+		static_cast<u32>(2),
+		static_cast<int>(planetAttr->size * 2)
+	};
 	settings.origin = {0,0};
 	// Initialize audio system
 	initAudioSystem();
@@ -353,26 +373,32 @@ int main()
 	// Initialize Textures
 	loadTextures(ssheets);  //load planet textures
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
-
-	// Set initial music according to game state (starting in MENU state)
-	updateAudioState(gl.state);
-
 	player = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
-		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+    v2u margin = {64,64};
+	updateAudioState(gl.state);
 	Camera camera = {
 		transform->pos,
-		gl.res
+		gl.res,
+        margin
 	};
+	name->name = "Juancarlos Sandoval";
+	name->offset = {0,-25};
+	sprite->ssheet = "player-idle";
+	sprite->render_order = 65536 - 2;
+	collider->offset = {0.0f,-8.0f};
+	collider->dim = v2u {5,4};
+	health->health = 100.0f;
+	health->max = 100.0f;
+
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+	v2u space_margin = {64,64};
 	Camera space_Camera = {
 		SpaceTransform->pos,
-		gl.res
+		gl.res,
+		space_margin
 	};
 	spaceCamera = &space_Camera; 
-
-
-
 	ps.sample();
 
 	[[maybe_unused]]float dt = getDeltaTime();  
@@ -387,19 +413,11 @@ int main()
 			astar->findClosestNode({0.0f, 0.0f}),
 			astar->findClosestNode({1000.0f, 1000.0f})
 		     );
-
-	name->name = "Simon";
-	name->offset = {0,-25};
-	sprite->ssheet = "player-idle";
-	sprite->render_order = 15;
-	collider->offset = {0.0f,-8.0f};
-	collider->dim = v2u {5,4};
-	health->health = 100.0f;
-	health->max = 100.0f;
+	
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
 	c = &camera;
-	World w {settings};
+	World w {settings, loot_table};
 	astar->setObstacles(&w);
 	rs.sample();
 	ps.sample();
@@ -411,8 +429,10 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
+	auto last = std::chrono::steady_clock::now();
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
 	while (!done) {
+		auto now = std::chrono::steady_clock::now();
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
 			x11.check_resize(&e);
@@ -448,9 +468,12 @@ int main()
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
 		timeCopy(&timeStart, &timeCurrent);
 		getAudioManager()->update();
-		physics(foe, &w);
-		render();
-		x11.swapBuffers();
+		if (std::chrono::duration_cast<
+			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
+			physics(foe, &w);
+			render();
+			x11.swapBuffers();
+		}
 		usleep(1000);
 	}
 	shutdownAudioSystem();
@@ -742,21 +765,41 @@ int check_keys(XEvent *e)
 	}
 	// Playing state handling
 	if (gl.state == PLAYING) {
+		if (!ecs::ecs.component().has<PHYSICS>(player)) {
+			return 0;
+		}
 		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
 		if (pc == nullptr || sc == nullptr) {
 			DWARN("Player Doesn't have physics and/or Sprite\n");
 			return 0;
 		}
+		static std::string dir;
 		if (e->type == KeyRelease) {
 			if (key == XK_Up || key == XK_Down ||
 					key == XK_Left || key == XK_Right
 			   ) {
-				sc->ssheet = "player-idle";
-				sc->invert_y = false;
+				if (dir == "left") {
+					sc->ssheet = "player-right-idle";
+					sc->invert_y = true;
+				} else if (dir == "right") {
+					sc->ssheet = "player-right-idle";
+					sc->invert_y = false;
+				} else if (dir == "up") {
+					sc->ssheet = "player-back-idle";
+					sc->invert_y = false;
+				} else {
+					sc->ssheet = "player-idle";
+					sc->invert_y = false;
+				}
+				// sc->ssheet = last_ssheet;
+				// sc->invert_y = false;
 				pc->vel = {0,0};
 			}
 		} else if (e->type == KeyPress) {
 			static float movement_mag = 75.0;
+            if (key == XK_u) {
+                
+            }
 
 			if (key == XK_e) {
 
@@ -788,19 +831,23 @@ int check_keys(XEvent *e)
 			switch(key) {
 				case XK_Right:
 					sc->ssheet = "player-right";
+					dir = "right";
 					pc->vel = {movement_mag,0};
 					break;
 				case XK_Left:
 					sc->invert_y = true;
 					sc->ssheet = "player-right";
+					dir = "left";
 					pc->vel = {-movement_mag,0};
 					break;
 				case XK_Up:
 					sc->ssheet = "player-back";
+					dir = "up";
 					pc->vel = {0,movement_mag};
 					break;
 				case XK_Down:
 					sc->ssheet = "player-front";
+					dir = "down";
 					pc->vel = {0,-movement_mag};
 					break;
 				case XK_a:
@@ -909,9 +956,8 @@ int handle_menu_state(int key)
 				updateAudioState(gl.state);
 				break;
 			case 3: // Space
-				gl.state = SPACE;
-				updateAudioState(gl.state);
-				break;
+				return 1;
+                break;
 			case 4: // Exit
 				return 1;
 		}
@@ -1526,4 +1572,3 @@ void render() {
 
 	}
 }
-

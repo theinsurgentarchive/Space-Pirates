@@ -6,13 +6,16 @@
 #include <vector>
 #include <queue>
 #include <deque>
+#include <random>
 #include <array>
 #include <shared_mutex>
+#include <initializer_list>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <atomic>
 #include <functional>
+#include <random>
 #include <unordered_map>
 #include <unordered_set>
 #include <GL/glx.h>
@@ -29,6 +32,7 @@
 #define PHYSICS ecs::Physics
 #define HEALTH ecs::Health
 #define COLLIDER ecs::Collider
+#define CHEST ecs::Chest
 
 #define _RESET "\033[0m"
 #define _RGB(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
@@ -65,6 +69,14 @@ enum BiomeType
     HELL
 };
 
+enum LootType
+{
+    LOOT_OXYGEN,
+    LOOT_FUEL,
+    PLAYER_HEALTH,
+    SHIP_HEALTH
+};
+
 enum Direction
 {
     TOP,
@@ -76,7 +88,9 @@ enum Direction
 struct Biome;
 struct SpriteSheet;
 class Camera;
-struct World;
+class World;
+struct Loot;
+class LootSelector;
 struct Texture;
 struct Collision;
 template <typename T>
@@ -155,6 +169,25 @@ u16 getId()
     return cid;
 }
 
+struct Loot
+{
+    LootType type;
+    float amount;
+    float weight;
+};
+
+class LootTable
+{    
+    public:
+        Loot random();
+        LootTable& addLoot(std::initializer_list<Loot> loot);
+        LootTable();
+    private:
+        std::vector<Loot> loot_;
+        std::mt19937 generator_;
+};
+
+
 struct Biome
 {
     const BiomeType type;
@@ -192,10 +225,11 @@ class Camera
         std::vector<const ecs::Entity*> findVisible(
             std::vector<const ecs::Entity*>& entities,
             ThreadPool& pool) const;
-        Camera(v2f& pos, v2u& dim);
+        Camera(v2f& pos, v2u& dim, v2u& margin);
     private:
         std::reference_wrapper<v2f> pos_;
         std::reference_wrapper<v2u> dim_;
+        std::reference_wrapper<v2u> margin_;
         void visibleHelper(
             std::vector<const ecs::Entity*>& entities, 
             std::vector<const ecs::Entity*>& visible_entities,
@@ -251,15 +285,22 @@ struct WorldGenerationSettings
     float temperature, humidity;
     u16 radius;
     u32 biome_seed;
-    WorldGenerationSettings(float temperature, float humidity, u16 radius, u32 seed);
+    int chest_count;
+    WorldGenerationSettings(float temperature, float humidity, u16 radius, u32 seed, int chest_count);
 };
 
-struct World
+class World
 {
     using WorldCell = std::vector<const ecs::Entity*>;
-    std::vector<std::vector<WorldCell>> cells;
-    World(WorldGenerationSettings settings);
-    ~World();
+    public:
+        World(WorldGenerationSettings& settings, LootTable& loot_table);
+        ~World();
+        std::vector<std::vector<WorldCell>> cells;
+        WorldGenerationSettings& getSettings();
+    private:
+        WorldGenerationSettings& settings_;
+        std::mt19937 generator_;
+        LootTable& loot_table_;
 };
 
 namespace wfc
@@ -384,6 +425,11 @@ namespace ecs
         v2f pos;
         v2f scale {1,1};
         float rotation;
+    };
+
+    struct Chest
+    {
+        bool opened {false};
     };
 
     struct Health
