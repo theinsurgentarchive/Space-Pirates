@@ -282,6 +282,7 @@ std::unique_ptr<unsigned char[]> buildAlphaData(Image *img);
 // M A I N
 //==========================================================================
 const ecs::Entity* player;
+const ecs::Entity* spaceship;
 ecs::Entity* planetPtr;
 ecs::Entity* planetPtr2;
 ecs::RenderSystem rs {ecs::ecs,60};
@@ -309,12 +310,19 @@ int main()
 		{LOOT_OXYGEN, 2.0f, 0.5f},
 		{LOOT_FUEL, 5.0f, 1.0f},
 		{LOOT_FUEL, 8.0f, 2.0f},
-		{LOOT_FUEL, 3.0f, 0.8f}
+		{LOOT_FUEL, 3.0f, 0.8f},
+        {PLAYER_HEALTH, 5.0f, 1.0f},
+        {SHIP_HEALTH, 3.0f, 1.0f},
+        {SHIP_HEALTH, 8.0f, 0.5f},
+        {SHIP_HEALTH, 15.0f, 0.75f},
+        {PLAYER_HEALTH, 8.0f, 0.5f},
+        {PLAYER_HEALTH, 15.0f, 0.25f},
 	});
 	
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
+	spaceship = gl.spaceship;
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
@@ -358,7 +366,7 @@ int main()
 	loadTextures(ssheets);
 	c = &camera;
 
-	World w {settings};
+	World w {settings,loot_table};
 	// auto layers = w.cellWithMaxArea();
 	// if (!layers.empty()) {
 	// 	const ecs::Entity* tile = layers[0];

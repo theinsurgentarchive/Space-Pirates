@@ -71,7 +71,9 @@ enum BiomeType
 enum LootType
 {
     LOOT_OXYGEN,
-    LOOT_FUEL
+    LOOT_FUEL,
+    PLAYER_HEALTH,
+    SHIP_HEALTH
 };
 
 enum Direction
@@ -287,13 +289,14 @@ class World
 {
     using WorldCell = std::vector<const ecs::Entity*>;
     public:
-        World(WorldGenerationSettings settings);
+        World(WorldGenerationSettings& settings, LootTable& loot_table);
         ~World();
         std::vector<std::vector<WorldCell>> cells;
         WorldGenerationSettings& getSettings();
     private:
-        WorldGenerationSettings settings_;
+        WorldGenerationSettings& settings_;
         std::mt19937 generator_;
+        LootTable& loot_table_;
 };
 
 namespace wfc

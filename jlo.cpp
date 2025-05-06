@@ -22,6 +22,7 @@
 
 #include "image.h"
 #include "jlo.h"
+#include "balrowhany.h"
 #include "fonts.h"
 #include "image.h"
 
@@ -61,7 +62,7 @@ extern std::vector<Collision> cols;
 extern std::atomic<bool> done;
 extern ThreadPool* pool;
 extern const ecs::Entity* player;
-extern const ecs::Entity* islandWithMaxArea(std::vector<std::vector<const ecs::Entity*>> tiles);
+extern const ecs::Entity* spaceship;
 void loadTextures(
     std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
 {
@@ -211,7 +212,10 @@ void loadTextures(
         {1,45},{16,16}, true)
     .loadStatic("chest",
         loadTexture(
-            "./resources/textures/decorations/chest.png",false));
+            "./resources/textures/decorations/chest.png",false))
+    .loadStatic("chest-open",
+        loadTexture(
+            "./resources/textures/decorations/chest_open.png",true));
 }
 
 std::shared_ptr<Texture> loadTexture(
@@ -460,7 +464,8 @@ std::vector<std::string> Biome::decor(BiomeType type)
     Camera of the game, center of the camera is bound to 'pos_'.
 */
 
-Camera::Camera(v2f& pos, v2u& dim, v2u& margin) : pos_{pos}, dim_{dim}, margin_{margin} {}
+Camera::Camera(v2f& pos, v2u& dim, v2u& margin) : pos_{pos}, dim_{dim}, 
+    margin_{margin} {}
 
 void Camera::bind(v2f& pos)
 {
@@ -714,13 +719,15 @@ const ecs::Entity* createWorldTile(WorldGenerationSettings& settings,
     if (sprite->ssheet.find("water") != std::string::npos || 
     sprite->ssheet.find("lava") != std::string::npos) {
         auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
-        collider->dim = v2u {static_cast<u16>(16 * transform->scale[0]),static_cast<u16>(16 * transform->scale[1])};
+        collider->dim = v2u {static_cast<u16>(16 * transform->scale[0]),
+            static_cast<u16>(16 * transform->scale[1])};
         collider->passable = false;
     }
     return entity;
 }
 
-const ecs::Entity* createChest(WorldGenerationSettings& settings, const v2u& sprite_dim, const v2i& cell_pos)
+const ecs::Entity* createChest(WorldGenerationSettings& settings, 
+    const v2u& sprite_dim, const v2i& cell_pos, LootTable& loot_table)
 {
     const ecs::Entity* entity = ecs::ecs.entity().checkout();
     auto [transform,sprite,collider,chest] = ecs::ecs.component()
@@ -732,20 +739,40 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings, const v2u& spr
     sprite->ssheet = "chest";
     sprite->render_order = 65536 - 1;
     collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
-    collider->callback = [chest](const ecs::Entity* first, const ecs::Entity* second) {
+    collider->callback = [sprite,chest,&loot_table]([[maybe_unused]] 
+        const ecs::Entity* first, [[maybe_unused]] const ecs::Entity* second) {
         if (!chest->opened) {
+            sprite->ssheet = "chest-open";
             chest->opened = true;
+            Loot loot = loot_table.random();
+            auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+            auto [shealth,fuel,oxygen] = ecs::ecs.component().fetch<HEALTH,ecs::Fuel,ecs::Oxygen>(spaceship);
+            switch (loot.type) {
+                case PLAYER_HEALTH:
+                    health->health += loot.amount;
+                    break;
+                case SHIP_HEALTH:
+                    shealth->health += loot.amount;
+                    break;
+                case LOOT_FUEL:
+                    fuel->fuel += loot.amount;
+                    break;
+                case LOOT_OXYGEN:
+                    oxygen->oxygen += loot.amount;
+                    break;
+            }
+            std::cout << "You got: " << loot.type << ' ' << 
+                loot.amount << std::endl;
         }
     };
 
     return entity;
 }
 
-void populateWithChests(World& world, const v2u& grid_size, std::mt19937& generator)
+void populateWithChests(World& world, const v2u& grid_size, std::mt19937& generator, LootTable& loot_table)
 {
     using WorldCell = std::vector<const ecs::Entity*>;
     i32 chest_count = 2;
-    float alpha = 0.05;
     auto chest = ssheets.find("chest");
     if (chest == ssheets.end())
         return;
@@ -764,7 +791,8 @@ void populateWithChests(World& world, const v2u& grid_size, std::mt19937& genera
     for (int i = 0; i < chest_count; ++i) {
         auto pair = local_cells[i];
         WorldCell* cell = pair.first;
-        cell->push_back(createChest(world.getSettings(),chest_ssheet->sprite_dim,pair.second));
+        cell->push_back(createChest(world.getSettings(),
+            chest_ssheet->sprite_dim,pair.second, loot_table));
     }
 }
 
@@ -773,8 +801,8 @@ WorldGenerationSettings& World::getSettings()
     return settings_;
 }
 
-World::World(WorldGenerationSettings settings) 
-    : settings_{settings},generator_{std::random_device{}()}
+World::World(WorldGenerationSettings& settings, LootTable& loot_table) 
+    : settings_{settings},generator_{std::random_device{}()},loot_table_{loot_table}
 {
     Biome biome = selectBiome(
         settings.temperature,
@@ -799,8 +827,10 @@ World::World(WorldGenerationSettings settings)
             if (ssheet == ssheets.end())
                 continue;
             v2u sprite_dim = ssheet->second->sprite_dim;
-            const ecs::Entity* tile = createWorldTile(settings,sprite_dim,cell->pos,tile_meta);
-            auto [transform,sprite] = ecs::ecs.component().fetch<TRANSFORM,SPRITE>(tile);
+            const ecs::Entity* tile = createWorldTile(settings,sprite_dim,
+                cell->pos,tile_meta);
+            auto [transform,sprite] = ecs::ecs.component()
+                .fetch<TRANSFORM,SPRITE>(tile);
             cells[i][j].push_back(tile);
             std::uniform_real_distribution<double> dis(0.0,1.0);
             if (dis(generator) > 0.8) {
@@ -829,7 +859,7 @@ World::World(WorldGenerationSettings settings)
             }
         }
     }
-    populateWithChests(*this, grid_size, generator_);
+    populateWithChests(*this, grid_size, generator_, loot_table);
 }
 
 World::~World()
@@ -1317,7 +1347,8 @@ namespace ecs
     void RenderSystem::update([[maybe_unused]]float dt)
     {
         for (auto& entity :  _entities) {
-            auto [transform,sprite] = _ecs.component().fetch<TRANSFORM,SPRITE>(entity);
+            auto [transform,sprite] = _ecs.component()
+                .fetch<TRANSFORM,SPRITE>(entity);
             if (!c->visible(transform->pos)) {
                 DINFO("entity was skipped");
                 continue;
@@ -1338,7 +1369,8 @@ namespace ecs
             if (ssheet->tex == nullptr) {
                 continue;
             }
-            ssheet->render(sprite->frame, transform->pos, transform->scale, sprite->invert_y);
+            ssheet->render(sprite->frame, transform->pos, 
+                transform->scale, sprite->invert_y);
             if (ssheet->animated) {
                 sprite->frame++;
                 auto f = ssheet->frame_dim;
