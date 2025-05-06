@@ -419,7 +419,9 @@ int main()
 		splash
 	);
 	loadSplash(ssheets);
+	cout << "loading into intro\n";
 	while (intro) {
+		
 		static auto last_time = std::chrono::high_resolution_clock::now();
 		i_tc->pos = {0.0f, 0.0f};
 		i_sc->ssheet = "Splash-Screen";
@@ -437,6 +439,7 @@ int main()
 			intro = false;
 		}
 	}
+	cout << "Intro Ended\n";
 	ecs::ecs.entity().ret(splash);
 	gl.state = MENU;
 	while (!done) {
