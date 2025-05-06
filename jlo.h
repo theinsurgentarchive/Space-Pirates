@@ -6,6 +6,7 @@
 #include <vector>
 #include <queue>
 #include <deque>
+#include <random>
 #include <array>
 #include <shared_mutex>
 #include <initializer_list>
@@ -153,6 +154,8 @@ using v2f = Vec2<float>;
 using cmask = std::bitset<_MAX_COMPONENTS>;
 using time_point = std::chrono::high_resolution_clock::time_point;
 
+void checkRequiredSprites();
+
 void show_jlo(Rect* r);
 extern u16 counter;
 extern void loadTextures(
@@ -282,7 +285,8 @@ struct WorldGenerationSettings
     float temperature, humidity;
     u16 radius;
     u32 biome_seed;
-    WorldGenerationSettings(float temperature, float humidity, u16 radius, u32 seed);
+    int chest_count;
+    WorldGenerationSettings(float temperature, float humidity, u16 radius, u32 seed, int chest_count);
 };
 
 class World
@@ -682,4 +686,5 @@ class PlayerFactory
         Camera& camera_;
 };
 
+bool collided(TRANSFORM*, TRANSFORM*, COLLIDER*, COLLIDER*);
 #include "jlo.tpp"

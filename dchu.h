@@ -1,43 +1,31 @@
 #pragma once
 #include "jlo.h"
+#include "jsandoval.h"
 
-//Entity Components
-struct oxygen_resource
-{
-	//Oxygen Level
-	float oxygen;
-	//Max O2 Level
-	float max;
-    //Is O2 Depleted?
-	bool depleted;
-};
+//Define Alias for ecs Components
+#define COMBAT ecs::Combat
+#define NAVIGATE ecs::Navigate
 
-struct fuel_resource
-{
-	//Fuel Level
-	float fuel;
-	//Max Fuel Level
-	float max;
-    //Is Fuel Depleted?
-	bool depleted;
-};
+//Can The Given Entity be Rendered?
+bool canRender(ecs::Entity*);
 
-//Can-Be-Displayed Check Function
-bool isDisplayable(ecs::Entity*);
+//Return a Float that Represents the Distance Between 2 Vectors
+float v2fDist(v2f, v2f);
 
-//A* Pathfinding Algorithm
-//(INTEGRATION IN PROCESS)
+//Returns Unit Vector representing the Direction of The Vector
+//(Used to Calculate The Change in XY of an Entity)
+v2f v2fNormal(v2f);
+
+//Generate a Randomized Float Number Between 2 Integers
+float floatRand(int16_t, int16_t);
+
+//A* Pathfinding Nodes, Connects The Grid
 class Node
 {
     private:
-        //World Position
+        //Positional Variables
         v2f world_pos;
-
-        //Local Position
         v2u local_pos;
-
-        //Hitbox Scale
-        v2f scale;
     public:
 
         //Variables
@@ -45,21 +33,21 @@ class Node
         float local_dist, global_dist;
         std::vector<Node*> neighbors;
         
-        //Node Directly Preceding Current Node
-        Node* parent;
-        
+        //Node Directly Preceding & Proceeding Current Node
+        Node* parent {nullptr};
         //Constructor
         Node();
         Node(bool);
 
-        //Functions
+        //Function
         v2f getWorld();
         void setWorld(v2f);
         v2u getLocal();
         void setLocal(v2u);
 };
 
-//AStarGrid of Node Elements, Used in A* Search
+
+//AStar Grid of Node Elements, Used in A* Search
 class AStar
 {
     private:
@@ -68,37 +56,43 @@ class AStar
 
         //The Position in The World that The Grid is Generated From.
         v2f origin_pos;
+
+        //The World Position Step
+        v2f origin_step;
     public:
         //Dynamic Node Grid
         std::vector<std::vector<Node>> node_grid;
 
         //Constructor
         AStar();
-        AStar(World&, v2f, v2u);
-        AStar(uint16_t, uint16_t);
+        AStar(v2f, v2u, v2f);
+        AStar(v2u);
+        AStar(u16, u16);
 
-        //Sets a Node to an Obstacle in A*
-        void toggleObstacle(uint16_t, uint16_t);
+
+        //Sets Node(s) to an Obstacle in A*
+        void toggleObstacle(u16, u16);
+        void setObstacles(World*);
 
         //Get The Node Grid's Size
         v2u size();
 
-        //Retrieves a Pointer to The Node
-        Node* getNode(uint16_t, uint16_t);
+        //Get The Distance between the Center of Nodes
+        v2f getStep();
 
-        //Initializes The Node Grid
-        void initGrid();
+        //Retrieve Nodes
+        Node* getNode(u16, u16);
+        Node* findClosestNode(v2f);
 
-        //Generate All Neighbors for Each Node
+        void initGrid(v2f dim = {1.0f, 1.0f});
+
+        //Neighbor Related Function
         void genNeighbors();
-
-        //Check If The Passed Node has Neighbors
         bool hasNeighbors(Node*);
 
         //A* Search Algorithm
-        Node* aStar(uint16_t[2], uint16_t[2]);
+        Node* aStar(v2u, v2u);
 
-        //Node Refresh
         void resetNodes();
 
         //Calculates The Distance From One Node to The Next
@@ -106,4 +100,81 @@ class AStar
 
         //Generates Biased Data Based On Two Given Input Nodes
         float heuristics(Node*, Node*);
+};
+
+namespace ecs
+{
+    class Navigate
+    {
+        private:
+            std::vector<Node*> nodes;
+            
+            //Get The Current Position Within The Node Vector
+            u16 current_node_pos;
+
+            //Reference to world grid
+            AStar* grid;
+
+            //Has The Path Been Fully Traversed?
+            bool finished;
+        public:
+            //Constructor
+            Navigate();
+
+            //Function
+            float* nodePos();
+            void genPath(Node*, Node*);
+            void reset();
+            bool nextNode();
+
+            //Getter
+            AStar* getAStar();
+            bool getStatus();
+
+            //Setter
+            void setAStar(AStar*);
+            void setStatus(bool);
+    };
+}
+
+//Move an Entity to a Position or Entity with a Transform
+void moveTo(const ecs::Entity*, v2f);
+void moveTo(const ecs::Entity*, const ecs::Entity*);
+void moveTo(const ecs::Entity*, Node*);
+//Enemy Generation
+enum EnemyT 
+{
+    DEFAULT,  //0
+    BANDIT,   //1
+    ALIEN     //2
+};
+
+void loadEnemyTex(
+    std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>&
+);
+
+class Enemy
+{
+    private:
+        ecs::Entity* ent;
+        u16 atk_Timer;
+        u16 path_Timer;
+        bool can_damage;
+        bool can_gen_path;
+    public:
+        //Constructor
+        Enemy(ecs::Entity*);
+        Enemy(ecs::Entity*, v2f t_mod);
+        
+        //Function
+        void initEnemy();
+        bool doDamage(const ecs::Entity*, const ecs::Entity*);
+        void action(World*);
+
+        //Getter
+        u16 getAtkTimer();
+        u16 getPathTimer();
+        bool getCanDamage();
+        bool getCanGenPath();
+
 };
