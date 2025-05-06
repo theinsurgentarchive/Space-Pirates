@@ -456,7 +456,7 @@ int main()
 				}
 				break; 
 			case GAMEOVER:
-				sleep(4);
+				sleep(2);
 				done = true;
 
 				break;
@@ -941,7 +941,7 @@ int handle_menu_state(int key)
 		int option = menu_result - 10;
 		switch(option) {
 			case 0: // Start
-				gl.state = PLAYING;
+				gl.state = SPACE;
 				updateAudioState(gl.state);
 				break;
 			case 1: // Controls
