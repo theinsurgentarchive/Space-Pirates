@@ -329,6 +329,12 @@ std::unordered_map<std::string, std::shared_ptr
 void loadShipAndAsteroids(std::unordered_map
 		<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
+//Load Splash Animation
+std::unordered_map<std::string, std::shared_ptr
+<SpriteSheet>> splashSSheets;
+void loadSplash(
+	std::unordered_map<std::string,
+	std::shared_ptr<SpriteSheet>> splashSSheets);
 bool intro = true;
 u16 intro_timer = 15;
 int main()
@@ -401,6 +407,7 @@ int main()
 	health->max = 100.0f;
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
+	loadSplash(ssheets);
 	c = &camera;
 	World w {settings};
 	astar->setObstacles(&w);
@@ -418,8 +425,7 @@ int main()
 	auto [i_sc, i_tc] = ecs::ecs.component().assign<SPRITE, TRANSFORM>(
 		splash
 	);
-	loadSplash(ssheets);
-	i_tc->pos = {50.0f, 50.0f};
+	i_tc->pos = {transform->pos[0], transform->pos[1]};
 	i_sc->ssheet = "player-front";
 	i_sc->render_order = UINT16_MAX - 2;
 	cout << "loading into intro\n";
@@ -1178,7 +1184,6 @@ void render() {
 	float cameraY = static_cast<float>(tc->pos[1]);
 	switch(gl.state) {
 		case SPLASH:
-			// Reset for game state
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
@@ -1187,10 +1192,17 @@ void render() {
 			glLoadIdentity();
 
 			glPushMatrix();
+			c->update();
 			rs.update(getDeltaTime());
 			glPopMatrix();
 
 			DisableFor2D();
+			// merge space sprites into ssheets once
+			static bool splashLoaded = false;
+			if (!splashLoaded) {
+				ssheets.insert(splashSSheets.begin(), splashSSheets.end());
+				splashLoaded = true; 
+			}
 			break;
 		case MENU:
 			// Setup for 2D rendering (menu interface)
