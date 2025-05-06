@@ -362,7 +362,7 @@ int main()
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
 		planetAttr->humidity,
-		static_cast<u16>(planetAttr->size * 10),
+		static_cast<u16>(planetAttr->size * 30),
 		static_cast<u32>(2),
 		static_cast<int>(planetAttr->size * 2)
 	};
@@ -797,6 +797,9 @@ int check_keys(XEvent *e)
 			}
 		} else if (e->type == KeyPress) {
 			static float movement_mag = 75.0;
+            if (key == XK_u) {
+                
+            }
 
 			if (key == XK_e) {
 
@@ -953,9 +956,8 @@ int handle_menu_state(int key)
 				updateAudioState(gl.state);
 				break;
 			case 3: // Space
-				gl.state = SPACE;
-				updateAudioState(gl.state);
-				break;
+				return 1;
+                break;
 			case 4: // Exit
 				return 1;
 		}
