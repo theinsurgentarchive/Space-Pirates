@@ -435,7 +435,7 @@ int main()
 				}
 				break; 
 			case GAMEOVER:
-				//sleep(4);
+				sleep(2);
 				done = true;
 
 				break;
