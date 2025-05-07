@@ -605,11 +605,11 @@ void Enemy::initEnemy(World* w, float mag)
             DWARN("Error, World Empty\n");
         } else {
             x = w->cells.size();
-        }
-        if (w->cells[0].empty()) {
-            DWARN("Error, World Missing Columns\n");
-        } else {
-            y = w->cells[0].size();
+            if (w->cells[0].empty()) {
+                DWARN("Error, World Missing Columns\n");
+            } else {
+                y = w->cells[0].size();
+            }
         }
     } else {
         DWARN("Error, World Not Found\n");
