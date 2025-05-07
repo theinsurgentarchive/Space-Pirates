@@ -911,7 +911,7 @@ World::World(WorldGenerationSettings& settings, LootTable& loot_table)
                 auto [dtransform,dsprite] = ecs::ecs.component()
                     .assign<TRANSFORM,SPRITE>(decor);
                 dsprite->ssheet = decors[decor_index];
-                dsprite->render_order = 65536 - 2;
+                dsprite->render_order = 65536 - 15;
                 dtransform->pos = transform->pos;
                 dtransform->pos[1] += (decor_sd[1] / 2);
                 cells[i][j].push_back(decor);
