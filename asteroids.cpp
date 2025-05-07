@@ -1149,9 +1149,6 @@ void physics(Enemy& foe, World* w)
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		traits-> AngY += 1.0f;
 		// ecs::updatePlanetSpin();
-		//applying camera
-
-		c->update();
 
 		// merge space sprites into ssheets once
 		static bool spaceSheetsLoaded = false;
@@ -1371,7 +1368,10 @@ void render() {
 				glMatrixMode(GL_MODELVIEW);
 				glPushMatrix(); 
 				glLoadIdentity();
-				
+
+				//applying camera
+
+				c->update();
 				float dt = getDeltaTime(); 
 				spaceRenderer.update(dt);
 
