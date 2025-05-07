@@ -396,6 +396,7 @@ int main()
 	c = &camera;
 	ps.sample();
 	checkRequiredSprites();
+	auto last = std::chrono::steady_clock::now();
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
 	init_opengl();
 	logOpen();
@@ -406,10 +407,18 @@ int main()
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	DINFO("loading into intro\n");
 	while (intro) {
+		auto now = std::chrono::steady_clock::now();
 		static auto last_time = std::chrono::high_resolution_clock::now();
 
-		render();
-		x11.swapBuffers();
+		if (std::chrono::duration_cast<std::chrono::duration<float>>(
+											now - last).count() > 0.01666666f)
+		{	
+			if (sprite->frame = 18) {
+				sprite->ssheet = "SPLASH-final";
+			}
+			render();
+			x11.swapBuffers();
+		}
 		usleep(1000);
 		
 		auto current = std::chrono::high_resolution_clock::now();
