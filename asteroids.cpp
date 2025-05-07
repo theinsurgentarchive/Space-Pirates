@@ -375,7 +375,7 @@ int main()
 		gl.res
 	};
 	ssc->ssheet = "SPLASH";
-	ssc->render_order = 14;
+	ssc->render_order = 65536 - 1;
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
@@ -395,7 +395,7 @@ int main()
 	name->name = "Simon";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
-	sprite->render_order = 65536 - 1;
+	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
 	health->health = 100.0f;
@@ -820,23 +820,19 @@ int check_keys(XEvent *e)
 				case XK_Right:
 					sc->ssheet = "player-right";
 					pc->vel = {movement_mag,0};
-					cout << "right\n";
 					break;
 				case XK_Left:
 					sc->invert_y = true;
 					sc->ssheet = "player-right";
 					pc->vel = {-movement_mag,0};
-					cout << "left\n";
 					break;
 				case XK_Up:
 					sc->ssheet = "player-back";
 					pc->vel = {0,movement_mag};
-					cout << "back\n";
 					break;
 				case XK_Down:
 					sc->ssheet = "player-front";
 					pc->vel = {0,-movement_mag};
-					cout << "front\n";
 					break;
 				case XK_a:
 					done = 1;
