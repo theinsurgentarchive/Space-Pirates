@@ -366,9 +366,9 @@ int main()
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
 		planetAttr->humidity,
-		static_cast<u16>(planetAttr->size * 30),
+		static_cast<u16>(((int) planetAttr->size % 10) * 30),
 		static_cast<u32>(2),
-		static_cast<int>(planetAttr->size * 5)
+		static_cast<int>(((int) planetAttr->size % 10) * 5)
 	};
 	settings.origin = {0,0};
 	// Initialize audio system
