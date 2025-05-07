@@ -331,7 +331,6 @@ ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 //Load Splash Animation
 std::unordered_map<std::string, std::shared_ptr
 <SpriteSheet>> splashSSheets;
-bool intro = true;
 u16 intro_timer = 15;
 int main()
 {
@@ -423,20 +422,7 @@ int main()
 		}
 		switch (gl.state) { //State Checking
 			case SPLASH:
-				static auto last_time = (
-					std::chrono::high_resolution_clock::now()
-				);
-				if (sprite->frame == 17) {
-					sprite->ssheet = "SPLASH-final";
-				} else {
-					cout << "Intro Frame is: " << sprite->frame << endl;
-				}
-				auto current = std::chrono::high_resolution_clock::now();
-    			auto t_elasped = (
-    			    std::chrono::duration_cast<std::chrono::seconds>(
-    			        current - last_time
-    			    )
-    			);
+				auto t_elasped = timeSpan;
 				if (t_elasped.count() >= intro_timer) {
 					gl.state = MENU;
 					updateAudioState(gl.state);
