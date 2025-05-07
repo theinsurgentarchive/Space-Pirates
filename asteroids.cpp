@@ -421,17 +421,6 @@ int main()
 			done = check_keys(&e);
 		}
 		switch (gl.state) { //State Checking
-			case SPLASH:
-				auto t_elasped = timeSpan;
-				if (t_elasped.count() >= intro_timer) {
-					gl.state = MENU;
-					updateAudioState(gl.state);
-					sprite->ssheet = "player-idle";
-					name->name = "Simon";
-					name->offset = {0,-25};
-					DINFO("Intro Ended\n");
-				}
-				break;
 			case SPACE:
 				c = spaceCamera; 
 				break; 
@@ -449,6 +438,16 @@ int main()
 			case GAMEOVER:
 				sleep(4);
 				done = true;
+				break;
+			case SPLASH:
+				if (timeSpan >= (double)intro_timer) {
+					gl.state = MENU;
+					updateAudioState(gl.state);
+					sprite->ssheet = "player-idle";
+					name->name = "Simon";
+					name->offset = {0,-25};
+					DINFO("Intro Ended\n");
+				}
 				break;
 			default: 
 				c = nullptr;
