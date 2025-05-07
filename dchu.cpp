@@ -697,7 +697,7 @@ void Enemy::action()
     
         //Move Towards Next Node in The Path, Otherwise Move Towards The Player
         if (navi->getStatus() || node_pos == nullptr) {
-            moveTo(ent, player);
+            moveTo(ent, player, speed);
         } else {
             if (
                 (node_pos[0] < (s_trans->pos[0] + 0.5f)) &&
