@@ -112,6 +112,9 @@ namespace ecs
         private:
             std::vector<Node*> nodes;
             
+            //Get the Total Size of Path by Number of Nodes
+            u16 dist_from_tar;
+            
             //Get The Current Position Within The Node Vector
             u16 current_node_pos;
 
@@ -133,6 +136,7 @@ namespace ecs
             //Getter
             AStar* getAStar();
             bool getStatus();
+            u16 getDist();
 
             //Setter
             void setAStar(AStar*);

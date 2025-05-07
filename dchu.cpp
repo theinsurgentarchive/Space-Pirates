@@ -491,7 +491,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     return nullptr;
 }
 
-void moveTo(const ecs::Entity* ent, v2f target)
+void moveTo(const ecs::Entity* ent, v2f target, float speed = 1.0f)
 {
     auto [physics, transform] = 
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
@@ -519,7 +519,10 @@ void moveTo(const ecs::Entity* ent, v2f target)
         reduce = dist / (accel / 4.0f);
     }
     v2f dir = v2fNormal(dif);
-    v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
+    v2f move {
+        ((accel * dir[0] * speed[0]) * reduce),
+        ((accel * dir[1] * speed[1]) * reduce)
+    };
     physics->vel[0] = move[0];
     physics->vel[1] = move[1];
 
@@ -644,7 +647,8 @@ bool Enemy::doDamage(const ecs::Entity* ent, const ecs::Entity* ent2)
 }
 
 void Enemy::action()
-{
+{  
+    float speed = 1.0f;
     float m_mag = 25.0f;
     bool in_bounds = true;
     auto [navi, s_trans, phys, sprite] = (
@@ -653,7 +657,9 @@ void Enemy::action()
     auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     float* node_pos = navi->nodePos();
-    
+    if (navi->getDist() > 1 && navi->getDist() < 6) {
+        speed = (static_cast<float>(navi->getDist()) * 0.1f);
+    }
     //Check if nodePos Returned a nullptr
     if (node_pos == nullptr) {
         navi->setStatus(true);
@@ -691,7 +697,7 @@ void Enemy::action()
     
         //Move Towards Next Node in The Path, Otherwise Move Towards The Player
         if (navi->getStatus() || node_pos == nullptr) {
-            moveTo(ent, player);
+            moveTo(ent, player, speed);
         } else {
             if (
                 (node_pos[0] < (s_trans->pos[0] + 0.5f)) &&
@@ -805,6 +811,7 @@ float* ecs::Navigate::nodePos()
 void ecs::Navigate::reset()
 {
     current_node_pos = 0;
+    dist_from_tar = 0;
     nodes.clear();
     finished = false;
 }
@@ -824,6 +831,7 @@ void ecs::Navigate::genPath(Node* start, Node* end)
     while (current != nullptr && current != start_node) {
         if (current != goal_node) {
             nodes.push_back(current);
+            dist_from_tar++;
         }
         current = current->parent;
     }
@@ -849,6 +857,11 @@ AStar* ecs::Navigate::getAStar()
 bool ecs::Navigate::getStatus()
 {
     return finished;
+}
+
+u16 ecs::Navigate::getDist()
+{
+    return dist_from_tar;
 }
 
 void ecs::Navigate::setAStar(AStar* astar)

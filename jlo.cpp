@@ -777,7 +777,7 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
         static_cast<float>(tile_sprite_dim[1] * tile_scale[1] * cell_pos[1])
     };
     sprite->ssheet = "chest";
-    sprite->render_order = 65536 - 1;
+    sprite->render_order = 65536 - 16;
     collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
     collider->callback = [sprite,chest,&loot_table]
 		([[maybe_unused]] const ecs::Entity* first, 
