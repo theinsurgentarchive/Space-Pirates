@@ -390,9 +390,11 @@ int main()
 	};
 	splash = ecs::ecs.entity().checkout();
 	auto [tsc, ssc] = ecs::ecs.component().assign<TRANSFORM, SPRITE>(splash);
+	v2u splash_margin = {64,64};
 	Camera intro = {
 		tsc->pos,
-		gl.res
+		gl.res,
+		splash_margin
 	};
 	ssc->ssheet = "SPLASH";
 	ssc->render_order = 65536 - 1;
@@ -413,7 +415,6 @@ int main()
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
 	};
-	World w {settings};
   Enemy foe(dummy, {0.1f, 2.0f}, &w, 48.0f);
 	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
@@ -440,7 +441,6 @@ int main()
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	auto last = std::chrono::steady_clock::now();
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
-	auto last = std::chrono::steady_clock::now();
 	DINFO("loading into intro\n");
 	while (!done) {
 		auto now = std::chrono::steady_clock::now();
@@ -485,7 +485,7 @@ int main()
 		getAudioManager()->update();
 		if (std::chrono::duration_cast<
 			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
-			physics(foe, &w);
+			physics(foe);
 			render();
 			x11.swapBuffers();
 		}
