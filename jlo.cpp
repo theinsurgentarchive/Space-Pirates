@@ -754,7 +754,7 @@ const ecs::Entity* createWorldTile(WorldGenerationSettings& settings,
         static_cast<float>(sprite_dim[1] * cell_pos[1] * transform->scale[1])
     };
     sprite->ssheet = tile_meta.ssheet;
-    sprite->render_order = 65536 - 16;
+    sprite->render_order = 65536 - 17;
     if (sprite->ssheet.find("water") != std::string::npos || 
     sprite->ssheet.find("lava") != std::string::npos) {
         auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
@@ -1751,7 +1751,7 @@ const ecs::Entity* createPlayer(World& world)
 	name->name = "Juancarlos Sandoval";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
-	sprite->render_order = 65536 - 2;
+	sprite->render_order = 65536 - 16;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
 	health->health = 100.0f;
