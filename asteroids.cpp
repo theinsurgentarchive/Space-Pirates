@@ -411,7 +411,7 @@ int main()
 		static auto last_time = std::chrono::high_resolution_clock::now();
 
 		if (std::chrono::duration_cast<std::chrono::duration<float>>(
-											now - last).count() > 1.0f)
+											now - last).count() > 2.0f)
 		{	
 			if (sprite->frame == 17) {
 				cout << "Intro Frame is: " << sprite->frame << endl;
