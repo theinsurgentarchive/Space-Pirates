@@ -440,17 +440,17 @@ int main()
 				done = true;
 				break;
 			case SPLASH:
-				static std::chrono::steady_clock::time_point last_time =
+				static std::chrono::steady_clock::time_point l =
 											std::chrono::steady_clock::now();
-				std::chrono::steady_clock::time_point current =
+				std::chrono::steady_clock::time_point c =
 											std::chrono::steady_clock::now();
-				std::chrono::seconds t_elasped = (
+				std::chrono::seconds t_e = (
 					std::chrono::duration_cast<std::chrono::seconds>(
-						current - last_time
+						c - l
 					)
 				);
-				cout << t_elasped.count() << endl;
-				if (t_elapsed.count() >= intro_timer) {
+				cout << t_e.count() << endl;
+				if (t_e.count() >= intro_timer) {
 					gl.state = MENU;
 					updateAudioState(gl.state);
 					sprite->ssheet = "player-idle";
