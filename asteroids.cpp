@@ -423,7 +423,6 @@ int main()
 			x11.swapBuffers();
 			usleep(1000);
 		}
-		last = std::chrono::steady_clock::now();
 		
 		auto current = std::chrono::high_resolution_clock::now();
     	auto t_elasped = (
