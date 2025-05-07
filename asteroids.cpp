@@ -446,6 +446,7 @@ int main()
 					name->offset = {0,-25};
 					DINFO("Intro Ended\n");
 				}
+				break;
 			case SPACE:
 				c = spaceCamera; 
 				break; 
