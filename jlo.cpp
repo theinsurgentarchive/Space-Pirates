@@ -775,7 +775,7 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
 		DERROR("Entity was Not Generated.\n");
 		return nullptr;
 	}
-	if (!ecs::ecs.entity().isFree()) {
+	if (!ecs::ecs.entity().isFree) {
 		return nullptr;
 	}
     auto [transform,sprite,collider,chest] = ecs::ecs.component()
