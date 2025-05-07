@@ -374,6 +374,8 @@ int main()
 		tsc->pos,
 		gl.res
 	};
+	ssc->ssheet = "SPLASH";
+	ssc->render_order = 15;
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
@@ -475,7 +477,7 @@ int main()
 			if (t_e.count() >= intro_timer) {
 				gl.state = MENU;
 				updateAudioState(gl.state);
-				
+				ecs::ecs.entity().ret(splash);
 				DINFO("Intro Ended\n");
 			}
 		}
