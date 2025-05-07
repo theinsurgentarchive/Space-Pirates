@@ -373,7 +373,7 @@ int main()
 	Camera intro = {
 		tsc->pos,
 		gl.res
-	}
+	};
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
@@ -1188,7 +1188,7 @@ void render() {
 			glPopMatrix();
 
 			DisableFor2D();
-			
+
 			// merge splash sprites into ssheets once
 			static bool splashLoaded = false;
 			if (!splashLoaded) {
