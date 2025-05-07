@@ -353,7 +353,8 @@ int main()
 	spaceship = gl.spaceship;
 	initializeEntity(gl.spaceship); 
 	DINFOF("spaceship initialized spaceship %s", "");
-	planetPtr = ecs::GeneratePlanet();
+	planetPtr = ecs::GeneratePlanet(gl.res[0], gl.res[1]);
+	ecs::createPlanets(gl.res[0], gl.res[1]);
 	dummy = ecs::ecs.entity().checkout();
 	Enemy foe(dummy);
 	ThreadPool tp {4};
@@ -825,7 +826,7 @@ int check_keys(XEvent *e)
 
 				//REGENERATE REGENERATE PLANET
 
-				planetPtr = ecs::GeneratePlanet();
+				planetPtr = ecs::GeneratePlanet(gl.res[0], gl.res[1]);
 				[[maybe_unused]]auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 
 				// WorldGenerationSettings settings {
@@ -877,7 +878,8 @@ int check_keys(XEvent *e)
 	}
 
 	if (gl.state == SPACE) {
-		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+		auto planets = ecs::ecs.query<PLANET>();
+		//auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		float parallaxScale = 0.0003f;
 
 		[[maybe_unused]] auto [transform,sprite,physics] = (
@@ -889,9 +891,10 @@ int check_keys(XEvent *e)
 			static float space_movement_mag = 800.0;
 
 			if (key == XK_e) {
-
-				if (PlanetCollision(planetPtr)) {
-					gl.state = PLAYING;
+				for (auto* entity:planets) {
+					if (PlanetCollision(entity)) {
+						gl.state = PLAYING;
+					}
 				}
 
 				return 0;
@@ -901,7 +904,11 @@ int check_keys(XEvent *e)
 				case XK_Right:
 					sprite->ssheet = "ship-right";
 					physics->vel = {space_movement_mag,0};
-					traits->PosX -= space_movement_mag * parallaxScale;
+					for (auto* entity:planets) {
+						auto[traits] = ecs::ecs.component().fetch<PLANET>(entity);
+						traits->PosX -= space_movement_mag * parallaxScale;
+					}
+					
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
@@ -909,21 +916,33 @@ int check_keys(XEvent *e)
 					sprite->invert_y = true;
 					sprite->ssheet = "ship-right";
 					physics->vel = {-space_movement_mag,0};
-					traits->PosX += space_movement_mag * parallaxScale;
+					for (auto* entity:planets) {
+						auto[traits] = ecs::ecs.component().fetch<PLANET>(entity);
+						traits->PosX += space_movement_mag * parallaxScale;
+					}
+					//traits->PosX += space_movement_mag * parallaxScale;
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
 				case XK_Up:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,space_movement_mag};
-					traits->PosY -= space_movement_mag * parallaxScale;
+					for (auto* entity:planets) {
+						auto[traits] = ecs::ecs.component().fetch<PLANET>(entity);
+						traits->PosY -= space_movement_mag * parallaxScale;
+					}
+					//traits->PosY -= space_movement_mag * parallaxScale;
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
 				case XK_Down:
 					sprite->ssheet = "ship-front-back";
 					physics->vel = {0,-space_movement_mag};
-					traits->PosY += space_movement_mag * parallaxScale;
+					for (auto* entity:planets) {
+						auto[traits] = ecs::ecs.component().fetch<PLANET>(entity);
+						traits->PosY += space_movement_mag * parallaxScale;
+					}
+					//traits->PosY += space_movement_mag * parallaxScale;
 					decrementResources(gl.state, gl.spaceship);
 					break;
 
@@ -1146,8 +1165,13 @@ void physics(Enemy& foe, World* w)
 	if (gl.state == MENU){
 		gl.planetAng[2] += 1.0;
 	} else if (gl.state == SPACE) {
-		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
-		traits-> AngY += 1.0f;
+		auto planets = ecs::ecs.query<PLANET>();
+		for (auto* entity:planets){
+			auto [traits] = ecs::ecs.component().fetch<PLANET>(entity);
+			traits-> AngY += 1.0f;
+		}
+		//auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+		//traits-> AngY += 1.0f;
 		// ecs::updatePlanetSpin();
 	} else if (gl.state == PLAYING) {
 		if(dummy) {
@@ -1335,6 +1359,7 @@ void render() {
 				DrawPlanet(traits-> AngY, traits-> PosX, traits-> PosY, traits-> 
 						PosZ, gl.lightPosition, traits->size, traits->rotationX, 
 						traits->rotationY, traits->smooth, traits->temperature);
+				ecs::DrawPlanets(gl.lightPosition);
 				glPopMatrix();
 
 				glMatrixMode(GL_PROJECTION);
@@ -1582,3 +1607,4 @@ void render() {
 
 	}
 }
+

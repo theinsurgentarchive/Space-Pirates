@@ -13,7 +13,9 @@
 namespace ecs
 {
     Entity* character_x();
-    Entity* GeneratePlanet();
+    Entity* GeneratePlanet(int xres, int yres);
+    void createPlanets(int xres, int yres);
+    void DrawPlanets(GLfloat* lightPosition);
     struct Planet
     {
         float temperature;
@@ -40,7 +42,7 @@ void EnableFor3D();
 
 //Used for Planet Generation and HeightMap Generation
 void PlanetSeedGenerator(float values[4]);
-void PlanetCoorGenerator(float values[3]);
+void PlanetCoorGenerator(float values[3], int xres, int yres);
 float PlanetSize(float rndNum);
 float PlanetSmooth(float rndNum);
 float PlanetTemp(float rndNum);

@@ -56,29 +56,35 @@ Entity* character_x()
     }
     return x;
 }
-Entity* GeneratePlanet()
+Entity* GeneratePlanet(int xres, int yres)
 {
     float rndNums[4];
     float rndCoor[3];
     PlanetSeedGenerator(rndNums);
-    PlanetCoorGenerator(rndCoor);
+    PlanetCoorGenerator(rndCoor, xres, yres);
 
     auto planetEntity = ecs::ecs.entity().checkout();
     ecs::ecs.component().assign<PLANET>(planetEntity);
 
     auto [properties] = ecs::ecs.component().fetch<PLANET>(planetEntity);
     
+    //gave up on being organized
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float>dis(-1.0f, 1.0f);
+
+
     properties->size = PlanetSize(rndNums[0]);
     properties->smooth = PlanetSmooth(rndNums[1]);
     properties->temperature = PlanetTemp(rndNums[2]);
     properties->humidity = PlanetHumidity(rndNums[3]);
 
-    properties-> AngY  = 0.1f;
+    properties-> AngY  = dis(gen);
     properties-> PosX = rndCoor[0];
     properties-> PosY = rndCoor[1];
     properties-> PosZ = rndCoor[2];
-    properties-> rotationX = 0.0f;
-    properties-> rotationY = 1.0f;
+    properties-> rotationX = dis(gen);
+    properties-> rotationY = dis(gen);
     //GLfloat lightPosition[] = { 100.0f, 60.0f, -140.0f, 1.0f};
 
     if (properties) {
@@ -97,13 +103,22 @@ Entity* GeneratePlanet()
     return planetEntity;
 
 }
-// void updatePlanetSpin()
-// {
-//     auto traits = ecs::ecs.query<ecs::PLANET>();
-//     for (auto* PLANET) {
-//         traits-> AngY += 1.0f;
-//     }
-// }
+void createPlanets(int xres, int yres)
+{
+    for (int i = 0; i < 6; i++) {
+        GeneratePlanet(xres, yres);
+    }
+}
+void DrawPlanets(GLfloat* lightPosition)
+{
+    auto planets = ecs::ecs.query<PLANET>();
+    for (auto* entity:planets){
+        auto [planet] = ecs.component().fetch<PLANET>(entity);
+        DrawPlanet(planet-> AngY, planet-> PosX, planet-> PosY, planet-> 
+            PosZ, lightPosition, planet->size, planet->rotationX, 
+            planet->rotationY, planet->smooth, planet->temperature);
+    }
+}
 }
 void DisableFor2D()
 {
@@ -237,14 +252,45 @@ void PlanetSeedGenerator(float values[4])
     values[3] = dis(gen); //Humidity
 }
 
-void PlanetCoorGenerator(float values[3])
+void PlanetCoorGenerator(float values[3], int xres, int yres)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0,1);
+    std::uniform_int_distribution<> sideDist(0,3);
+    std::uniform_int_distribution<> offsetDis(0,30);
 
-    float x = dis(gen) == 0 ? -8 : 8;
-    float y = dis(gen) == 0 ? -7 : 7;
+    int width = xres/100.0f;
+    int height = yres/100.0;
+    int side = sideDist(gen);
+    float x;
+    float y;
+
+    std::uniform_int_distribution<>yDist(0, height);
+    std::uniform_int_distribution<>xDist(0, width);
+
+    switch (side) {
+        case 0: {
+            x = -xDist(gen) - offsetDis(gen);
+            y = yDist(gen) + offsetDis(gen);
+            break; 
+        }
+        case 1: {
+            x = xDist(gen)+ offsetDis(gen);
+            y = yDist(gen) + offsetDis(gen);
+            break;
+        }
+        case 2: {
+            x = xDist(gen)+ offsetDis(gen);
+            y = -yDist(gen) - offsetDis(gen);
+            break;
+        }
+        case 3: {
+            x = -xDist(gen) - offsetDis(gen);
+            y = -yDist(gen) - offsetDis(gen);
+            break;   
+        }        
+    }    
+  
     float z = -10; //MAYBE change it later
 
     values[0] = x; 
