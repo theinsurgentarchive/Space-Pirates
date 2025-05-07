@@ -396,7 +396,6 @@ int main()
 	c = &camera;
 	ps.sample();
 	checkRequiredSprites();
-	auto last = std::chrono::steady_clock::now();
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
 	init_opengl();
 	logOpen();
@@ -406,6 +405,7 @@ int main()
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	DINFO("loading into intro\n");
+	auto last = std::chrono::steady_clock::now();
 	while (intro) {
 		auto now = std::chrono::steady_clock::now();
 		static auto last_time = std::chrono::high_resolution_clock::now();
@@ -421,7 +421,7 @@ int main()
 			getAudioManager()->update();
 			render();
 			x11.swapBuffers();
-			usleep(5000);
+			usleep(1000);
 		}
 		
 		auto current = std::chrono::high_resolution_clock::now();
