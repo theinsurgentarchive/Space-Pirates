@@ -771,8 +771,8 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
 {
     const ecs::Entity* entity = ecs::ecs.entity().checkout();
 	if (entity == nullptr) {
-		DERRROR("Entity was Not Generated.\n");
-		return;
+		DERROR("Entity was Not Generated.\n");
+		return nullptr;
 	}
     auto [transform,sprite,collider,chest] = ecs::ecs.component()
         .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
