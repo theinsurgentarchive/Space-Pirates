@@ -455,7 +455,6 @@ int main()
 				}
 				break; 
 			case GAMEOVER:
-				sleep(2);
 				done = true;
 
 				break;
@@ -823,7 +822,7 @@ int check_keys(XEvent *e)
 				// 	ecs::ecs.entity().ret(entity);
 				// }
 
-				//REGENERATE REGENERATE PLANET
+				//REGENERATE PLANET
 
 				planetPtr = ecs::GeneratePlanet();
 				[[maybe_unused]]auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
@@ -1569,6 +1568,7 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
 			glMatrixMode(GL_MODELVIEW);
+			sleep(2);
 			break; 
 
 		case EXIT: 
