@@ -50,6 +50,7 @@ std::random_device rd;
 std::mt19937 generator(rd());
 v2i dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
 Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
+extern float gold;
 extern std::unordered_map<
 std::string,
 	std::shared_ptr<SpriteSheet>> ssheets;
@@ -808,6 +809,9 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
                     break;
                 case LOOT_OXYGEN:
                     oxygen->oxygen += loot.amount;
+                    break;
+                case GOLD:
+                    gold += loot.amount;
                     break;
             }
             std::cout << "You got: " << loot.type << ' ' << 
