@@ -21,8 +21,8 @@
 #include <GL/glx.h>
 #include "fonts.h"
 
-#define _MAX_COMPONENTS 64
-#define MAX_ENTITIES 4294967294
+#define _MAX_COMPONENTS 32
+#define MAX_ENTITIES 2147483650
 #define _MAX_TEMPERATURE 100.0f
 #define _MIN_TEMPERATURE -30.0f
 
