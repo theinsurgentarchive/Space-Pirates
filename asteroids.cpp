@@ -411,17 +411,19 @@ int main()
 		static auto last_time = std::chrono::high_resolution_clock::now();
 
 		if (std::chrono::duration_cast<std::chrono::duration<float>>(
-											now - last).count() > 2.0f)
+											now - last).count() > 0.01666666f)
 		{	
 			if (sprite->frame == 17) {
-				cout << "Intro Frame is: " << sprite->frame << endl;
 				sprite->ssheet = "SPLASH-final";
+			} else {
+				cout << "Intro Frame is: " << sprite->frame << endl;
 			}
 			getAudioManager()->update();
 			render();
 			x11.swapBuffers();
+			usleep(1000);
 		}
-		usleep(1000);
+		last = std::chrono::steady_clock::now();
 		
 		auto current = std::chrono::high_resolution_clock::now();
     	auto t_elasped = (
@@ -444,6 +446,7 @@ int main()
 	navc->setAStar(astar);
 	astar->setObstacles(&w);
 	gl.state = MENU;
+	updateAudioState(gl.state);
 	while (!done) {
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
