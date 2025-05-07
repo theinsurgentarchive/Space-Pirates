@@ -1716,13 +1716,21 @@ std::pair<int, v2f> bfs(std::vector<std::vector<std::vector<const ecs::Entity*>>
 
 
 v2f World::getCenterOfLargestIsland() {
-    int m = cells.size();
-    int n = cells[0].size();
-
+    v2f best_position = {0.0f, 0.0f};
+	u16 m = 0;
+	u16 n = 0;
+	if (cells == nullptr){
+		return best_position;
+	}
+	if (cells[0] != nullptr) {
+    	return best_position;
+	}
+	m = cells.size();
+	n = cells[0].size();
+	
     std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
 
     int max_area = 0;
-    v2f best_position = {0.f, 0.f};
 
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j) {
