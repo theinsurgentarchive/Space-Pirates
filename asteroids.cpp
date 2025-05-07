@@ -421,7 +421,7 @@ int main()
 			getAudioManager()->update();
 			render();
 			x11.swapBuffers();
-			usleep(1000);
+			usleep(5000);
 		}
 		
 		auto current = std::chrono::high_resolution_clock::now();
