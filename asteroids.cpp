@@ -410,19 +410,19 @@ int main()
 		auto now = std::chrono::steady_clock::now();
 		static auto last_time = std::chrono::high_resolution_clock::now();
 
-		if (std::chrono::duration_cast<std::chrono::duration<float>>(
-											now - last).count() > 0.01666666f)
-		{	
-			if (sprite->frame == 17) {
-				sprite->ssheet = "SPLASH-final";
-			} else {
-				cout << "Intro Frame is: " << sprite->frame << endl;
-			}
-			getAudioManager()->update();
+		getAudioManager()->update();
+		if (std::chrono::duration_cast<
+			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
+			physics(foe, &w);
 			render();
 			x11.swapBuffers();
-			usleep(1000);
 		}
+		if (sprite->frame == 17) {
+			sprite->ssheet = "SPLASH-final";
+		} else {
+			cout << "Intro Frame is: " << sprite->frame << endl;
+		}
+		usleep(1000);
 		
 		auto current = std::chrono::high_resolution_clock::now();
     	auto t_elasped = (
