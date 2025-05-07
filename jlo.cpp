@@ -1726,7 +1726,7 @@ v2f World::getCenterOfLargestIsland() {
 	if (cells.empty()){
 		return best_position;
 	}
-	if (cells[0] != nullptr) {
+	if (cells[0].empty()) {
     	return best_position;
 	}
 	m = cells.size();
