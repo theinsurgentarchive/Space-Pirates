@@ -597,17 +597,27 @@ Enemy::Enemy(ecs::Entity* ent, v2f t_mod, World* w, float mag = 48.0f)
 void Enemy::initEnemy(World* w, float mag)
 {
     float m_mag = mag;
+    u16 x = 1;
+    u16 y = 1;
     //Initialize Components
-    if (w->cells.empty()) {
-        DWARN("Error, World Empty\n");
-    }
-    if (w == nullptr) {
+    if (w != nullptr) {
+        if (w->cells.empty()) {
+            DWARN("Error, World Empty\n");
+        } else {
+            x = cells.size();
+        }
+        if (w->cells[0].empty()) {
+            DWARN("Error, World Missing Columns\n");
+        } else {
+            y = cells[0].size();
+        }
+    } else {
         DWARN("Error, World Not Found\n");
     }
     auto cells = w->cells;
     v2f w_max = {
-        static_cast<float>(cells.size()),
-        static_cast<float>(cells[0].size())
+        static_cast<float>(x),
+        static_cast<float>(y)
     };
     w_max[0] *= m_mag;
     w_max[1] *= m_mag;
@@ -619,7 +629,7 @@ void Enemy::initEnemy(World* w, float mag)
     health->max = 50.0f;
     health->health = health->max;
     sprite->ssheet = "enemy-idle";
-    transform->pos = {floatRand(w_max[0], 100.0f), floatRand(w_max[1], 10.0f)};
+    transform->pos = {floatRand(w_max[0], 0.0f), floatRand(w_max[1], 0.0f)};
     sprite->render_order = 65536 - 16;
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
