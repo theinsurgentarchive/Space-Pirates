@@ -607,8 +607,8 @@ void Enemy::initEnemy(World* w, float mag = 48.0f)
     }
     auto cells = w->cells;
     v2f w_max = {
-        static_cast<float>cells.size(),
-        static_cast<float>cells[0].size()
+        static_cast<float>(cells.size(),)
+        static_cast<float>(cells[0].size())
     };
     w_max[0] *= m_mag;
     w_max[1] *= m_mag;
