@@ -79,6 +79,7 @@ class Global {
 		GameState controls_from_state; // track where we came to controls from
 		int pause_selected_option; 
 		int selected_option; // 0 = start, 1 = controls, 2 = exit
+		int game_over_option;
 		MusicType previous_music;
 		ecs::Entity* spaceship;
 		ecs::Entity* dummy;
@@ -93,6 +94,7 @@ class Global {
 			pause_selected_option = 0;
 			previous_music = MENU_MUSIC;
 			mouse_cursor_on = 1;
+			game_over_option = 0; // Initialize to RESTART
 
 			//planet shadow
 			//GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
@@ -333,20 +335,20 @@ int main()
 {
 	LootTable loot_table;
 	loot_table.addLoot({
-		{LOOT_OXYGEN, 5.0f, 1.0f},
-		{LOOT_OXYGEN, 10.0f, 1.5f},
-		{LOOT_OXYGEN, 2.0f, 0.5f},
-		{LOOT_FUEL, 5.0f, 1.0f},
-		{LOOT_FUEL, 8.0f, 2.0f},
-		{LOOT_FUEL, 3.0f, 0.8f},
-        {PLAYER_HEALTH, 5.0f, 1.0f},
-        {SHIP_HEALTH, 3.0f, 1.0f},
-        {SHIP_HEALTH, 8.0f, 0.5f},
-        {SHIP_HEALTH, 15.0f, 0.75f},
-        {PLAYER_HEALTH, 8.0f, 0.5f},
-        {PLAYER_HEALTH, 15.0f, 0.25f},
-	});
-	
+			{LOOT_OXYGEN, 5.0f, 1.0f},
+			{LOOT_OXYGEN, 10.0f, 1.5f},
+			{LOOT_OXYGEN, 2.0f, 0.5f},
+			{LOOT_FUEL, 5.0f, 1.0f},
+			{LOOT_FUEL, 8.0f, 2.0f},
+			{LOOT_FUEL, 3.0f, 0.8f},
+			{PLAYER_HEALTH, 5.0f, 1.0f},
+			{SHIP_HEALTH, 3.0f, 1.0f},
+			{SHIP_HEALTH, 8.0f, 0.5f},
+			{SHIP_HEALTH, 15.0f, 0.75f},
+			{PLAYER_HEALTH, 8.0f, 0.5f},
+			{PLAYER_HEALTH, 15.0f, 0.25f},
+			});
+
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -361,10 +363,10 @@ int main()
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
-		planetAttr->humidity,
-		static_cast<u16>(planetAttr->size * 30),
-		static_cast<u32>(2),
-		static_cast<int>(planetAttr->size * 5)
+			planetAttr->humidity,
+			static_cast<u16>(planetAttr->size * 30),
+			static_cast<u32>(2),
+			static_cast<int>(planetAttr->size * 5)
 	};
 	settings.origin = {0,0};
 	// Initialize audio system
@@ -375,12 +377,12 @@ int main()
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
 	player = ecs::ecs.entity().checkout();
 	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
-    v2u margin = {64,64};
+	v2u margin = {64,64};
 	updateAudioState(gl.state);
 	Camera camera = {
 		transform->pos,
 		gl.res,
-        margin
+		margin
 	};
 	name->name = "Juancarlos Sandoval";
 	name->offset = {0,-25};
@@ -413,7 +415,7 @@ int main()
 			astar->findClosestNode({0.0f, 0.0f}),
 			astar->findClosestNode({1000.0f, 1000.0f})
 		     );
-	
+
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
 	c = &camera;
@@ -455,8 +457,8 @@ int main()
 				}
 				break; 
 			case GAMEOVER:
-				sleep(2);
-				done = true;
+				//sleep(2);
+				//done = true;
 
 				break;
 			default: 
@@ -469,7 +471,7 @@ int main()
 		timeCopy(&timeStart, &timeCurrent);
 		getAudioManager()->update();
 		if (std::chrono::duration_cast<
-			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
+				std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
 			physics(foe, &w);
 			render();
 			x11.swapBuffers();
@@ -669,7 +671,66 @@ int check_keys(XEvent *e)
 		if (key == XK_Shift_L || key == XK_Shift_R) {
 			shift = 1;
 		}
+		if (gl.state == GAMEOVER) {
 
+			// Only process key press events (not key release)
+			if (e->type == KeyPress) {
+				DINFOF("GAMEOVER key press: %d\n", key);
+
+				// Handle up/down keys
+				if (key == XK_Up || key == XK_Down) {
+					playGameSound(MENU_CLICK);
+					gl.game_over_option = 1 - gl.game_over_option; // Toggle between options
+					DINFOF("Selected option changed to: %d\n", restart_option);
+					return 0;
+				}
+
+				// Handle Enter key
+				if (key == XK_Return) {
+					playGameSound(MENU_CLICK);
+
+					if (gl.game_over_option == 0) {
+						// Restart option - go back to menu
+						DINFO("Restart selected - returning to menu\n");
+						gl.state = MENU;
+						updateAudioState(gl.state);
+
+						// Reset player and ship health/resources
+						if (gl.spaceship) {
+							auto [health, fuel, oxygen] = 
+								ecs::ecs.component().fetch<HEALTH, FUEL, OXYGEN>(gl.spaceship);
+
+							if (health) health->health = health->max;
+							if (fuel) fuel->fuel = fuel->max;
+							if (oxygen) oxygen->oxygen = oxygen->max;
+						}
+
+						if (player) {
+							auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+							if (health) health->health = health->max;
+						}
+
+						// Reset weapon state
+						g_weaponState.handgunAmmo = 10;
+						g_weaponState.rocketAmmo = 5;
+					} else {
+						// Exit option
+						DINFO("Exit selected - ending game\n");
+						return 1; // Signal exit
+					}
+				}
+
+				// Handle Escape key
+				if (key == XK_Escape) {
+					DINFO("Escape pressed - exiting game\n");
+					return 1; // Signal exit
+				}
+			}
+
+			// Most importantly - don't process any other key handlers
+			// when in GAMEOVER state - just return 0
+			return 0;
+		}
 		// Handle escape key based on current state
 		if (key == XK_Escape) {
 			switch (gl.state) {
@@ -709,6 +770,62 @@ int check_keys(XEvent *e)
 					}
 					return 0;
 
+
+				case GAMEOVER:
+					{
+						static int restart_option = 0;
+
+						if (key == XK_Up || key == XK_Down) {
+							// Toggle between restart and exit options
+							playGameSound(MENU_CLICK);
+							restart_option = 1 - restart_option; // Toggle between 0 and 1
+							DINFOF("GAMEOVER: Changed option to %d\n", restart_option); // Debug print
+							return 0;
+						}
+
+						if (key == XK_Return) {
+							playGameSound(MENU_CLICK);
+							DINFOF("GAMEOVER: Enter pressed with option %d\n", restart_option); // Debug print
+
+							if (restart_option == 0) {
+								// Restart option selected - go back to menu
+								gl.state = MENU;
+								updateAudioState(gl.state);
+
+								// Reset player health and resources
+								if (gl.spaceship) {
+									auto [spaceshipHealth, fuel, oxygen] = 
+										ecs::ecs.component().fetch<HEALTH, FUEL, OXYGEN>(gl.spaceship);
+
+									if (spaceshipHealth) spaceshipHealth->health = spaceshipHealth->max;
+									if (fuel) fuel->fuel = fuel->max;
+									if (oxygen) oxygen->oxygen = oxygen->max;
+								}
+
+								if (player) {
+									auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+									if (health) health->health = health->max;
+								}
+
+								// Reset weapon state
+								g_weaponState.handgunAmmo = 10;
+								g_weaponState.rocketAmmo = 5;
+
+								return 0;
+							} else {
+								// Exit option selected
+								return 1; // Set exit_request to true
+							}
+						}
+
+						if (key == XK_Escape) {
+							// Exit the game
+							playGameSound(MENU_CLICK);
+							return 1; // Set exit_request to true
+						}
+
+						break;
+					}
 				default:
 					return 0;
 			}
@@ -797,19 +914,19 @@ int check_keys(XEvent *e)
 			}
 		} else if (e->type == KeyPress) {
 			static float movement_mag = 75.0;
-            static bool bound = true;
-            if (key == XK_u) {
-                auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
-                if (!bound) {
-                    c->bind(transform->pos);
-                } else {
-                    static v2f pos;
-                    pos[0] = transform->pos[0];
-                    pos[1] = transform->pos[1];
-                    c->bind(pos);
-                }
-                bound ^= 1;
-            }
+			static bool bound = true;
+			if (key == XK_u) {
+				auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
+				if (!bound) {
+					c->bind(transform->pos);
+				} else {
+					static v2f pos;
+					pos[0] = transform->pos[0];
+					pos[1] = transform->pos[1];
+					c->bind(pos);
+				}
+				bound ^= 1;
+			}
 
 			if (key == XK_e) {
 
@@ -865,6 +982,10 @@ int check_keys(XEvent *e)
 					break;
 			}
 		}
+
+		// Add weapon handling
+		handleWeaponInput(key, player);
+
 	} else {
 		auto [pc,sc] = ecs::ecs.component().fetch<PHYSICS,SPRITE>(player);
 		if (pc == nullptr || sc == nullptr) {
@@ -889,12 +1010,50 @@ int check_keys(XEvent *e)
 			static float space_movement_mag = 800.0;
 
 			if (key == XK_e) {
+				if (gl.state == SPACE) {
+					if (PlanetCollision(planetPtr)) {
+						gl.state = PLAYING;
 
-				if (PlanetCollision(planetPtr)) {
-					gl.state = PLAYING;
+						// Get the planet traits and determine biome from temperature/humidity
+						auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+						if (traits) {
+							// Determine biome type based on temperature
+							BiomeType biomeType;
+							float temp = traits->temperature;
+							float humidity = traits->humidity;
+
+							// Simple biome determination logic based on temperature and humidity values
+							if (temp >= 30.0f && humidity <= 0.8f) {
+								biomeType = DESERT;
+								DINFO("Detected DESERT biome\n");
+							} else if (temp < 10.0f && humidity <= 0.8f) {
+								biomeType = TAIGA;
+								DINFO("Detected TAIGA biome\n");
+							} else if (temp >= 0.0f && temp <= 20.0f && humidity >= 0.4f) {
+								biomeType = MEADOW;
+								DINFO("Detected MEADOW biome\n");
+							} else if (temp >= 40.0f) {
+								biomeType = HELL;
+								DINFO("Detected HELL biome\n");
+							} else {
+								biomeType = FOREST; // Default biome
+								DINFO("Detected FOREST biome\n");
+							}
+
+							// Play the corresponding music
+							playBiomeMusic(biomeType);
+						} else {
+							// Fallback to generic game music if traits aren't available
+							playGameMusic(GAME_MUSIC);
+						}
+					}
+					return 0;
+				} else if (gl.state == PLAYING) {
+					gl.state = SPACE;
+					// Play space music when leaving a planet
+					playGameMusic(SPACE_MUSIC);
+					return 0;
 				}
-
-				return 0;
 			}
 
 			switch(key) {
@@ -967,7 +1126,7 @@ int handle_menu_state(int key)
 				break;
 			case 3: // Space
 				return 1;
-                break;
+				break;
 			case 4: // Exit
 				return 1;
 		}
@@ -1124,7 +1283,7 @@ void handle_space_state(int key)
 
 void handle_playing_key_release()
 {
-    handlePlayerKeyRelease(player);
+	handlePlayerKeyRelease(player);
 }
 
 void handle_space_key_release()
@@ -1154,6 +1313,9 @@ void physics(Enemy& foe, World* w)
 			foe.action(w);
 		}
 		updateFootstepSounds();
+		updateProjectiles(getDeltaTime());
+		updateProjectiles(getDeltaTime());
+		updateEnemyState(getDeltaTime());
 	}
 	if (player) {
 		auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
@@ -1173,20 +1335,22 @@ void physics(Enemy& foe, World* w)
 	}
 	else if (gl.state == PLAYING) {
 		updateFootstepSounds();
+		updateProjectiles(getDeltaTime());
+		updateEnemyState(getDeltaTime());
 	}
 }
 void SampleSpaceEntities() {  // written by chat
-    auto asteroids = ecs::ecs.query<ASTEROID, SPRITE, TRANSFORM>();
-    auto collectibles = ecs::ecs.query<COLLECTIBLE, SPRITE, TRANSFORM>();
+	auto asteroids = ecs::ecs.query<ASTEROID, SPRITE, TRANSFORM>();
+	auto collectibles = ecs::ecs.query<COLLECTIBLE, SPRITE, TRANSFORM>();
 
-    std::vector<const ecs::Entity*> spaceEntities;
-    spaceEntities.insert(spaceEntities.end(), asteroids.begin(), asteroids.end());
-    spaceEntities.insert(spaceEntities.end(), collectibles.begin(), collectibles.end());
+	std::vector<const ecs::Entity*> spaceEntities;
+	spaceEntities.insert(spaceEntities.end(), asteroids.begin(), asteroids.end());
+	spaceEntities.insert(spaceEntities.end(), collectibles.begin(), collectibles.end());
 
-    if (gl.spaceship)
-        spaceEntities.push_back(gl.spaceship);
+	if (gl.spaceship)
+		spaceEntities.push_back(gl.spaceship);
 
-    spaceRenderer._entities = spaceEntities;
+	spaceRenderer._entities = spaceEntities;
 }
 
 
@@ -1300,6 +1464,8 @@ void render() {
 			glPushMatrix();
 			c->update();
 			rs.update(getDeltaTime());
+			// Render projectiles
+			renderProjectiles();
 			glPopMatrix();
 
 			DisableFor2D();
@@ -1315,6 +1481,9 @@ void render() {
 						 );
 			}
 			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
+			if (gl.state == PLAYING) {
+				renderAmmoUI(gl.res[0], gl.res[1]);
+			}
 			break; 
 
 		case SPACE:
@@ -1545,34 +1714,23 @@ void render() {
 			}
 
 
+
 		case GAMEOVER:
-			getAudioManager()->stopMusic();
+			{
+				// Set up the game over screen rendering
+				glMatrixMode(GL_PROJECTION);
+				glLoadIdentity();
+				glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
 
-			glMatrixMode(GL_PROJECTION);
-			glPushMatrix();
-			glLoadIdentity();
-			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);  //chat 
+				glMatrixMode(GL_MODELVIEW);
+				glLoadIdentity();
+				DisableFor2D();
 
+				// Render the game over screen with restart options
+				render_game_over_screen(gl.res[0], gl.res[1], gl.game_over_option);
 
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glLoadIdentity();
-			DisableFor2D();
-
-
-			Rect r;
-			r.left = gl.res[0] / 2;
-			r.bot = gl.res[1] / 2;
-			r.center = 1;
-			ggprint40(&r, 40, 0xFF0000, "GAME OVER");
-
-			// store 
-			glPopMatrix();
-			glMatrixMode(GL_PROJECTION);
-			glPopMatrix();
-			glMatrixMode(GL_MODELVIEW);
-			break; 
-
+			}
+			break;
 		case EXIT: 
 			break; 
 
@@ -1582,3 +1740,4 @@ void render() {
 
 	}
 }
+
