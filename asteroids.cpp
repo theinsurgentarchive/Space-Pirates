@@ -414,6 +414,8 @@ int main()
 	DINFO("loading into intro\n");
 	while (!done) {
 		auto now = std::chrono::steady_clock::now();
+		static std::chrono::steady_clock::time_point l =
+											std::chrono::steady_clock::now();
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
 			x11.check_resize(&e);
@@ -439,26 +441,6 @@ int main()
 				sleep(4);
 				done = true;
 				break;
-			case SPLASH:
-				static std::chrono::steady_clock::time_point l =
-											std::chrono::steady_clock::now();
-				std::chrono::steady_clock::time_point c =
-											std::chrono::steady_clock::now();
-				std::chrono::seconds t_e = (
-					std::chrono::duration_cast<std::chrono::seconds>(
-						c - l
-					)
-				);
-				cout << t_e.count() << endl;
-				if (t_e.count() >= intro_timer) {
-					gl.state = MENU;
-					updateAudioState(gl.state);
-					sprite->ssheet = "player-idle";
-					name->name = "Simon";
-					name->offset = {0,-25};
-					DINFO("Intro Ended\n");
-				}
-				break;
 			default: 
 				c = nullptr;
 				break; 
@@ -474,7 +456,22 @@ int main()
 			x11.swapBuffers();
 		}
 		usleep(1000);
-		
+		std::chrono::steady_clock::time_point c =
+											std::chrono::steady_clock::now();
+		std::chrono::seconds t_e = (
+						std::chrono::duration_cast<std::chrono::seconds>(c - l)
+		);
+		cout << t_e.count() << endl;
+		if (gl.state == SPLASH) {
+			if (t_e.count() >= intro_timer) {
+				gl.state = MENU;
+				updateAudioState(gl.state);
+				sprite->ssheet = "player-idle";
+				name->name = "Simon";
+				name->offset = {0,-25};
+				DINFO("Intro Ended\n");
+			}
+		}
 	}
 	shutdownAudioSystem();
 	cleanup_fonts();
