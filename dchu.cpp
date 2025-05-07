@@ -657,8 +657,8 @@ void Enemy::action()
     auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     float* node_pos = navi->nodePos();
-    if (navi->getDist() > 1 && navi->getDist() < 6) {
-        speed = (static_cast<float>(navi->getDist()) * 0.1f);
+    if (navi->getDist() > 1 && navi->getDist() < 15) {
+        speed = (static_cast<float>(navi->getDist()) * 0.2f);
     }
     //Check if nodePos Returned a nullptr
     if (node_pos == nullptr) {
