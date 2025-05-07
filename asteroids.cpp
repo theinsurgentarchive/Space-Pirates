@@ -309,6 +309,7 @@ void handle_space_key_release();
 ecs::Entity* player;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
+ecs::Entity* splash;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 const Camera* c;
@@ -367,6 +368,12 @@ int main()
 		transform->pos,
 		gl.res
 	};
+	splash = ecs::ecs.entity().checkout();
+	auto [tsc, ssc] = ecs::ecs.component().assign<TRANSFORM, SPRITE>(splash);
+	Camera intro = {
+		tsc->pos,
+		gl.res
+	}
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
@@ -383,8 +390,9 @@ int main()
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
 	};
-	
-	sprite->ssheet = "SPLASH";
+	name->name = "Simon";
+	name->offset = {0,-25};
+	sprite->ssheet = "player-idle";
 	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
@@ -423,6 +431,8 @@ int main()
 			done = check_keys(&e);
 		}
 		switch (gl.state) { //State Checking
+			case SPLASH:
+				c = &intro;
 			case SPACE:
 				c = spaceCamera; 
 				break; 
@@ -465,9 +475,7 @@ int main()
 			if (t_e.count() >= intro_timer) {
 				gl.state = MENU;
 				updateAudioState(gl.state);
-				sprite->ssheet = "player-idle";
-				name->name = "Simon";
-				name->offset = {0,-25};
+				
 				DINFO("Intro Ended\n");
 			}
 		}
@@ -1166,6 +1174,7 @@ void render() {
 	float cameraY = static_cast<float>(tc->pos[1]);
 	switch(gl.state) {
 		case SPLASH:
+			// Reset for game state
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
@@ -1174,10 +1183,12 @@ void render() {
 			glLoadIdentity();
 
 			glPushMatrix();
+			c->update();
 			rs.update(getDeltaTime());
 			glPopMatrix();
 
 			DisableFor2D();
+			
 			// merge splash sprites into ssheets once
 			static bool splashLoaded = false;
 			if (!splashLoaded) {
