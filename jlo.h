@@ -22,7 +22,7 @@
 #include "fonts.h"
 
 #define _MAX_COMPONENTS 32
-#define MAX_ENTITIES 125002
+#define MAX_ENTITIES 62501
 #define _MAX_TEMPERATURE 100.0f
 #define _MIN_TEMPERATURE -30.0f
 
