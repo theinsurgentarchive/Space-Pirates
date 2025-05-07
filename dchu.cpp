@@ -18,11 +18,7 @@ void loadSplash(
     loader.loadStatic(
         "SPLASH",
         loadTexture("./resources/textures/SPLASH.webp", false),
-        {1, 18}, {800, 600}, true
-    ).loadStatic(
-        "SPLASH-final",
-        loadTexture("./resources/textures/SPLASH-final.webp", false),
-        {1, 1}, {800, 600}, false
+        {1, 24}, {800, 600}, true
     );
     DINFO("Finished Loading Splash Screen\n");
 }
