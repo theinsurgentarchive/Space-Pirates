@@ -460,7 +460,7 @@ int main()
 											std::chrono::steady_clock::now();
 		std::chrono::seconds t_e = (
 						std::chrono::duration_cast<std::chrono::seconds>(c - l)
-		);z
+		);
 		if (gl.state == SPLASH) {
 			if (t_e.count() >= intro_timer) {
 				gl.state = MENU;
