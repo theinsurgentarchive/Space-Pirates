@@ -397,9 +397,9 @@ int main()
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->setAStar(astar);
 	astar->setObstacles(&w);
+	loadSplash(ssheets);
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
-	loadSplash(ssheets);
 	c = &camera;
 	ps.sample();
 	checkRequiredSprites();
@@ -1189,7 +1189,7 @@ void render() {
 			glPopMatrix();
 
 			DisableFor2D();
-			// merge space sprites into ssheets once
+			// merge splash sprites into ssheets once
 			static bool splashLoaded = false;
 			if (!splashLoaded) {
 				ssheets.insert(splashSSheets.begin(), splashSSheets.end());
