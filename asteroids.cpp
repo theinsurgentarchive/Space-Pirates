@@ -412,7 +412,7 @@ int main()
 
 		getAudioManager()->update();
 		if (std::chrono::duration_cast<
-			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
+			std::chrono::duration<float>>(now - last).count() > 5.0f) {
 			render();
 			x11.swapBuffers();
 		}
