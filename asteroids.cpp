@@ -414,6 +414,7 @@ int main()
 	auto last = std::chrono::steady_clock::now();
 	DINFO("loading into intro\n");
 	while (!done) {
+		auto now = std::chrono::steady_clock::now();
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
 			x11.check_resize(&e);
