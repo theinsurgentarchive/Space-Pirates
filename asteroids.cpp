@@ -375,7 +375,7 @@ int main()
 		gl.res
 	};
 	ssc->ssheet = "SPLASH";
-	ssc->render_order = 15;
+	ssc->render_order = 14;
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	Camera space_Camera = {
 		SpaceTransform->pos,
