@@ -777,6 +777,11 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
 	}
     auto [transform,sprite,collider,chest] = ecs::ecs.component()
         .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
+	if (transform == nullptr || sprite == nullptr ||
+		collider == nullptr || chest == nullptr)
+	{
+		return nullptr;
+	}
     transform->pos = settings.origin + v2f {
         static_cast<float>(tile_sprite_dim[0] * tile_scale[0] * cell_pos[0]),
         static_cast<float>(tile_sprite_dim[1] * tile_scale[1] * cell_pos[1])
@@ -854,9 +859,13 @@ void populateWithChests(World& world, const v2u& grid_size,
 		auto ssheet_it = ssheets.find(sprite->ssheet);
 		if (ssheet_it == ssheets.end())
 			continue;
-        cell->push_back(createChest(world.getSettings(),
-            ssheet_it->second->sprite_dim,
-			transform->scale, pair.second, loot_table));
+		const ecs::Entity* check = createChest(
+							world.getSettings(), ssheet_it->second->sprite_dim,
+									transform->scale, pair.second, loot_table);
+		if (check == nullptr) {
+			continue;
+		}
+        cell->push_back(check);
     }
 }
 
