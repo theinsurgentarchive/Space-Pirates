@@ -440,9 +440,11 @@ int main()
 				done = true;
 				break;
 			case SPLASH:
-				static auto last_time = std::chrono::steady_clock::now();
-				auto current = std::chrono::steady_clock::now();
-				auto t_elasped = (
+				static std::chrono::steady_clock::time_point last_time =
+											std::chrono::steady_clock::now();
+				std::chrono::steady_clock::time_point current =
+											std::chrono::steady_clock::now();
+				std::chrono::seconds t_elasped = (
 					std::chrono::duration_cast<std::chrono::seconds>(
 						current - last_time
 					)
