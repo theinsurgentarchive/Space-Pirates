@@ -588,7 +588,7 @@ void loadEnemyTex(
 Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f}, nullptr, 48.0f)
 {}
 
-Enemy::Enemy(ecs::Entity* ent, v2f t_mod, World* w, float mag)
+Enemy::Enemy(ecs::Entity* ent, v2f t_mod, World* w, float mag = 48.0f)
 {
     atk_Timer = (u16)(t_mod[0] * 1000.0f);
     path_Timer = (u16)(t_mod[1] * 1000.0f);
@@ -598,7 +598,7 @@ Enemy::Enemy(ecs::Entity* ent, v2f t_mod, World* w, float mag)
     initEnemy(w, mag);
 }
 
-void Enemy::initEnemy(World* w, float mag = 48.0f)
+void Enemy::initEnemy(World* w, float mag)
 {
     float m_mag = mag;
     //Initialize Components
