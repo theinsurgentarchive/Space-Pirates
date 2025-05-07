@@ -416,11 +416,11 @@ int main()
 			render();
 			x11.swapBuffers();
 		}
-		if (sprite->frame == 17) {
-			sprite->ssheet = "SPLASH-final";
-		} else {
-			cout << "Intro Frame is: " << sprite->frame << endl;
-		}
+		//if (sprite->frame == 17) {
+		//	sprite->ssheet = "SPLASH-final";
+		//} else {
+		//	cout << "Intro Frame is: " << sprite->frame << endl;
+		//}
 		usleep(1000);
 		
 		auto current = std::chrono::high_resolution_clock::now();
