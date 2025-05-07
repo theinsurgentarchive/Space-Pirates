@@ -794,7 +794,9 @@ int check_keys(XEvent *e)
 	}
 	// Playing state handling
 	if (gl.state == PLAYING) {
-		updateAudioState(gl.state);
+		if (getAudioManager()->getCurrentMusic() != GAME_MUSIC) {
+			updateAudioState(PLAYING);	
+		}
 		if (!ecs::ecs.component().has<PHYSICS>(player)) {
 			return 0;
 		}
@@ -907,7 +909,9 @@ int check_keys(XEvent *e)
 	}
 
 	if (gl.state == SPACE) {
-		updateAudioState(gl.state);
+		if (getAudioManager()->getCurrentMusic() != SPACE_MUSIC) {
+			updateAudioState(SPACE);
+		}
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		float parallaxScale = 0.0003f;
 
