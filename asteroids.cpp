@@ -308,6 +308,7 @@ void handle_space_key_release();
 //==========================================================================
 const ecs::Entity* player;
 const ecs::Entity* spaceship;
+float gold = 0;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
 ecs::Entity* splash;
@@ -338,7 +339,10 @@ int main()
 {
 	LootTable loot_table;
 	loot_table.addLoot({
-		{LOOT_OXYGEN, 5.0f, 1.0f},
+		{GOLD, 100.0f, 5.0f},
+        {GOLD, 50.0f, 2.5f},
+        {GOLD, 25.0f, 1.25f},
+        {LOOT_OXYGEN, 5.0f, 1.0f},
 		{LOOT_OXYGEN, 10.0f, 1.5f},
 		{LOOT_OXYGEN, 2.0f, 0.5f},
 		{LOOT_FUEL, 5.0f, 1.0f},
@@ -366,9 +370,9 @@ int main()
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
 		planetAttr->humidity,
-		static_cast<u16>(planetAttr->size * 30),
+		static_cast<u16>(((int) planetAttr->size % 10) * 30),
 		static_cast<u32>(2),
-		static_cast<int>(planetAttr->size * 5)
+		static_cast<int>(((int) planetAttr->size % 10) * 5)
 	};
 	settings.origin = {0,0};
 	// Initialize audio system
@@ -1372,7 +1376,10 @@ void render() {
 							gl.res[1] - 50, 0xF00FF00
 						 );
 			}
-			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
+            r.left = 160;
+			ggprint13(&r, 0, 0xffffffff, "Position: %f %f", cameraX, cameraY);
+            r.left = gl.res[0] - 40;
+            ggprint13(&r, 0, 0x00ffff00, "Gold: %f",gold);
 			break; 
 
 		case SPACE:
