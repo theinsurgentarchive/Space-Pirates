@@ -440,8 +440,8 @@ int main()
 				done = true;
 				break;
 			case SPLASH:
-				cout << timeSpan << endl;
-				if (timeSpan >= (double)intro_timer) {
+				cout << timeCurrent << endl;
+				if (timeCurrent >= (double)intro_timer) {
 					gl.state = MENU;
 					updateAudioState(gl.state);
 					sprite->ssheet = "player-idle";
