@@ -71,6 +71,7 @@ enum BiomeType
 
 enum LootType
 {
+    GOLD,
     LOOT_OXYGEN,
     LOOT_FUEL,
     PLAYER_HEALTH,
