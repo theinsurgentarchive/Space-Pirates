@@ -333,7 +333,7 @@ ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
 //Load Splash Animation
 std::unordered_map<std::string, std::shared_ptr
 <SpriteSheet>> splashSSheets;
-u16 intro_timer = 15;
+u16 intro_timer = 8;
 int main()
 {
 	LootTable loot_table;
@@ -710,8 +710,9 @@ int check_keys(XEvent *e)
 					getAudioManager()->pauseMusic();
 					return 0;
 
-				case MENU:
-					return 1; // Exit the game
+				case MENU: // Exit the game
+				case SPLASH:
+					return 1;
 
 				case PAUSED:
 					playGameSound(MENU_CLICK);
