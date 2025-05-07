@@ -421,32 +421,31 @@ int main()
 			check_mouse(&e);
 			done = check_keys(&e);
 		}
+		if (gl.state == SPLASH) {
+			static auto last_time = (
+				std::chrono::high_resolution_clock::now()
+			);
+			if (sprite->frame == 17) {
+				sprite->ssheet = "SPLASH-final";
+			} else {
+				cout << "Intro Frame is: " << sprite->frame << endl;
+			}
+			auto current = std::chrono::high_resolution_clock::now();
+    		auto t_elasped = (
+    		    std::chrono::duration_cast<std::chrono::seconds>(
+    		        current - last_time
+    		    )
+    		);
+			if (t_elasped.count() >= intro_timer) {
+				gl.state = MENU;
+				updateAudioState(gl.state);
+				sprite->ssheet = "player-idle";
+				name->name = "Simon";
+				name->offset = {0,-25};
+				DINFO("Intro Ended\n");
+			}
+		}
 		switch (gl.state) { //camera switch 
-			case SPLASH:
-				auto current = std::chrono::high_resolution_clock::now();
-				if (sprite->frame == 17) {
-					sprite->ssheet = "SPLASH-final";
-				} else {
-					cout << "Intro Frame is: " << sprite->frame << endl;
-				}
-				static auto last_time = (
-					std::chrono::high_resolution_clock::now()
-				);
-
-    			auto t_elasped = (
-    			    std::chrono::duration_cast<std::chrono::seconds>(
-    			        current - last_time
-    			    )
-    			);
-				if (t_elasped.count() >= intro_timer) {
-					gl.state = MENU;
-					updateAudioState(gl.state);
-					sprite->ssheet = "player-idle";
-					name->name = "Simon";
-					name->offset = {0,-25};
-					DINFO("Intro Ended\n");
-				}
-				break;
 			case SPACE:
 				c = spaceCamera; 
 				break; 
@@ -460,11 +459,10 @@ int main()
 				} else if (gl.previous_state == PLAYING) {
 					c = &camera;
 				}
-				break; 
+				break;
 			case GAMEOVER:
 				sleep(4);
 				done = true;
-
 				break;
 			default: 
 				c = nullptr;
