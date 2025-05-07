@@ -373,8 +373,10 @@ int main()
 	// Initialize Textures
 	loadTextures(ssheets);  //load planet textures
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
-	player = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	World w {settings, loot_table};
+	extern const ecs::Entity* createPlayer(World& world);
+	player = createPlayer(w);
+	auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
     v2u margin = {64,64};
 	updateAudioState(gl.state);
 	Camera camera = {
@@ -382,14 +384,6 @@ int main()
 		gl.res,
         margin
 	};
-	name->name = "Juancarlos Sandoval";
-	name->offset = {0,-25};
-	sprite->ssheet = "player-idle";
-	sprite->render_order = 65536 - 2;
-	collider->offset = {0.0f,-8.0f};
-	collider->dim = v2u {5,4};
-	health->health = 100.0f;
-	health->max = 100.0f;
 
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	v2u space_margin = {64,64};
@@ -417,7 +411,6 @@ int main()
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
 	c = &camera;
-	World w {settings, loot_table};
 	astar->setObstacles(&w);
 	rs.sample();
 	ps.sample();

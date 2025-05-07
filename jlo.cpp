@@ -1663,3 +1663,98 @@ Loot LootTable::random()
     }
     return loot_[0];
 }
+
+
+std::pair<int, v2f> bfs(std::vector<std::vector<std::vector<const ecs::Entity*>>>& cells, 
+	std::vector<std::vector<bool>>& visited, int x, int y)
+{
+	int m = cells.size();
+	int n = cells[0].size();
+	int area = 0;
+	v2f pos_sum = {0.f, 0.f};
+
+	std::queue<std::pair<int, int>> q;
+	q.push({x, y});
+	visited[x][y] = true;
+
+	while (!q.empty()) {
+		auto [r, c] = q.front();
+		q.pop();
+		area++;
+
+		const ecs::Entity* entity = cells[r][c][0];
+		auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(entity);
+		if (transform != nullptr)
+		pos_sum += transform->pos;
+
+		for (const auto& dir : dirs) {
+			int nr = r + dir[0];
+			int nc = c + dir[1];
+
+			if (nr >= 0 && nr < m && nc >= 0 && nc < n &&
+			!visited[nr][nc] && !cells[nr][nc].empty()) {
+
+				const ecs::Entity* neighbor = cells[nr][nc][0];
+				auto [collider] = ecs::ecs.component()
+					.fetch<COLLIDER>(neighbor);
+
+				if (collider != nullptr && !collider->passable)
+				continue;
+
+				visited[nr][nc] = true;
+				q.push({nr, nc});
+			}
+		}
+	}
+
+	return {area, pos_sum};
+}
+
+
+v2f World::getCenterOfLargestIsland() {
+    int m = cells.size();
+    int n = cells[0].size();
+
+    std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
+
+    int max_area = 0;
+    v2f best_position = {0.f, 0.f};
+
+    for (int i = 0; i < m; ++i) {
+        for (int j = 0; j < n; ++j) {
+            if (!visited[i][j] && !cells[i][j].empty()) {
+                const ecs::Entity* entity = cells[i][j][0];
+                auto [collider] = ecs::ecs.component().fetch<COLLIDER>(entity);
+
+                if (collider != nullptr && !collider->passable)
+                    continue;
+
+                auto [area, pos_sum] = bfs(cells, visited, i, j);
+                if (area > max_area) {
+                    max_area = area;
+                    best_position = {pos_sum[0] / static_cast<float>(area),
+						pos_sum[1] / static_cast<float>(area)};
+                }
+            }
+        }
+    }
+
+    return best_position;
+}
+
+const ecs::Entity* createPlayer(World& world)
+{
+	const ecs::Entity* player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
+		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	transform->pos = world.getCenterOfLargestIsland();
+	name->name = "Juancarlos Sandoval";
+	name->offset = {0,-25};
+	sprite->ssheet = "player-idle";
+	sprite->render_order = 65536 - 2;
+	collider->offset = {0.0f,-8.0f};
+	collider->dim = v2u {5,4};
+	health->health = 100.0f;
+	health->max = 100.0f;
+	return player;
+}

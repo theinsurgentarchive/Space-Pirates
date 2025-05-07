@@ -297,6 +297,7 @@ class World
         ~World();
         std::vector<std::vector<WorldCell>> cells;
         WorldGenerationSettings& getSettings();
+        v2f getCenterOfLargestIsland();
     private:
         WorldGenerationSettings& settings_;
         std::mt19937 generator_;
