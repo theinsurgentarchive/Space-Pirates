@@ -614,7 +614,6 @@ void Enemy::initEnemy(World* w, float mag)
     } else {
         DWARN("Error, World Not Found\n");
     }
-    auto cells = w->cells;
     v2f w_max = {
         static_cast<float>(x),
         static_cast<float>(y)
