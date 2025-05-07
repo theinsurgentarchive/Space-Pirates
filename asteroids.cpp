@@ -435,6 +435,7 @@ int main()
 		switch (gl.state) { //State Checking
 			case SPLASH:
 				c = &intro;
+				break;
 			case SPACE:
 				c = spaceCamera; 
 				break; 
