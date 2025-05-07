@@ -384,19 +384,25 @@ int main()
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
 	};
+	
 	sprite->ssheet = "SPLASH";
 	sprite->render_order = 15;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
 	health->health = 100.0f;
 	health->max = 100.0f;
+	World w {settings};
+	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
+	Enemy foe(dummy, {0.1f, 2.0f}, &w, 48.0f);
+	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
+	navc->setAStar(astar);
+	astar->setObstacles(&w);
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
 	loadSplash(ssheets);
 	c = &camera;
 	ps.sample();
 	checkRequiredSprites();
-	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
 	init_opengl();
 	logOpen();
 	srand(time(NULL));
@@ -404,47 +410,9 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &timeStart);
 	x11.set_mouse_position(200, 200);
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	DINFO("loading into intro\n");
+	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
 	auto last = std::chrono::steady_clock::now();
-	while (intro) {
-		auto now = std::chrono::steady_clock::now();
-		static auto last_time = std::chrono::high_resolution_clock::now();
-
-		getAudioManager()->update();
-		if (std::chrono::duration_cast<
-			std::chrono::duration<float>>(now - last).count() > 5.0f) {
-			render();
-			x11.swapBuffers();
-		}
-		//if (sprite->frame == 17) {
-		//	sprite->ssheet = "SPLASH-final";
-		//} else {
-		//	cout << "Intro Frame is: " << sprite->frame << endl;
-		//}
-		usleep(1000);
-		
-		auto current = std::chrono::high_resolution_clock::now();
-    	auto t_elasped = (
-    	    std::chrono::duration_cast<std::chrono::seconds>(
-    	        current - last_time
-    	    )
-    	);
-		if (t_elasped.count() >= intro_timer) {
-			intro = false;
-		}
-	}
-	DINFO("Intro Ended\n");
-	name->name = "Simon";
-	name->offset = {0,-25};
-	sprite->ssheet = "player-idle";
-	World w {settings};
-	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
-	Enemy foe(dummy, {0.1f, 2.0f}, &w, 48.0f);
-	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
-	navc->setAStar(astar);
-	astar->setObstacles(&w);
-	gl.state = MENU;
-	updateAudioState(gl.state);
+	DINFO("loading into intro\n");
 	while (!done) {
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
@@ -453,6 +421,30 @@ int main()
 			done = check_keys(&e);
 		}
 		switch (gl.state) { //camera switch 
+			case SPLASH:
+				auto current = std::chrono::high_resolution_clock::now();
+				if (sprite->frame == 17) {
+					sprite->ssheet = "SPLASH-final";
+				} else {
+					cout << "Intro Frame is: " << sprite->frame << endl;
+				}
+				static auto last_time = (
+					std::chrono::high_resolution_clock::now()
+				);
+
+    			auto t_elasped = (
+    			    std::chrono::duration_cast<std::chrono::seconds>(
+    			        current - last_time
+    			    )
+    			);
+				if (t_elasped.count() >= intro_timer) {
+					gl.state = MENU;
+					updateAudioState(gl.state);
+					sprite->ssheet = "player-idle";
+					name->name = "Simon";
+					name->offset = {0,-25};
+					DINFO("Intro Ended\n");
+				}
 			case SPACE:
 				c = spaceCamera; 
 				break; 
@@ -481,10 +473,13 @@ int main()
 		timeSpan = timeDiff(&timeStart, &timeCurrent);
 		timeCopy(&timeStart, &timeCurrent);
 		getAudioManager()->update();
-		physics(foe);
-		render();
-		x11.swapBuffers();
+		if (std::chrono::duration_cast<
+			std::chrono::duration<float>>(now - last).count() > 5.0f) {
+			render();
+			x11.swapBuffers();
+		}
 		usleep(1000);
+		
 	}
 	shutdownAudioSystem();
 	cleanup_fonts();
