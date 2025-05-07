@@ -146,7 +146,7 @@ namespace ecs
 
 //Move an Entity to a Position or Entity with a Transform
 void moveTo(const ecs::Entity*, v2f);
-void moveTo(const ecs::Entity*, const ecs::Entity*);
+void moveTo(const ecs::Entity*, const ecs::Entity*, float);
 void moveTo(const ecs::Entity*, Node*);
 //Enemy Generation
 enum EnemyT 

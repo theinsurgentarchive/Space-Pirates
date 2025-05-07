@@ -520,8 +520,8 @@ void moveTo(const ecs::Entity* ent, v2f target, float speed = 1.0f)
     }
     v2f dir = v2fNormal(dif);
     v2f move {
-        ((accel * dir[0] * speed[0]) * reduce),
-        ((accel * dir[1] * speed[1]) * reduce)
+        ((accel * dir[0] * speed) * reduce),
+        ((accel * dir[1] * speed) * reduce)
     };
     physics->vel[0] = move[0];
     physics->vel[1] = move[1];
@@ -556,7 +556,7 @@ void moveTo(const ecs::Entity* ent, const ecs::Entity* target)
         );
         return;
     }
-    moveTo(ent, tar->pos);
+    moveTo(ent, tar->pos, 1.0f);
 }
 
 void loadEnemyTex(
@@ -697,7 +697,7 @@ void Enemy::action()
     
         //Move Towards Next Node in The Path, Otherwise Move Towards The Player
         if (navi->getStatus() || node_pos == nullptr) {
-            moveTo(ent, player, speed);
+            moveTo(ent, player);
         } else {
             if (
                 (node_pos[0] < (s_trans->pos[0] + 0.5f)) &&
