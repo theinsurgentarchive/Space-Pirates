@@ -512,7 +512,7 @@ void moveTo(const ecs::Entity* ent, v2f target, float speed = 1.0f)
     }
 
     //Set Acceleration
-    float accel = 30.0f;
+    float accel = 40.0f;
     float dist = v2fDist(target, transform->pos);
     float reduce = 1.0f;
     if (dist < (accel /4.0f)) {
