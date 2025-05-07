@@ -411,11 +411,12 @@ int main()
 		static auto last_time = std::chrono::high_resolution_clock::now();
 
 		if (std::chrono::duration_cast<std::chrono::duration<float>>(
-											now - last).count() > 0.04999998f)
+											now - last).count() > 0.09f)
 		{	
 			if (sprite->frame == 18) {
 				sprite->ssheet = "SPLASH-final";
 			}
+			getAudioManager()->update();
 			render();
 			x11.swapBuffers();
 		}
