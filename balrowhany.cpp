@@ -21,31 +21,15 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
 		switch(key) {
 			case XK_Up:
 				playGameSound(MENU_CLICK);
-				selected_option = (selected_option - 1 + 5) % 5;
+				selected_option = (selected_option - 1 + 4) % 4;
 				break;
 			case XK_Down:
 				playGameSound(MENU_CLICK);
-				selected_option = (selected_option + 1) % 5;
+				selected_option = (selected_option + 1) % 4;
 				break;
 			case XK_Return:
 				playGameSound(MENU_CLICK);
 				return selected_option + 10;
-				/*if (selected_option == 0) {
-				  state = PLAYING;
-				  updateAudioState(state);
-				  } else if (selected_option == 1) {
-				  state = CONTROLS;
-				  updateAudioState(state);
-				  } else if (selected_option == 2) {
-				  state = CREDITS;
-				  updateAudioState(state);
-				  } else if (selected_option == 3) {
-				  state = SPACE;
-				  updateAudioState(state);
-				  } else if (selected_option == 4) {
-				// Exit option
-				return 1; // Exit request
-				}*/
 				break;
 			case XK_Escape:
 				return 1;
@@ -81,8 +65,6 @@ int handle_menu_keys(int key, GameState &state, int &selected_option)
 	return 0;
 }
 
-
-
 void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,  
 		[[maybe_unused]]  GLuint titleTexture, int selected_option) {
 	DisableFor2D();
@@ -98,20 +80,6 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,
 	glEnd();
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glPopMatrix();
-	// menu title
-	/*Rect title;
-	  title.left = xres/2;
-	  title.bot = yres - 200;
-	  title.center = 1;
-
-	  ggprint40(&title, 50, 0x867933, "SPACE  PIRATES");
-	  title.bot = yres - 198;
-	  ggprint40(&title, 50, 0x2C2811, "SPACE  PIRATES");
-	  title.bot = yres - 200;
-	  ggprint40(&title, 50, 0xDBAD6A, "SPACE  PIRATES");
-	  */
-
-	// Draw title logo instead of text
 	render_title_logo(xres, yres, titleTexture);
 
 	//  menu options
@@ -121,9 +89,8 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,
 	r.center = 1;
 
 
-	const char* options[] = {"START", "CONTROLS", "CREDITS", "SPACE",
-		"EXIT"}; 
-	for (int i = 0; i < 5; i++) {
+	const char* options[] = {"START", "CONTROLS", "CREDITS", "EXIT"}; 
+	for (int i = 0; i < 4; i++) {
 		int color = (i == selected_option) ? 0x00FF99FF : 0x00FFFFFF;
 		// menu option color change
 		ggprint17(&r, 40, color, options[i]);
@@ -158,7 +125,8 @@ void render_menu_screen(int xres, int yres, GLuint menuBackgroundTexture,
 }; 
 
 
-void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture, GameState controls_from_state) {
+void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture, 
+GameState controls_from_state) {
 	DisableFor2D();
 	//  controls screen bg
 	glBindTexture(GL_TEXTURE_2D, menuBackgroundTexture);
@@ -252,13 +220,15 @@ void render_control_screen(int xres, int yres, GLuint menuBackgroundTexture, Gam
 
 void initializeEntity(ecs::Entity* spaceship)
 {
-	auto [health,oxygen,fuel,transform,sprite,physics] = ecs::ecs.component().assign<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM,SPRITE,PHYSICS>(spaceship);
+	auto [health,oxygen,fuel,transform,sprite,physics] = 
+    ecs::ecs.component().assign<
+    HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM,SPRITE,PHYSICS>(spaceship);
 
 	//default values
 	transform->pos = {50, 50};  //
 	if (sprite && physics) {
 		sprite->ssheet = "ship-right"; 
-		physics ->vel = {0.0f, 0.0f}; //not moving 
+		physics ->vel = {0.0f, 0.0f}; 
 	}
 
 
@@ -282,39 +252,6 @@ void initializeEntity(ecs::Entity* spaceship)
 		oxygen -> max = 200.0f;
 	}
 
-	auto [getHealth,getOxygen,getFuel,getTransform] = ecs::ecs.component().fetch<HEALTH,ecs::Oxygen,ecs::Fuel,TRANSFORM>(spaceship);
-
-	if (getHealth) {
-		DINFOF("Health: %.2f / %.2f\n", 
-				getHealth -> health,  getHealth -> max);  
-		[[maybe_unused]] float healthPercent = 
-			(getHealth -> health / getHealth -> max) * 100.0f;
-		DINFOF("Health Percentage: %.2f%%\n", healthPercent);
-
-	} else {
-		DINFO("Health component not found.\n");
-	}
-
-	if (getOxygen) {
-		DINFOF("Oxygen: %.2f / %.2f\n", getOxygen->oxygen, getOxygen->max);
-	} else {
-		DINFO("Oxygen component not found.\n");
-	}
-
-	if (getFuel) {
-		DINFOF("Fuel: %.2f / %.2f\n", getFuel->fuel, getFuel->max);
-	} else {
-		DINFO("Fuel component not found.\n"); 
-	}
-
-	if (getTransform) {
-		DINFOF("Position: %.2f, %.2f\n",
-				getTransform->pos[0], getTransform->pos[1]);
-	} else {
-		DINFO("Transform component not found.\n");
-	}
-
-	//DINFOF("\n");
 
 }
 
@@ -333,7 +270,7 @@ void drawUIBar (const char* label, float current, float max,
 	ggprint13(&r, 16, color, "%s: %0.f/%0.f", label, current, max);
 
 	// background bar (dark grey) -chat help
-	glColor3f(0.1f, 0.1f, 0.1f);  // black bg for empty portion
+	glColor3f(0.1f, 0.1f, 0.1f); 
 	glBegin(GL_QUADS); 
 	glVertex2f(x, y); // 2d vertex 
 	glVertex2f(x + barWidth, y); // 
@@ -354,9 +291,8 @@ void drawUIBar (const char* label, float current, float max,
 }
 
 
-
 // Load asteroid and ship related sprites into custom sprite sheet map.
-void loadShipAndAsteroids(   //rename to loadSpaceSprites
+void loadShipAndAsteroids(   
     std::unordered_map<std::string,
         std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets)
 {
@@ -371,7 +307,8 @@ void loadShipAndAsteroids(   //rename to loadSpaceSprites
             "./resources/textures/space/base.png", true), {1,1}, {24,24}) 
     .loadStatic("asteroid-explode", 
         loadTexture(
-            "./resources/textures/space/explode.png", true), {1,8}, {32,32}, true)
+            "./resources/textures/space/explode.png", true), {1,8}, {32,32}, 
+            true)
     .loadStatic("ship-front-back", 
         loadTexture(
             "./resources/textures/space/ship-front-back.png", true),
@@ -388,7 +325,8 @@ void loadShipAndAsteroids(   //rename to loadSpaceSprites
         
     .loadStatic("oxygen", 
         loadTexture(
-            "./resources/textures/space/oxygen.png", true), {1,1}, {24,24}, true);
+            "./resources/textures/space/oxygen.png", true), {1,1}, {24,24},
+             true);
     DINFO("finished loading asteroid, ship, & collectible sprites.\n");
 }
 
@@ -406,13 +344,17 @@ ecs::Entity* createAsteroid(float x, float y, int directionRandomizer)
 
     //assign Asteroid properties
     float size = (float)(rand() % 10 + 1); // random size between 1.0 and 10.0
-    auto [singleAsteroid,transform,sprite] = ecs::ecs.component().assign<ecs::Asteroid,ecs::Transform,ecs::Sprite>(asteroid);
+    auto [singleAsteroid,transform,sprite] = ecs::ecs.component().assign
+                <ecs::Asteroid,ecs::Transform,ecs::Sprite>(asteroid);
     singleAsteroid->health = size * 2; // based on size
     singleAsteroid->size = size; // 1, 2, or 3
-    singleAsteroid->direction = directionRandomizer; // random direction from generate funct
+    singleAsteroid->direction = directionRandomizer; // random direction 
+                                                //from generate funct
 
-    //singleAsteroid->rotationSpeed = (rand() % 100) / 100.0f; // random rotation speed between 0 and 1
-    singleAsteroid->movementSpeed = static_cast<float>((rand() % 600) + 50); // speed range 50-549
+    //singleAsteroid->rotationSpeed = (rand() % 100) / 100.0f; // random 
+    //rotation speed between 0 and 1
+    singleAsteroid->movementSpeed = static_cast<float>((rand() % 800) + 100); 
+    // speed range 50-549
 
     // assign Transform properties
     float scaleSize = static_cast<float>((rand() % 8) + 1); // 1 to 8
@@ -424,8 +366,10 @@ ecs::Entity* createAsteroid(float x, float y, int directionRandomizer)
     sprite->ssheet = "asteroid";
     sprite->frame = 0;
 
-    [[maybe_unused]]auto physics = ecs::ecs.component().assign<ecs::Physics>(asteroid);
-    DINFOF("Asteroid created with sprite: %s, frame: %i", sprite->ssheet, sprite->frame);
+    [[maybe_unused]]auto physics = 
+                    ecs::ecs.component().assign<ecs::Physics>(asteroid);
+    DINFOF("Asteroid created with sprite: %s, frame: %i",
+     sprite->ssheet, sprite->frame);
     return asteroid;
 }
 
@@ -437,12 +381,6 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
     float CameraX = transform->pos[0];
     float CameraY = transform->pos[1];
 
-
-   
-   // std::cout << "Camera pos: (" << CameraX << ", " << CameraY << ")\n";
-
-
-
     for (int i = 0; i < count; i++) {
         float x = 0.0f; 
         float y = 0.0f; 
@@ -450,13 +388,7 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
 
         int directionRandomizer = (rand() % 8) + 1; 
         
-                                              
-        //float x = CameraX + (xres / 2) + (rand() % 200); 
-        // just outside right edge
-        //float y = CameraY - (yres / 2) + (rand() % yres); 
-        // full vertical spread
-        
-        switch(directionRandomizer) {   //chat helped +- formula 
+        switch(directionRandomizer) {  
             case 1: //top->moving down
                 x = CameraX - (xres / 2) + (rand() % 200); 
                 y = CameraY + (yres / 2) + (rand() % yres);
@@ -497,25 +429,17 @@ void generateAsteroids(int count, int xres, int yres, ecs::Entity* spaceship)
                 break;         
         }
         //create Asteroid entity with it's properties in x, y position
-       // std::cout << "Spawning asteroid at: (" << x << ", " << y << ")\n"; //test1
+       // std::cout << "Spawning asteroid at: (" << x << ", " << y << ")\n"; 
+       //test1
 
     
 
-        ecs::Entity* asteroid  = createAsteroid(x, y, directionRandomizer); // create asteroid with properties
+        ecs::Entity* asteroid  = createAsteroid(x, y, directionRandomizer); 
+        // create asteroid with properties
         if (!asteroid) {
             DWARN("Failed to initialize asteroid\n");
             continue; //skip to next iteration
         }
-        
-       // ecs::Entity* asteroid = createAsteroid(x, y, directionRandomizer); 
-        
-        // assign that Asteroid with spawnPoint for randomized direction 
-       
-        //auto [spawnPoint] = ecs::ecs.component().assign<ecs::SpawnPoint>(asteroid);
-        //if (!spawnPoint) {
-        //   cout << "Failed to assign spawn point component" << endl;
-        //}
-        //spawnPoint->direction = directionRandomizer; 
 
 
         DINFOF("Spawning asteroid at x: %.2f, y: %.2f (dir %d)\n", x, y, 
@@ -530,7 +454,9 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres)
 			static auto lastAsteroidSpawn = 
                                 std::chrono::high_resolution_clock::now();
 			auto current = std::chrono::high_resolution_clock::now();
-			auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(current - lastAsteroidSpawn);
+			auto secondsPassed =
+             std::chrono::duration_cast<std::chrono::seconds>
+            (current - lastAsteroidSpawn);
 			
 			if (secondsPassed.count() >= 3) {  
 				
@@ -538,8 +464,10 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres)
         
                 DINFO("Spawning Asteroids \n");
                 //cout << "Spawning asteroid" << endl;
-                [[maybe_unused]]auto transform = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
-				generateAsteroids(rand() % 2 + 4, xres, yres, spaceship); //spawn count 
+                [[maybe_unused]]auto transform = ecs::ecs.component().fetch<
+                TRANSFORM>(spaceship);
+				generateAsteroids(rand() % 2 + 4, xres, yres, spaceship); 
+                //spawn count 
 				lastAsteroidSpawn = current; //reset timer
 			}
             // set asteroids w/ asteroid sprite
@@ -565,9 +493,13 @@ void spawnAsteroids(ecs::Entity* spaceship, int xres, int yres)
 // collision
 
 
-bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* asteroid) {
-    auto [spaceshipTransform] = ecs::ecs.component().fetch<ecs::Transform>(spaceship);
-    auto [asteroidTransform] = ecs::ecs.component().fetch<ecs::Transform>(asteroid);
+bool checkCircleCollision(const ecs::Entity* spaceship, 
+const ecs::Entity* asteroid) 
+{
+    auto [spaceshipTransform] = 
+    ecs::ecs.component().fetch<ecs::Transform>(spaceship);
+    auto [asteroidTransform] = 
+    ecs::ecs.component().fetch<ecs::Transform>(asteroid);
 
 
 
@@ -580,13 +512,6 @@ bool checkCircleCollision(const ecs::Entity* spaceship, const ecs::Entity* aster
     float dy = spaceshipTransform->pos[1] - asteroidTransform->pos[1];
     float distance = sqrt(pow(dx, 2) + pow(dy, 2)); 
 
-   // float asteroidScale = asteroidTransform->scale[0];
-   // float spaceshipScale = spaceshipTransform->scale[0];
-    //cout << "asteroid scale: " << asteroidScale << endl;
-
-   // float spaceshipRadius = (spaceshipScale * 144) / 2; 
-    // asteroid  scale * width / 2
-    //float asteroidRadius = ( asteroidScale * 96 ) / 2; 
     float spaceshipRadius = 30.0f; 
     float asteroidRadius = 30.0f;  
 
@@ -611,9 +536,10 @@ void moveAsteroids(ecs::Entity* spaceship)
 
     auto asteroids = ecs::ecs.query<ecs::Asteroid, ecs::Transform>();
     
-    for (auto* asteroid: asteroids) {  // chat: how loop to through all asteroids. 
+    for (auto* asteroid: asteroids) {  
         auto [transform, asteroidComp, sprite] =
-    ecs::ecs.component().fetch<ecs::Transform, ecs::Asteroid, ecs::Sprite>(asteroid);
+    ecs::ecs.component().fetch<ecs::Transform,
+     ecs::Asteroid, ecs::Sprite>(asteroid);
 
     auto [shipTransform] = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
     auto [asteroidTransform] = ecs::ecs.component().fetch<TRANSFORM>(asteroid);
@@ -622,17 +548,21 @@ void moveAsteroids(ecs::Entity* spaceship)
             continue; 
             // chat did the math 
         switch (asteroidComp->direction){
-            case 1: transform->pos[1] -= asteroidComp->movementSpeed * dt ; break; 
+            case 1: transform->pos[1] -= asteroidComp->movementSpeed * dt ; 
+            break; 
                 // top->down
-            case 2: transform->pos[0] -= asteroidComp->movementSpeed * dt; break; 
+            case 2: transform->pos[0] -= asteroidComp->movementSpeed * dt; 
+            break; 
                 // right-left
-            case 3: transform->pos[1] += asteroidComp->movementSpeed * dt; break;
+            case 3: transform->pos[1] += asteroidComp->movementSpeed * dt; 
+            break;
                 // bottom-up
-            case 4: transform->pos[0] += asteroidComp->movementSpeed * dt; break; 
+            case 4: transform->pos[0] += asteroidComp->movementSpeed * dt; 
+            break; 
                 // left-right
 
             // corners 
-            case 5: // top-left -> move down-right //chat formula 
+            case 5: // top-left -> move down-right 
                 transform->pos[0] += asteroidComp->movementSpeed * 0.6f * dt;
                 transform->pos[1] -= asteroidComp->movementSpeed * 0.6f * dt;
                 break;
@@ -661,7 +591,7 @@ void moveAsteroids(ecs::Entity* spaceship)
          // distance formula between asteroid and ship
         float distance = sqrt(pow(Ax - Sx, 2) + pow(Ay - Sy, 2));
 
-        if (distance > 1500) { // checks 
+        if (distance > 2000) { // checks 
            // cout << "Asteroid out of bounds, returning to pool" << endl;
             ecs::ecs.entity().ret(asteroid);
             continue;
@@ -695,10 +625,11 @@ void moveAsteroids(ecs::Entity* spaceship)
                     DINFOF("Exploding frame is: %d\n", sprite->frame);
                 }
 
-                auto [shipHealth] = ecs::ecs.component().fetch<HEALTH>(spaceship);
+                auto [shipHealth] =
+                 ecs::ecs.component().fetch<HEALTH>(spaceship);
 
                 if (shipHealth) {
-                    shipHealth->health -= 1.0f; 
+                    shipHealth->health -= 10.0f; 
                     DINFOF("Spaceship damaged, health is now: %.2f\n", 
                             shipHealth->health);
                 } else {
@@ -713,26 +644,28 @@ void moveAsteroids(ecs::Entity* spaceship)
 }
 
 
-
 void decrementResources(GameState &state, ecs::Entity* spaceship) 
 {
-    auto [fuel,oxygen] = ecs::ecs.component().fetch<ecs::Fuel, ecs::Oxygen>(spaceship); 
+    auto [fuel,oxygen] =
+     ecs::ecs.component().fetch<ecs::Fuel, ecs::Oxygen>(spaceship); 
 
+    if (fuel && fuel->fuel > 0.0f){
+        fuel->fuel -= 0.6f;
+        if (fuel->fuel < 0.0f) { 
+            fuel->fuel = 0.0f;
+            state = GAMEOVER;
+        }
+    }
 
-    if (fuel && fuel->fuel > 0.0f && oxygen && oxygen->oxygen > 0.0f) {
-		fuel->fuel -= 0.5f;
-		oxygen->oxygen -= 0.5f; 
-
-		if (fuel->fuel < 0.0f || oxygen->oxygen < 0.0f) { 
-			fuel->fuel = 0.0f;
-			oxygen->oxygen = 0.0f;
-
-			state = GAMEOVER;
-		}
-	}
-
+    if (oxygen && oxygen->oxygen > 0.0f) {
+        oxygen->oxygen -= 0.4f; 
+        if (oxygen->oxygen < 0.0f) { 
+            oxygen->oxygen = 0.0f;
+            state = GAMEOVER;
+        }
+    }
 }
-
+   
 
 float getDeltaTime() { //used for smooth movement 
 
@@ -754,10 +687,9 @@ ecs::Entity* createCollectible(float x, float y)
         return nullptr; 
     }
 
-
-
-
-    auto [col,transform,sprite] = ecs::ecs.component().assign<ecs::Collectible,ecs::Transform,ecs::Sprite>(collectible);
+    auto [col,transform,sprite] = 
+    ecs::ecs.component().assign<ecs::Collectible,
+    ecs::Transform,ecs::Sprite>(collectible);
 
     if (!col || !transform || !sprite) {
         DWARN("Components missing for creating a collectible\n");
@@ -792,9 +724,11 @@ ecs::Entity* createCollectible(float x, float y)
 
 void spawnCollectibles(ecs::Entity* spaceship, int xres, int yres) 
 {
-    static auto lastCollectibleSpawned = std::chrono::high_resolution_clock::now();
+    static auto lastCollectibleSpawned = 
+    std::chrono::high_resolution_clock::now();
     auto current = std::chrono::high_resolution_clock::now();
-    auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(current - lastCollectibleSpawned);
+    auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>
+    (current - lastCollectibleSpawned);
 
     if (secondsPassed.count() >= 3) { // spawn every 3 seconds
         //cout << "Spawning collectible" << endl;
@@ -811,7 +745,8 @@ void spawnCollectibles(ecs::Entity* spaceship, int xres, int yres)
         int y; 
         std::string message; // for debugging
 
-        int directionRandomizer = (rand() % 8) + 1; // random direction for collectible spawn
+        int directionRandomizer = (rand() % 8) + 1; // random direction
+                                             // for collectible spawn
 
 
         switch(directionRandomizer) {   
@@ -862,7 +797,8 @@ void spawnCollectibles(ecs::Entity* spaceship, int xres, int yres)
                  message = "bottom right";
                 break;         
         }
-        //std::cout << "Collectible spawned at: (" << x << ", " << y << ")" << std::endl;
+        //std::cout << "Collectible spawned at: (" << x << ", 
+        //" << y << ")" << std::endl;
         //std::cout << "Collectible spawn direction: " << message << std::endl;
 
         ecs::Entity* collectible = createCollectible(x, y);
@@ -874,11 +810,7 @@ void spawnCollectibles(ecs::Entity* spaceship, int xres, int yres)
        
         lastCollectibleSpawned = current; 
 
-
-
     }
-
-
 
 }
 
@@ -903,7 +835,8 @@ bool collectiblePickedUp(ecs::Entity* spaceship, const ecs::Entity* collectible)
 }
 
 
-void handleCollectiblePickup(ecs::Entity* spaceship, const ecs::Entity* collectible) 
+void handleCollectiblePickup(ecs::Entity* spaceship,
+             const ecs::Entity* collectible) 
 {
     auto [col] = ecs::ecs.component().fetch<ecs::Collectible>(collectible);
     auto [oxygen] = ecs::ecs.component().fetch<ecs::Oxygen>(spaceship);
@@ -936,14 +869,14 @@ void handleCollectiblePickup(ecs::Entity* spaceship, const ecs::Entity* collecti
 
 //need a loop to check each frame for collision like move Asteroids 
 
-
 void handleCollectibleInteractions(ecs::Entity* spaceship) //chat help
 {
     auto collectibles = ecs::ecs.query<ecs::Collectible, ecs::Transform>();
     auto [shipTransform] = ecs::ecs.component().fetch<TRANSFORM>(spaceship);
     
     for (auto* collectible : collectibles) {
-        auto [collectibleTransform] = ecs::ecs.component().fetch<TRANSFORM>(collectible);
+        auto [collectibleTransform] = 
+        ecs::ecs.component().fetch<TRANSFORM>(collectible);
         if (!collectibleTransform || !shipTransform) {
             DWARN("Missing collectible transform\n");
             continue; 
@@ -957,7 +890,7 @@ void handleCollectibleInteractions(ecs::Entity* spaceship) //chat help
          // distance formula between collectible and ship
         float distance = sqrt(pow(Cx - Sx, 2) + pow(Cy - Sy, 2));
 
-        if (distance > 1000) { // checks 
+        if (distance > 2000) { // greater distance for fullscreen mode 
             DWARN("Collectible out of bounds, returning to pool\n");
             ecs::ecs.entity().ret(collectible);
             continue; 

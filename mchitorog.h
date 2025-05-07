@@ -23,7 +23,7 @@ namespace ecs {
     class Entity;  
 }
 
-extern ecs::Entity* player;
+extern const ecs::Entity* player;
 extern ecs::Entity* planetPtr;
 
 // Sound effect types
@@ -181,16 +181,16 @@ int handle_pause_keys(int key, GameState &state, GameState &previous_state, int 
 void render_pause_controls_screen(int xres, int yres);
 
 // Function to update player sprites when moving
-void updatePlayerMovementSprite(ecs::Entity* player, PlayerDirection direction);
+void updatePlayerMovementSprite(const ecs::Entity* player, PlayerDirection direction);
 
 // Function to update player sprites when stopping
-void updatePlayerIdleSprite(ecs::Entity* player);
+void updatePlayerIdleSprite(const ecs::Entity* player);
 
 // Function to initialize player sprites
 void initializePlayerSprites();
 
 // Function to detect movement keys and update sprites
-void handlePlayerMovementInput(int key, ecs::Entity* player);
+void handlePlayerMovementInput(int key, const ecs::Entity* player);
 
 // Function to handle key release for player
-void handlePlayerKeyRelease(ecs::Entity* player);
+void handlePlayerKeyRelease(const ecs::Entity* player);

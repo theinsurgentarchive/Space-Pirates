@@ -361,7 +361,7 @@ std::vector<float> GenerateHeightMap()
 //Return color based on Temp
 glm::vec3 TempToColor(float temp) {
     if (temp < 20.0f) {
-        return glm::vec3(0.0f, 0.0f, 0.5f); 
+        return glm::vec3(0.5f, 0.7f, 1.0f); 
     }
     else if (temp < 30) {
         float factor = (temp - 20.0f) / 10.0f;

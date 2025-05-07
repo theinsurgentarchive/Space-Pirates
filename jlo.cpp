@@ -22,20 +22,21 @@
 
 #include "image.h"
 #include "jlo.h"
+#include "balrowhany.h"
 #include "fonts.h"
 #include "image.h"
 
 std::array<Biome, 5> biomes = {
-	Biome(FOREST, v2f{10.0f, 25.0f}, v2f{0.4f, 0.8f}, 
-			"Moderate temperature, lush tree-filled areas."),
-	Biome(DESERT, v2f{30.0f, 50.0f}, v2f{0.0f, 0.2f}, 
-			"Hot and dry, minimal precipitation and vegetation."),
-	Biome(TAIGA, v2f{-10.0f, 10.0f}, v2f{0.2f, 0.6f}, 
-			"Cold, coniferous forest with long winters."),
-	Biome(MEADOW, v2f{-5.0f, 15.0f}, v2f{0.4f, 0.8f}, 
-			"Cold, wet grasslands often found in mountainous regions."),
-	Biome(HELL, v2f{40.0f, _MAX_TEMPERATURE}, v2f{0.0f, 0.1f}, 
-			"Extreme temperatures and dry conditions, inhospitable to life.")
+    Biome(FOREST, v2f{10.0f, 35.0f}, v2f{0.2f, 1.0f}, 
+        "Moderate temperature, lush tree-filled areas."),
+    Biome(DESERT, v2f{30.0f, 85.0f}, v2f{0.0f, 0.8f}, 
+        "Hot and dry, minimal precipitation and vegetation."),
+    Biome(TAIGA, v2f{-40.0f, 10.0f}, v2f{0.1f, 0.8f}, 
+        "Cold, coniferous forest with long winters."),
+    Biome(MEADOW, v2f{0.0f, 20.0f}, v2f{0.4f, 1.0f}, 
+        "Cold, wet grasslands often found in mountainous regions."),
+    Biome(HELL, v2f{40.0f, _MAX_TEMPERATURE}, v2f{0.0f, 0.6f}, 
+        "Extreme temperatures and dry conditions, inhospitable to life.")
 };
 
 
@@ -60,172 +61,175 @@ extern const Camera* c;
 extern std::vector<Collision> cols;
 extern std::atomic<bool> done;
 extern ThreadPool* pool;
-extern ecs::Entity* player;
-
-// Global player state tracker
+extern const ecs::Entity* player;
+extern const ecs::Entity* spaceship;
 struct PlayerState {
 	bool isMoving;
 	std::string lastMovingSprite;
 	std::string lastIdleSprite;
 	bool lastInvertY;
 } g_playerState = {false, "player-idle", "player-idle", false};
-
 void loadTextures(
 		std::unordered_map<std::string,std::shared_ptr<SpriteSheet>>& ssheets)
 {
-	SpriteSheetLoader loader {ssheets};
-	loader
-		.loadStatic("cherry-001", 
-				loadTexture(
-					"./resources/textures/decorations/cherry-001.png", true))
-		.loadStatic("cherry-002", 
-				loadTexture(
-					"./resources/textures/decorations/cherry-002.png", true))
-		.loadStatic("chestnut-001", 
-				loadTexture(
-					"./resources/textures/decorations/chestnut-001.png", true))
-		.loadStatic("chestnut-002", 
-				loadTexture(
-					"./resources/textures/decorations/chestnut-002.png", true))
-		.loadStatic("chestnut-003", 
-				loadTexture(
-					"./resources/textures/decorations/chestnut-003.png", true))
-		.loadStatic("pine-001", 
-				loadTexture(
-					"./resources/textures/decorations/pine-001.png", true))
-		.loadStatic("pine-002", 
-				loadTexture(
-					"./resources/textures/decorations/pine-002.png", true))
-		.loadStatic("pine-003", 
-				loadTexture(
-					"./resources/textures/decorations/pine-003.png", true))
-		.loadStatic("pine-004", 
-				loadTexture(
-					"./resources/textures/decorations/pine-004.png", true))
-		.loadStatic("pine-005", 
-				loadTexture(
-					"./resources/textures/decorations/pine-005.png", true))
-		.loadStatic("cactus-001", 
-				loadTexture(
-					"./resources/textures/decorations/cactus-001.png", true))
-		.loadStatic("cactus-002", 
-				loadTexture(
-					"./resources/textures/decorations/cactus-002.png", true))
-		.loadStatic("cactus-003", 
-				loadTexture(
-					"./resources/textures/decorations/cactus-003.png", true))
-		.loadStatic("cactus-004", 
-				loadTexture(
-					"./resources/textures/decorations/cactus-004.png", true))
-		.loadStatic("cactus-005", 
-				loadTexture(
-					"./resources/textures/decorations/cactus-005.png", true))
-		.loadStatic("pine-001snow", 
-				loadTexture(
-					"./resources/textures/decorations/pine-001snow.png", true))
-		.loadStatic("pine-002snow", 
-				loadTexture(
-					"./resources/textures/decorations/pine-002snow.png", true))
-		.loadStatic("pine-003snow", 
-				loadTexture(
-					"./resources/textures/decorations/pine-003snow.png", true))
-		.loadStatic("pine-004snow", 
-				loadTexture(
-					"./resources/textures/decorations/pine-004snow.png", true))
-		.loadStatic("pine-005snow", 
-				loadTexture(
-					"./resources/textures/decorations/pine-005snow.png", true))
-		.loadStatic("player-idle",
-				loadTexture(
-					"./resources/textures/player/idle.webp",true),
-				{1,1},{18,32})
-	.loadStatic("player-front",
-			loadTexture(
-				"./resources/textures/player/front.webp",true),
-			{1,3},{26,32},true)
-	.loadStatic("player-back",
-			loadTexture(
-				"./resources/textures/player/back.webp",true),
-			{1,3},{26,32},true)
-	.loadStatic("player-idle-back",
-			loadTexture("./resources/textures/player/idle_back.webp", true),
-			{1,1}, {18,32})
-	.loadStatic("player-right",
-			loadTexture(
-				"./resources/textures/player/right.webp",true),
-			{1,3},{26,32},true)
-	.loadStatic("player-right-stand",
-			loadTexture("./resources/textures/player/right_stand.webp", true),
-			{1,1}, {30,36})
-	.loadStatic("sand-001",
-			loadTexture(
-				"./resources/textures/tiles/sand-001.webp",false))
-		.loadStatic("sand-002",
-				loadTexture(
-					"./resources/textures/tiles/sand-002.webp",false))
-		.loadStatic("sand-003",
-				loadTexture(
-					"./resources/textures/tiles/sand-003.webp",false))
-		.loadStatic("hell-001",
-				loadTexture(
-					"./resources/textures/tiles/hell-001.webp",false))
-		.loadStatic("hell-002",
-				loadTexture(
-					"./resources/textures/tiles/hell-002.webp",false))
-		.loadStatic("hell-003",
-				loadTexture(
-					"./resources/textures/tiles/hell-003.webp",false))
-		.loadStatic("snow-001",
-				loadTexture(
-					"./resources/textures/tiles/snow-001.webp",false))
-		.loadStatic("snow-002",
-				loadTexture(
-					"./resources/textures/tiles/snow-002.webp",false))
-		.loadStatic("grass-001",
-				loadTexture(
-					"./resources/textures/tiles/grass-001.webp",false))
-		.loadStatic("grass-002",
-				loadTexture(
-					"./resources/textures/tiles/grass-002.webp",false))
-		.loadStatic("grass-004",
-				loadTexture(
-					"./resources/textures/tiles/grass-004.webp",false))
-		.loadStatic("grass-005",
-				loadTexture(
-					"./resources/textures/tiles/grass-005.webp",false))
-		.loadStatic("placeholder",
-				loadTexture(
-					"./resources/textures/placeholder.webp", false))
-		.loadStatic("flower-001",
-				loadTexture(
-					"./resources/textures/tiles/flower-001.webp",false))
-		.loadStatic("flower-002",
-				loadTexture(
-					"./resources/textures/tiles/flower-002.webp",false))
-		.loadStatic("flower-003",
-				loadTexture(
-					"./resources/textures/tiles/flower-003.webp",false))
-		.loadStatic("flower-004",
-				loadTexture(
-					"./resources/textures/tiles/flower-004.webp",false))
-		.loadStatic("dirt-001",
-				loadTexture(
-					"./resources/textures/tiles/dirt-001.webp",false))
-		.loadStatic("dirt-002",
-				loadTexture(
-					"./resources/textures/tiles/dirt-002.webp",false))
-		.loadStatic("warm-water",
-				loadTexture(
-					"./resources/textures/tiles/warm-water.webp",false),
-				{1,3},{16,16},true)
-	.loadStatic("cold-water",
-			loadTexture(
-				"./resources/textures/tiles/cold-water.webp",false),
-			{1,3},{16,16},true)
-	.loadStatic("lava-001",
-			loadTexture(
-				"./resources/textures/tiles/lava-001.webp",false),
-			{1,45},{16,16}, true);
+    SpriteSheetLoader loader {ssheets};
+    loader
+    .loadStatic("cherry-001", 
+        loadTexture(
+            "./resources/textures/decorations/cherry-001.png", true))
+    .loadStatic("cherry-002", 
+        loadTexture(
+            "./resources/textures/decorations/cherry-002.png", true))
+    .loadStatic("chestnut-001", 
+        loadTexture(
+            "./resources/textures/decorations/chestnut-001.png", true))
+    .loadStatic("chestnut-002", 
+        loadTexture(
+            "./resources/textures/decorations/chestnut-002.png", true))
+    .loadStatic("chestnut-003", 
+        loadTexture(
+            "./resources/textures/decorations/chestnut-003.png", true))
+    .loadStatic("pine-001", 
+        loadTexture(
+            "./resources/textures/decorations/pine-001.png", true))
+    .loadStatic("pine-002", 
+        loadTexture(
+            "./resources/textures/decorations/pine-002.png", true))
+    .loadStatic("pine-003", 
+        loadTexture(
+            "./resources/textures/decorations/pine-003.png", true))
+    .loadStatic("pine-004", 
+        loadTexture(
+            "./resources/textures/decorations/pine-004.png", true))
+    .loadStatic("pine-005", 
+        loadTexture(
+            "./resources/textures/decorations/pine-005.png", true))
+    .loadStatic("cactus-001", 
+        loadTexture(
+            "./resources/textures/decorations/cactus-001.png", true))
+    .loadStatic("cactus-002", 
+        loadTexture(
+            "./resources/textures/decorations/cactus-002.png", true))
+    .loadStatic("cactus-003", 
+        loadTexture(
+            "./resources/textures/decorations/cactus-003.png", true))
+    .loadStatic("cactus-004", 
+        loadTexture(
+            "./resources/textures/decorations/cactus-004.png", true))
+    .loadStatic("cactus-005", 
+        loadTexture(
+            "./resources/textures/decorations/cactus-005.png", true))
+    .loadStatic("pine-001snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-001snow.png", true))
+    .loadStatic("pine-002snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-002snow.png", true))
+    .loadStatic("pine-003snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-003snow.png", true))
+    .loadStatic("pine-004snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-004snow.png", true))
+    .loadStatic("pine-005snow", 
+        loadTexture(
+            "./resources/textures/decorations/pine-005snow.png", true))
+    .loadStatic("player-idle",
+        loadTexture(
+            "./resources/textures/player/idle.webp",true),
+        {1,1},{18,32})
+    .loadStatic("player-front",
+        loadTexture(
+            "./resources/textures/player/front.webp",true),
+        {1,3},{26,32},true)
+    .loadStatic("player-back",
+        loadTexture(
+            "./resources/textures/player/back.webp",true),
+        {1,3},{26,32},true)
+    .loadStatic("player-right",
+        loadTexture(
+            "./resources/textures/player/right.webp",true),
+        {1,3},{26,32},true)
+    .loadStatic("sand-001",
+        loadTexture(
+            "./resources/textures/tiles/sand-001.webp",false))
+    .loadStatic("sand-002",
+        loadTexture(
+            "./resources/textures/tiles/sand-002.webp",false))
+    .loadStatic("sand-003",
+        loadTexture(
+            "./resources/textures/tiles/sand-003.webp",false))
+    .loadStatic("hell-001",
+        loadTexture(
+            "./resources/textures/tiles/hell-001.webp",false))
+    .loadStatic("hell-002",
+        loadTexture(
+            "./resources/textures/tiles/hell-002.webp",false))
+    .loadStatic("hell-003",
+        loadTexture(
+            "./resources/textures/tiles/hell-003.webp",false))
+    .loadStatic("snow-001",
+        loadTexture(
+            "./resources/textures/tiles/snow-001.webp",false))
+    .loadStatic("snow-002",
+        loadTexture(
+            "./resources/textures/tiles/snow-002.webp",false))
+    .loadStatic("grass-001",
+        loadTexture(
+            "./resources/textures/tiles/grass-001.webp",false))
+    .loadStatic("grass-002",
+        loadTexture(
+            "./resources/textures/tiles/grass-002.webp",false))
+    .loadStatic("grass-004",
+        loadTexture(
+            "./resources/textures/tiles/grass-004.webp",false))
+    .loadStatic("grass-005",
+        loadTexture(
+            "./resources/textures/tiles/grass-005.webp",false))
+    .loadStatic("flower-001",
+        loadTexture(
+            "./resources/textures/tiles/flower-001.webp",false))
+    .loadStatic("flower-002",
+        loadTexture(
+            "./resources/textures/tiles/flower-002.webp",false))
+    .loadStatic("flower-003",
+        loadTexture(
+            "./resources/textures/tiles/flower-003.webp",false))
+    .loadStatic("flower-004",
+        loadTexture(
+            "./resources/textures/tiles/flower-004.webp",false))
+    .loadStatic("dirt-001",
+        loadTexture(
+            "./resources/textures/tiles/dirt-001.webp",false))
+    .loadStatic("dirt-002",
+        loadTexture(
+            "./resources/textures/tiles/dirt-002.webp",false))
+    .loadStatic("warm-water",
+        loadTexture(
+            "./resources/textures/tiles/warm-water.webp",false),
+        {1,3},{16,16},true)
+    .loadStatic("cold-water",
+        loadTexture(
+            "./resources/textures/tiles/cold-water.webp",false),
+        {1,3},{16,16},true)
+    .loadStatic("lava-001",
+        loadTexture(
+            "./resources/textures/tiles/lava-001.webp",false),
+        {1,45},{16,16}, true)
+    .loadStatic("chest",
+        loadTexture(
+            "./resources/textures/decorations/chest.png",false))
+    .loadStatic("chest-open",
+        loadTexture(
+            "./resources/textures/decorations/chest_open.png",true))
+	.loadStatic("player-back-idle",
+		loadTexture(
+			"./resources/textures/player/idle_back.webp",true)
+		, {1,1},{18,32}, false)
+	.loadStatic("player-right-idle",
+		loadTexture(
+			"./resources/textures/player/right_stand.webp",true
+		), {1,1},{26,32}, false);
 }
 
 void checkRequiredSprites() {
@@ -322,57 +326,55 @@ Biome::Biome(
 
 std::unordered_map<std::string, wfc::TileMeta> Biome::tiles()
 {
-	std::unordered_map<std::string, wfc::TileMeta> tile_map;
+    std::unordered_map<std::string, wfc::TileMeta> tile_map;    
+    switch (type) {
+        case FOREST:
+            tile_map.insert({"0", wfc::TileBuilder{0.05, "dirt-001"}
+                .omni("1").omni("2").omni("3")
+                .coefficient("1", 0.3).coefficient("2", 0.3)
+                .coefficient("3", 0.1)
+                .build()});
+            tile_map.insert({"1", wfc::TileBuilder{0.4, "grass-001"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"2", wfc::TileBuilder{0.4, "grass-002"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"3", wfc::TileBuilder{0.1, "cold-water"}
+                .omni("0").omni("3")
+                .coefficient("0", 0.25).coefficient("3", 0.5)
+                .build()});
+            tile_map.insert({"4", wfc::TileBuilder{0.05, "sand-003"}
+                .omni("0").omni("4")
+                .coefficient("0", 0.3).coefficient("4", 0.3)
+                .build()});
+            break;
 
-	switch (type) {
-		case FOREST:
-			tile_map.insert({"0", wfc::TileBuilder{0.05, "dirt-001"}
-					.omni("1").omni("2").omni("3")
-					.coefficient("1", 0.3).coefficient("2", 0.3)
-					.coefficient("3", -0.5)
-					.build()});
-			tile_map.insert({"1", wfc::TileBuilder{0.4, "grass-001"}
-					.omni("0").omni("1").omni("2")
-					.coefficient("0", 0.3).coefficient("1", 0.3)
-					.coefficient("2", 0.3)
-					.build()});
-			tile_map.insert({"2", wfc::TileBuilder{0.4, "grass-002"}
-					.omni("0").omni("1").omni("2")
-					.coefficient("0", 0.3).coefficient("1", 0.3)
-					.coefficient("2", 0.3)
-					.build()});
-			tile_map.insert({"3", wfc::TileBuilder{0.1, "cold-water"}
-					.omni("0").omni("3")
-					.coefficient("0", 0.25).coefficient("3", 0.5)
-					.build()});
-			tile_map.insert({"4", wfc::TileBuilder{0.05, "sand-003"}
-					.omni("0").omni("4")
-					.coefficient("0", 0.3).coefficient("4", 0.3)
-					.build()});
-			break;
-
-		case DESERT:
-			tile_map.insert({"0", wfc::TileBuilder{0.3, "sand-001"}
-					.omni("1").omni("2").omni("3")
-					.coefficient("1", 0.3).coefficient("2", 0.3)
-					.coefficient("3", -0.5)
-					.build()});
-			tile_map.insert({"1", wfc::TileBuilder{0.3, "sand-002"}
-					.omni("0").omni("1").omni("2")
-					.coefficient("0", 0.3).coefficient("1", 0.3)
-					.coefficient("2", 0.3)
-					.build()});
-			tile_map.insert({"2", wfc::TileBuilder{0.3, "sand-003"}
-					.omni("0").omni("1").omni("2")
-					.coefficient("0", 0.3).coefficient("1", 0.3)
-					.coefficient("2", 0.3)
-					.build()});
-			tile_map.insert({"3", wfc::TileBuilder{0.1, "warm-water"}
-					.omni("0").omni("3")
-					.coefficient("0", 0.25).coefficient("3", 0.25)
-					.build()});
-			break;
-
+        case DESERT:
+            tile_map.insert({"0", wfc::TileBuilder{0.3, "sand-001"}
+                .omni("1").omni("2").omni("3")
+                .coefficient("1", 0.3).coefficient("2", 0.3)
+                .coefficient("3", 0.1)
+                .build()});
+            tile_map.insert({"1", wfc::TileBuilder{0.3, "sand-002"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"2", wfc::TileBuilder{0.3, "sand-003"}
+                .omni("0").omni("1").omni("2")
+                .coefficient("0", 0.3).coefficient("1", 0.3)
+                .coefficient("2", 0.3)
+                .build()});
+            tile_map.insert({"3", wfc::TileBuilder{0.1, "warm-water"}
+                .omni("0").omni("3")
+                .coefficient("0", 0.25).coefficient("3", 0.25)
+                .build()});
+            break;
 		case TAIGA:
 			tile_map.insert({"0", wfc::TileBuilder{0.3, "grass-004"}
 					.omni({"0","1","2","3"})
@@ -502,7 +504,8 @@ std::vector<std::string> Biome::decor(BiomeType type)
    Camera of the game, center of the camera is bound to 'pos_'.
    */
 
-Camera::Camera(v2f& pos, v2u& dim) : pos_{pos}, dim_{dim} {}
+Camera::Camera(v2f& pos, v2u& dim, v2u& margin) : pos_{pos}, dim_{dim}, 
+    margin_{margin} {}
 
 void Camera::bind(v2f& pos)
 {
@@ -525,12 +528,14 @@ void Camera::update() const
 
 bool Camera::visible(v2f curr) const
 {
-	float wh = dim_.get()[0] >> 1;
-	float hh = dim_.get()[1] >> 1;
-	v2f v1 {pos_.get()[0] - wh, pos_.get()[1] - hh};
-	v2f v2 {pos_.get()[0] + wh, pos_.get()[1] + hh};
-	return curr[0] >= v1[0] && curr[0] <= v2[0] &&
-		curr[1] >= v1[1] && curr[1] <= v2[1];
+    float wh = dim_.get()[0] >> 1;
+    float hh = dim_.get()[1] >> 1;
+    u16 wm = margin_.get()[0] >> 1;
+    u16 hm = margin_.get()[1] >> 1;
+    v2f v1 {pos_.get()[0] - wh - wm, pos_.get()[1] - hh - hm};
+    v2f v2 {pos_.get()[0] + wh + wm, pos_.get()[1] + hh + hm};
+    return curr[0] >= v1[0] && curr[0] <= v2[0] &&
+    curr[1] >= v1[1] && curr[1] <= v2[1];
 }
 
 v2u Camera::dim() const
@@ -707,7 +712,7 @@ void SpriteSheet::render(u16 frame, v2f pos, v2f scale, bool invertY)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Biome selectBiome(float temperature, float humidity, u32 seed)
+Biome selectBiome(float temperature, [[maybe_unused]]float humidity, u32 seed)
 {
 	std::vector<int> indices(biomes.size());
 	std::iota(indices.begin(), indices.end(), 0);
@@ -717,11 +722,8 @@ Biome selectBiome(float temperature, float humidity, u32 seed)
 	for (int i : indices) {
 		auto& biome = biomes[i];
 		if (temperature >= biome.temperature[0] && 
-				temperature <= biome.temperature[1] &&
-				humidity >= biome.humidity[0] && 
-				humidity <= biome.humidity[1]) {
+				temperature <= biome.temperature[1])
 			return biome;
-		}
 	}
 	return biomes[0];
 }
@@ -731,85 +733,192 @@ WorldGenerationSettings::WorldGenerationSettings(
 		float temperature, 
 		float humidity, 
 		u16 radius, 
-		u32 seed) : 
+		u32 seed,
+		int chest_count) : 
 	temperature{temperature},
 	humidity{humidity},
 	radius{radius},
-	biome_seed{seed}
+	biome_seed{seed},
+	chest_count{chest_count}
 {}
 
-World::World(WorldGenerationSettings settings)
+const ecs::Entity* createWorldTile(WorldGenerationSettings& settings, 
+    v2u& sprite_dim, v2i& cell_pos, wfc::TileMeta& tile_meta)
 {
-	Biome biome = selectBiome(
-			settings.temperature,
-			settings.humidity, 
-			settings.biome_seed);
-	std::cout << biome.type << ' ' << biome.description << std::endl;
-	std::unordered_map<std::string,wfc::TileMeta> tile_map = biome.tiles();
-	wfc::Grid grid {{settings.radius,settings.radius}};
-	wfc::WaveFunction wf {grid,tile_map};
-	const auto grid_size = grid.size;
-	cells.resize(grid_size[1]);
-	for (i32 i {0}; i < grid_size[1]; i++) {
-		cells[i].resize(grid_size[0]);
-		for (i32 j {0}; j < grid_size[0]; j++) {
-			auto cell = grid.get({i,j});
-			if (cell == nullptr || cell->state.empty())
-				continue;
-			auto tile = tile_map.find(cell->state);
-			if (tile == tile_map.end())
-				continue;
+    const ecs::Entity* entity = ecs::ecs.entity().checkout();
+    auto [transform,sprite] = ecs::ecs.component()
+        .assign<TRANSFORM,SPRITE>(entity);
+    transform->scale = {3,3};
+    transform->pos = settings.origin + v2f {
+        static_cast<float>(sprite_dim[0] * cell_pos[0] * transform->scale[0]),
+        static_cast<float>(sprite_dim[1] * cell_pos[1] * transform->scale[1])
+    };
+    sprite->ssheet = tile_meta.ssheet;
+    sprite->render_order = 65536 - 3;
+    if (sprite->ssheet.find("water") != std::string::npos || 
+    sprite->ssheet.find("lava") != std::string::npos) {
+        auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
+        collider->dim = v2u {static_cast<u16>(16 * transform->scale[0]),
+            static_cast<u16>(16 * transform->scale[1])};
+        collider->passable = false;
+    }
+    return entity;
+}
 
-			auto ssheet = ssheets.find(tile->second.ssheet);
-			if (ssheet == ssheets.end())
-				continue;
-			auto sd = ssheet->second->sprite_dim;
-			v2i p = cell->pos;
-			const ecs::Entity* entity = ecs::ecs.entity().checkout();
-			if (entity == nullptr) {
-				continue;
-			}
-			auto [transform,sprite] = 
-				ecs::ecs.component().assign<TRANSFORM,SPRITE>(entity);
-			transform->scale = {3,3};
-			transform->pos = settings.origin + v2f {
-				static_cast<float>(sd[0] * p[0] * transform->scale[0]),
-					static_cast<float>(sd[1] * p[1] * transform->scale[1])
-			};
-			sprite->ssheet = tile->second.ssheet;
-			if (sprite->ssheet == "warm-water") {
-				auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
-				collider->dim = v2u {16 * 3,16 * 3};
-				collider->passable = false;
-			}
-			cells[i][j].push_back(entity);
-			std::uniform_real_distribution<double> dis(0.0,1.0);
-			if (dis(generator) > 0.8) {
-				std::vector<std::string> decors = Biome::decor(biome.type);
-				if (decors.size() == 0) {
-					continue;
-				}
-				std::random_device rd;
-				std::mt19937 generator { rd() };
-				std::uniform_int_distribution<> dist (0, decors.size() - 1);
-				int decor_index = dist(generator);
-				auto decor_ssheet = ssheets.find(decors[decor_index]);
-				if (decor_ssheet == ssheets.end() || 
-						sprite->ssheet.find("water") != std::string::npos ||
-						sprite->ssheet.find("lava") != std::string::npos)
-					continue;
-				auto decor_sd = decor_ssheet->second->sprite_dim;
-				const ecs::Entity* decor = ecs::ecs.entity().checkout();
-				auto [dtransform,dsprite] = ecs::ecs.component()
-					.assign<TRANSFORM,SPRITE>(decor);
-				dsprite->ssheet = decors[decor_index];
-				dsprite->render_order = INT_MAX - j;
-				dtransform->pos = transform->pos;
-				dtransform->pos[1] += (decor_sd[1] / 2);
-				cells[i][j].push_back(decor);
-			}
+const ecs::Entity* createChest(WorldGenerationSettings& settings, 
+    const v2u& tile_sprite_dim, const v2f& tile_scale, 
+	v2i& cell_pos, LootTable& loot_table)
+{
+    const ecs::Entity* entity = ecs::ecs.entity().checkout();
+    auto [transform,sprite,collider,chest] = ecs::ecs.component()
+        .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
+    transform->pos = settings.origin + v2f {
+        static_cast<float>(tile_sprite_dim[0] * tile_scale[0] * cell_pos[0]),
+        static_cast<float>(tile_sprite_dim[1] * tile_scale[1] * cell_pos[1])
+    };
+    sprite->ssheet = "chest";
+    sprite->render_order = 65536 - 1;
+    collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
+    collider->callback = [sprite,chest,&loot_table]
+		([[maybe_unused]] const ecs::Entity* first, 
+			[[maybe_unused]] const ecs::Entity* second) {
+		if (first != player && second != player) {
+			return;
 		}
-	}
+        if (!chest->opened) {
+            sprite->ssheet = "chest-open";
+            chest->opened = true;
+            Loot loot = loot_table.random();
+            auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+            auto [shealth,fuel,oxygen] = ecs::ecs.component()
+				.fetch<HEALTH,ecs::Fuel,ecs::Oxygen>(spaceship);
+            switch (loot.type) {
+                case PLAYER_HEALTH:
+                    health->health += loot.amount;
+                    break;
+                case SHIP_HEALTH:
+                    shealth->health += loot.amount;
+                    break;
+                case LOOT_FUEL:
+                    fuel->fuel += loot.amount;
+                    break;
+                case LOOT_OXYGEN:
+                    oxygen->oxygen += loot.amount;
+                    break;
+            }
+            std::cout << "You got: " << loot.type << ' ' << 
+                loot.amount << std::endl;
+        }
+    };
+
+    return entity;
+}
+
+void populateWithChests(World& world, const v2u& grid_size, 
+	std::mt19937& generator, LootTable& loot_table)
+{
+    using WorldCell = std::vector<const ecs::Entity*>;
+    auto chest = ssheets.find("chest");
+    if (chest == ssheets.end())
+        return;
+    std::shared_ptr<SpriteSheet> chest_ssheet = chest->second;
+    std::vector<std::pair<WorldCell*, Vec2<i32>>> local_cells;
+    for (int i = 0; i < grid_size[1]; ++i) {
+        for (int j = 0; j < grid_size[0]; ++j) {
+            WorldCell& cell = world.cells[i][j];
+            auto [collider,sprite] = ecs::ecs.component()
+				.fetch<COLLIDER,SPRITE>(cell[0]);
+            if (cell.size() != 1 || 
+				(collider != nullptr && !collider->passable) || 
+				(sprite->ssheet.find("water") != std::string::npos || 
+				sprite->ssheet.find("lava") != std::string::npos))
+                continue;
+            local_cells.push_back({&cell, {i,j}});
+        }
+    }
+    std::shuffle(local_cells.begin(),local_cells.end(),generator);
+    for (int i = 0; i < world.getSettings().chest_count; ++i) {
+        auto pair = local_cells[i];
+        WorldCell* cell = pair.first;
+		const ecs::Entity* tile = cell->at(0);
+		auto [sprite,transform] = ecs::ecs.component()
+			.fetch<SPRITE,TRANSFORM>(tile);
+		auto ssheet_it = ssheets.find(sprite->ssheet);
+		if (ssheet_it == ssheets.end())
+			continue;
+        cell->push_back(createChest(world.getSettings(),
+            ssheet_it->second->sprite_dim,
+			transform->scale, pair.second, loot_table));
+    }
+}
+
+WorldGenerationSettings& World::getSettings()
+{
+    return settings_;
+}
+
+World::World(WorldGenerationSettings& settings, LootTable& loot_table) 
+    : 
+	settings_{settings},
+	generator_{std::random_device{}()},
+	loot_table_{loot_table}
+{
+    Biome biome = selectBiome(
+        settings.temperature,
+        settings.humidity, 
+        settings.biome_seed);
+    std::unordered_map<std::string,wfc::TileMeta> tile_map = biome.tiles();
+    wfc::Grid grid {{settings.radius,settings.radius}};
+    wfc::WaveFunction wf {grid,tile_map};
+    const auto grid_size = grid.size;
+    cells.resize(grid_size[1]);
+    for (i32 i {0}; i < grid_size[1]; i++) {
+        cells[i].resize(grid_size[0]);
+        for (i32 j {0}; j < grid_size[0]; j++) {
+            auto cell = grid.get({i,j});
+            if (cell == nullptr || cell->state.empty())
+                continue;
+            auto tile_pair = tile_map.find(cell->state);
+            if (tile_pair == tile_map.end())
+                continue;
+            wfc::TileMeta tile_meta = tile_pair->second;
+            auto ssheet = ssheets.find(tile_meta.ssheet);
+            if (ssheet == ssheets.end())
+                continue;
+            v2u sprite_dim = ssheet->second->sprite_dim;
+            const ecs::Entity* tile = createWorldTile(settings,sprite_dim,
+                cell->pos,tile_meta);
+            auto [transform,sprite] = ecs::ecs.component()
+                .fetch<TRANSFORM,SPRITE>(tile);
+            cells[i][j].push_back(tile);
+            std::uniform_real_distribution<double> dis(0.0,1.0);
+            if (dis(generator) > 0.8) {
+                std::vector<std::string> decors = Biome::decor(biome.type);
+                if (decors.size() == 0) {
+                    continue;
+                }
+                std::random_device rd;
+                std::mt19937 generator { rd() };
+                std::uniform_int_distribution<> dist (0, decors.size() - 1);
+                int decor_index = dist(generator_);
+                auto decor_ssheet = ssheets.find(decors[decor_index]);
+                if (decor_ssheet == ssheets.end() || 
+                    sprite->ssheet.find("water") != std::string::npos || 
+                    sprite->ssheet.find("lava") != std::string::npos)
+                    continue;
+                auto decor_sd = decor_ssheet->second->sprite_dim;
+                const ecs::Entity* decor = ecs::ecs.entity().checkout();
+                auto [dtransform,dsprite] = ecs::ecs.component()
+                    .assign<TRANSFORM,SPRITE>(decor);
+                dsprite->ssheet = decors[decor_index];
+                dsprite->render_order = 65536 - 1;
+                dtransform->pos = transform->pos;
+                dtransform->pos[1] += (decor_sd[1] / 2);
+                cells[i][j].push_back(decor);
+            }
+        }
+    }
+    populateWithChests(*this, grid_size, generator_, loot_table);
 }
 
 World::~World()
@@ -828,7 +937,7 @@ World::~World()
 namespace wfc
 {
 
-	////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 	TileMeta::TileMeta(
 			float weight, 
@@ -843,7 +952,7 @@ namespace wfc
 	{        
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 	TileBuilder::TileBuilder(
 			float weight, 
@@ -1264,10 +1373,9 @@ namespace ecs
 			}
 		}
 	}
-
-	RenderSystem::RenderSystem(ECS& ecs, float sample_delta) 
-		:
-			System<Transform,Sprite>(ecs,sample_delta)
+  
+	RenderSystem::RenderSystem(ECS& ecs, float sample_delta) :
+		System<Transform,Sprite>(ecs,sample_delta)
 	{
 	}
 
@@ -1298,32 +1406,33 @@ namespace ecs
 		}
 	};
 
-	void renderHelper(std::vector<const Entity*>& entities, 
-			std::priority_queue<const Entity*, std::vector<const Entity*>, 
-			CompareEntity>& visible, 
-			std::mutex& mutex, u32 start, u32 end)
-	{
-		std::vector<const Entity*> local_visible;
-		local_visible.reserve(end - start);
-		for (i32 i {static_cast<i32>(start)}; i < static_cast<i32>(end); ++i) {
-			auto e = entities[i];
-			auto [transform] = ecs::ecs.component().fetch<Transform>(e);
-			if ((c->visible(transform->pos))) {
-				local_visible.emplace_back(e);
-			}
-		}
+	// void renderHelper(std::vector<const Entity*>& entities, 
+	// 		std::priority_queue<const Entity*, std::vector<const Entity*>, 
+	// 		CompareEntity>& visible, 
+	// 		std::mutex& mutex, u32 start, u32 end)
+	// {
+	// 	std::vector<const Entity*> local_visible;
+	// 	local_visible.reserve(end - start);
+	// 	for (i32 i {static_cast<i32>(start)}; i < static_cast<i32>(end); ++i) {
+	// 		auto e = entities[i];
+	// 		auto [transform] = ecs::ecs.component().fetch<Transform>(e);
+	// 		if ((c->visible(transform->pos))) {
+	// 			local_visible.emplace_back(e);
+	// 		}
+	// 	}
 
-		std::lock_guard<std::mutex> lock(mutex);
-		for (auto& entity : local_visible) {
-			visible.push(entity);
-		}
-	}
+	// 	std::lock_guard<std::mutex> lock(mutex);
+	// 	for (auto& entity : local_visible) {
+	// 		visible.push(entity);
+	// 	}
+	// }
 
 
 	void RenderSystem::update([[maybe_unused]]float dt)
 	{
 		for (auto& entity : _entities) {
-			auto [transform, sprite] = _ecs.component().fetch<TRANSFORM, SPRITE>(entity);
+			auto [transform, sprite] = _ecs.component()
+				.fetch<TRANSFORM, SPRITE>(entity);
 
 			if (!transform || !sprite) continue;
 			if (!c->visible(transform->pos)) continue;
@@ -1333,55 +1442,9 @@ namespace ecs
 			if (ssheet == nullptr) continue;
 			if (ssheet->tex == nullptr) continue;
 
-			// Handle player entity specially
-			if (entity == player) {
-				auto [physics] = _ecs.component().fetch<PHYSICS>(entity);
-				if (physics) {
-					// Check if player is moving
-					bool isCurrentlyMoving = (physics->vel[0] != 0.0f || physics->vel[1] != 0.0f);
-
-					if (isCurrentlyMoving) {
-						// Player is moving - update movement state
-						g_playerState.isMoving = true;
-						g_playerState.lastMovingSprite = sprite->ssheet;
-						g_playerState.lastInvertY = sprite->invert_y;
-
-						// Determine appropriate idle sprite based on current movement
-						if (sprite->ssheet == "player-right") {
-							g_playerState.lastIdleSprite = "player-right-stand";
-						} else if (sprite->ssheet == "player-back") {
-							g_playerState.lastIdleSprite = "player-idle-back";
-						} else if (sprite->ssheet == "player-front") {
-							g_playerState.lastIdleSprite = "player-idle";
-						}
-
-						DINFOF(
-							"Player moving: %s, lastIdle: %s\n",
-							sprite->ssheet,
-							g_playerState.lastIdleSprite
-						);
-					}
-					else if (g_playerState.isMoving) {
-						// Player just stopped moving - force idle sprite
-						g_playerState.isMoving = false;
-						sprite->ssheet = g_playerState.lastIdleSprite;
-						sprite->invert_y = g_playerState.lastInvertY;
-						sprite->frame = 0;
-
-						// Get updated sprite sheet
-						ssheet = ssheets[sprite->ssheet];
-						if (ssheet == nullptr) continue;
-
-						DINFOF(
-							"Player stopped: setting idle sprite: %s\n",
-							sprite->ssheet
-						);
-					}
-				}
-			}
-
 			// Render sprite
-			ssheet->render(sprite->frame, transform->pos, transform->scale, sprite->invert_y);
+			ssheet->render(sprite->frame, transform->pos,
+				transform->scale, sprite->invert_y);
 
 			// Handle animation
 			if (ssheet->animated) {
@@ -1447,15 +1510,16 @@ void ThreadPool::enqueue(std::function<void()> task)
 
 void ThreadPool::workerThread()
 {
-	while (1) {
-		std::function<void()> current_task = nullptr;
-		{
-			std::unique_lock<std::mutex> lock(queue_mutex_);
-			task_available_.wait(lock, [this] { return stop_ || !task_queue_.empty(); });
-
-			if (stop_ && task_queue_.empty()) {
-				return;
-			}
+    while (1) {
+        std::function<void()> current_task = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex_);
+            task_available_.wait(lock, 
+                [this] { return stop_ || !task_queue_.empty(); });
+            
+            if (stop_ && task_queue_.empty()) {
+                return;
+            }
 
 			current_task = std::move(task_queue_.front());
 			task_queue_.pop();
@@ -1571,44 +1635,126 @@ void collisions(const Camera& camera, ThreadPool& pool)
 
 Collision::Collision(const ecs::Entity* a, const ecs::Entity* b) : a{a}, b{b} {}
 
+LootTable::LootTable() : generator_{std::random_device{}()} {}
 
-void bfs(
-		std::vector<std::vector<const ecs::Entity*>> tiles, 
-		int x, 
-		int y, 
-		std::unordered_set<std::pair<int,int>,PairHash>& visited) 
+LootTable& LootTable::addLoot(std::initializer_list<Loot> loot)
 {
-	int rows = tiles.size();
-	int cols = tiles[0].size();
-	int area = 1;
-	std::queue<std::pair<int,int>> q;
-	q.push({x,y});
-	visited.insert({x,y});
-	int dirs[4][2] = {{1,0},{0,1},{0,-1},{-1,0}};
+    loot_.reserve(loot_.size() + loot.size());
+    for (const auto& l : loot) {
+        loot_.emplace_back(l);
+    }
+    return *this;
+}
+
+Loot LootTable::random()
+{
+    float tweight = 0.0f;
+    for (auto& loot : loot_) {
+        tweight += loot.weight;
+    }
+    std::uniform_real_distribution<> dist {0.0f,tweight};
+    float rvalue = dist(generator_);
+    float cweight = 0.0f;
+    for (auto& loot : loot_) {
+        cweight += loot.weight;
+        if (cweight >= rvalue) {
+            return loot;
+        }
+    }
+    return loot_[0];
+}
+
+
+std::pair<int, v2f> bfs(std::vector<std::vector<std::vector<const ecs::Entity*>>>& cells, 
+	std::vector<std::vector<bool>>& visited, int x, int y)
+{
+	int m = cells.size();
+	int n = cells[0].size();
+	int area = 0;
+	v2f pos_sum = {0.f, 0.f};
+
+	std::queue<std::pair<int, int>> q;
+	q.push({x, y});
+	visited[x][y] = true;
+
 	while (!q.empty()) {
-		std::pair<int,int> current = q.front();
+		auto [r, c] = q.front();
 		q.pop();
-		for (const auto& dir: dirs) {
-			int rx = current.first + dir[0];
-			int ry = current.second + dir[1];
+		area++;
 
-			if (rx < 0 || rx >= rows || ry < 0 || ry >= cols)
+		const ecs::Entity* entity = cells[r][c][0];
+		auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(entity);
+		if (transform != nullptr)
+		pos_sum += transform->pos;
+
+		for (const auto& dir : dirs) {
+			int nr = r + dir[0];
+			int nc = c + dir[1];
+
+			if (nr >= 0 && nr < m && nc >= 0 && nc < n &&
+			!visited[nr][nc] && !cells[nr][nc].empty()) {
+
+				const ecs::Entity* neighbor = cells[nr][nc][0];
+				auto [collider] = ecs::ecs.component()
+					.fetch<COLLIDER>(neighbor);
+
+				if (collider != nullptr && !collider->passable)
 				continue;
 
-			std::pair<int,int> neighbor = {rx,ry};
-			if (visited.find(neighbor) != visited.end())
-				continue;
-
-			const ecs::Entity* tile = tiles[rx][ry];
-			if (tile == nullptr)
-				continue;
-
-			auto [collider] = ecs::ecs.component().fetch<COLLIDER>(tile);
-			if (collider != nullptr && !collider->passable)
-				continue;
-			q.push(neighbor);
-			visited.insert(neighbor);
-			area++;
+				visited[nr][nc] = true;
+				q.push({nr, nc});
+			}
 		}
 	}
+
+	return {area, pos_sum};
+}
+
+
+v2f World::getCenterOfLargestIsland() {
+    int m = cells.size();
+    int n = cells[0].size();
+
+    std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
+
+    int max_area = 0;
+    v2f best_position = {0.f, 0.f};
+
+    for (int i = 0; i < m; ++i) {
+        for (int j = 0; j < n; ++j) {
+            if (!visited[i][j] && !cells[i][j].empty()) {
+                const ecs::Entity* entity = cells[i][j][0];
+                auto [collider] = ecs::ecs.component().fetch<COLLIDER>(entity);
+
+                if (collider != nullptr && !collider->passable)
+                    continue;
+
+                auto [area, pos_sum] = bfs(cells, visited, i, j);
+                if (area > max_area) {
+                    max_area = area;
+                    best_position = {pos_sum[0] / static_cast<float>(area),
+						pos_sum[1] / static_cast<float>(area)};
+                }
+            }
+        }
+    }
+
+    return best_position;
+}
+
+const ecs::Entity* createPlayer(World& world)
+{
+	const ecs::Entity* player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
+		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	transform->pos = world.getCenterOfLargestIsland();
+	name->name = "Juancarlos Sandoval";
+	name->offset = {0,-25};
+	sprite->ssheet = "player-idle";
+	sprite->render_order = 65536 - 2;
+	collider->offset = {0.0f,-8.0f};
+	collider->dim = v2u {5,4};
+	health->health = 100.0f;
+	health->max = 100.0f;
+	return player;
 }

@@ -853,7 +853,7 @@ void initializePlayerSprites() {
     DINFO("Make sure 'player-idle-back' and 'player-right-stand' are loaded in texture loader.\n");
 }
 
-void updatePlayerMovementSprite(ecs::Entity* player, PlayerDirection direction) {
+void updatePlayerMovementSprite(const ecs::Entity* player, PlayerDirection direction) {
     if (!player) return;
     
     auto [sprite, physics] = ecs::ecs.component().fetch<SPRITE, PHYSICS>(player);
@@ -898,7 +898,7 @@ void updatePlayerMovementSprite(ecs::Entity* player, PlayerDirection direction) 
     playFootstepSound();
 }
 
-void updatePlayerIdleSprite(ecs::Entity* player) {
+void updatePlayerIdleSprite(const ecs::Entity* player) {
     if (!player) return;
 
     auto [sprite, physics] = ecs::ecs.component().fetch<SPRITE, PHYSICS>(player);
@@ -940,7 +940,7 @@ void updatePlayerIdleSprite(ecs::Entity* player) {
     sprite->frame = 0;
 }
 
-void handlePlayerMovementInput(int key, ecs::Entity* player) {
+void handlePlayerMovementInput(int key, const ecs::Entity* player) {
     switch(key) {
         case XK_Right:
             updatePlayerMovementSprite(player, DIR_RIGHT);
@@ -957,7 +957,7 @@ void handlePlayerMovementInput(int key, ecs::Entity* player) {
     }
 }
 
-void handlePlayerKeyRelease(ecs::Entity* player) {
+void handlePlayerKeyRelease(const ecs::Entity* player) {
     if (!player) return;
 
     auto [sprite, physics] = ecs::ecs.component().fetch<SPRITE, PHYSICS>(player);
