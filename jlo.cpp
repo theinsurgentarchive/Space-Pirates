@@ -770,6 +770,10 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
 	v2i& cell_pos, LootTable& loot_table)
 {
     const ecs::Entity* entity = ecs::ecs.entity().checkout();
+	if (entity == nullptr) {
+		DERRROR("Entity was Not Generated.\n");
+		return;
+	}
     auto [transform,sprite,collider,chest] = ecs::ecs.component()
         .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
     transform->pos = settings.origin + v2f {
