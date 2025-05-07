@@ -472,7 +472,7 @@ int main()
 			physics(foe, &w);
 			render();
 			if (gl.state == GAMEOVER) {
-				sleep(2)
+				sleep(2);
 			}
 			x11.swapBuffers();
 		}
