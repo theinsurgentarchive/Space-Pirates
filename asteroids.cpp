@@ -411,6 +411,7 @@ int main()
 	loadEnemyTex(ssheets);
 	c = &camera;
 	ps.sample();
+	rs.sample();
 	checkRequiredSprites();
 	init_opengl();
 	logOpen();
