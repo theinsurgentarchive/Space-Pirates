@@ -1723,7 +1723,7 @@ v2f World::getCenterOfLargestIsland() {
     v2f best_position = {0.0f, 0.0f};
 	u16 m = 0;
 	u16 n = 0;
-	if (cells == nullptr){
+	if (cells.empty()){
 		return best_position;
 	}
 	if (cells[0] != nullptr) {
@@ -1731,7 +1731,7 @@ v2f World::getCenterOfLargestIsland() {
 	}
 	m = cells.size();
 	n = cells[0].size();
-	
+
     std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
 
     int max_area = 0;
