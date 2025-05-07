@@ -770,61 +770,65 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
     const v2u& tile_sprite_dim, const v2f& tile_scale, 
 	v2i& cell_pos, LootTable& loot_table)
 {
-    const ecs::Entity* entity = ecs::ecs.entity().checkout();
-	if (entity == nullptr) {
-		DERROR("Entity was Not Generated.\n");
-		return nullptr;
-	}
-    auto [transform,sprite,collider,chest] = ecs::ecs.component()
-        .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
-	if (transform == nullptr || sprite == nullptr ||
-		collider == nullptr || chest == nullptr)
-	{
-		return nullptr;
-	}
-    transform->pos = settings.origin + v2f {
-        static_cast<float>(tile_sprite_dim[0] * tile_scale[0] * cell_pos[0]),
-        static_cast<float>(tile_sprite_dim[1] * tile_scale[1] * cell_pos[1])
-    };
-    sprite->ssheet = "chest";
-    sprite->render_order = 65536 - 16;
-    collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
-    collider->callback = [sprite,chest,&loot_table]
-		([[maybe_unused]] const ecs::Entity* first, 
-			[[maybe_unused]] const ecs::Entity* second) {
-		if (first != player && second != player) {
-			return;
+    try{
+		const ecs::Entity* entity = ecs::ecs.entity().checkout();
+		if (entity == nullptr) {
+			DERROR("Entity was Not Generated.\n");
+			return nullptr;
 		}
-        if (!chest->opened) {
-            sprite->ssheet = "chest-open";
-            chest->opened = true;
-            Loot loot = loot_table.random();
-            auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
-            auto [shealth,fuel,oxygen] = ecs::ecs.component()
-				.fetch<HEALTH,ecs::Fuel,ecs::Oxygen>(spaceship);
-            switch (loot.type) {
-                case PLAYER_HEALTH:
-                    health->health += loot.amount;
-                    break;
-                case SHIP_HEALTH:
-                    shealth->health += loot.amount;
-                    break;
-                case LOOT_FUEL:
-                    fuel->fuel += loot.amount;
-                    break;
-                case LOOT_OXYGEN:
-                    oxygen->oxygen += loot.amount;
-                    break;
-                case GOLD:
-                    gold += loot.amount;
-                    break;
-            }
-            std::cout << "You got: " << loot.type << ' ' << 
-                loot.amount << std::endl;
-        }
-    };
+    	auto [transform,sprite,collider,chest] = ecs::ecs.component()
+    	    .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
+		if (transform == nullptr || sprite == nullptr ||
+			collider == nullptr || chest == nullptr)
+		{
+			return nullptr;
+		}
+    	transform->pos = settings.origin + v2f {
+    	static_cast<float>(tile_sprite_dim[0] * tile_scale[0] * cell_pos[0]),
+    	static_cast<float>(tile_sprite_dim[1] * tile_scale[1] * cell_pos[1])};
+    	sprite->ssheet = "chest";
+    	sprite->render_order = 65536 - 16;
+    	collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
+    	collider->callback = [sprite,chest,&loot_table]
+			([[maybe_unused]] const ecs::Entity* first, 
+				[[maybe_unused]] const ecs::Entity* second) {
+			if (first != player && second != player) {
+				return;
+			}
+    	    if (!chest->opened) {
+    	        sprite->ssheet = "chest-open";
+    	        chest->opened = true;
+    	        Loot loot = loot_table.random();
+    	        auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+    	        auto [shealth,fuel,oxygen] = ecs::ecs.component()
+					.fetch<HEALTH,ecs::Fuel,ecs::Oxygen>(spaceship);
+    	        switch (loot.type) {
+    	            case PLAYER_HEALTH:
+    	                health->health += loot.amount;
+    	                break;
+    	            case SHIP_HEALTH:
+    	                shealth->health += loot.amount;
+    	                break;
+    	            case LOOT_FUEL:
+    	                fuel->fuel += loot.amount;
+    	                break;
+    	            case LOOT_OXYGEN:
+    	                oxygen->oxygen += loot.amount;
+    	                break;
+    	            case GOLD:
+    	                gold += loot.amount;
+    	                break;
+    	        }
+    	        std::cout << "You got: " << loot.type << ' ' << 
+    	            loot.amount << std::endl;
+    	    }
+    	};
 
-    return entity;
+    	return entity;
+	} catch (...) {
+		DERROR("A Error has been Caught\n");
+		return nullptr;
+	}
 }
 
 void populateWithChests(World& world, const v2u& grid_size, 
