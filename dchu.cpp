@@ -697,7 +697,7 @@ void Enemy::action()
     
         //Move Towards Next Node in The Path, Otherwise Move Towards The Player
         if (navi->getStatus() || node_pos == nullptr) {
-            moveTo(ent, player, speed);
+            moveTo(ent, player);
         } else {
             if (
                 (node_pos[0] < (s_trans->pos[0] + 0.5f)) &&
@@ -711,7 +711,7 @@ void Enemy::action()
                     DINFO("Destination Reached, Finished Status Enabled\n");
                 }
             } else {
-                moveTo(ent, {node_pos[0], node_pos[1]});
+                moveTo(ent, {node_pos[0], node_pos[1]}, speed);
             }
         }
         //Check if The Enemy has Hit The Player
