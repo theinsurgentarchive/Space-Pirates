@@ -413,7 +413,7 @@ int main()
 		if (std::chrono::duration_cast<std::chrono::duration<float>>(
 											now - last).count() > 0.01666666f)
 		{	
-			if (sprite->frame = 18) {
+			if (sprite->frame == 18) {
 				sprite->ssheet = "SPLASH-final";
 			}
 			render();
