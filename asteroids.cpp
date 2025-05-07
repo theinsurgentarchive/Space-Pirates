@@ -471,10 +471,10 @@ int main()
 			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
 			physics(foe, &w);
 			render();
+			x11.swapBuffers();
 			if (gl.state == GAMEOVER) {
 				sleep(2);
 			}
-			x11.swapBuffers();
 		}
 		usleep(1000);
 	}
