@@ -1149,6 +1149,33 @@ void physics(Enemy& foe, World* w)
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		traits-> AngY += 1.0f;
 		// ecs::updatePlanetSpin();
+		//applying camera
+
+		c->update();
+
+		// merge space sprites into ssheets once
+		static bool spaceSheetsLoaded = false;
+		if (!spaceSheetsLoaded) {
+			ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
+			spaceSheetsLoaded = true; 
+
+		}
+
+		spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]);
+		spawnCollectibles(gl.spaceship, gl.res[0], gl.res[1]);
+		handleCollectibleInteractions(gl.spaceship); 
+
+
+		//sample only asteroid and ship entities 
+		SampleSpaceEntities();
+		//spaceRenderer.update((float)1/10);
+		if (gl.spaceship) {
+			auto [spaceshipHealth] = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
+			if (spaceshipHealth->health <= 0.0f) {
+				gl.state = GAMEOVER; 
+				return; 
+			}
+		}
 	} else if (gl.state == PLAYING) {
 		if(dummy) {
 			foe.action(w);
@@ -1344,27 +1371,7 @@ void render() {
 				glMatrixMode(GL_MODELVIEW);
 				glPushMatrix(); 
 				glLoadIdentity();
-
-				//applying camera
-
-				c->update();
-
-				// merge space sprites into ssheets once
-				static bool spaceSheetsLoaded = false;
-				if (!spaceSheetsLoaded) {
-					ssheets.insert(shipAndAsteroidsSheets.begin(), shipAndAsteroidsSheets.end());
-					spaceSheetsLoaded = true; 
-
-				}
-
-				spawnAsteroids(gl.spaceship, gl.res[0], gl.res[1]);
-				spawnCollectibles(gl.spaceship, gl.res[0], gl.res[1]);
-				handleCollectibleInteractions(gl.spaceship); 
-
-
-				//sample only asteroid and ship entities 
-				SampleSpaceEntities();
-				//spaceRenderer.update((float)1/10);
+				
 				float dt = getDeltaTime(); 
 				spaceRenderer.update(dt);
 
@@ -1385,15 +1392,6 @@ void render() {
 				glLoadIdentity();
 
 				DisableFor2D();
-
-
-				if (gl.spaceship) {
-					auto [spaceshipHealth] = ecs::ecs.component().fetch<ecs::Health>(gl.spaceship);
-					if (spaceshipHealth->health <= 0.0f) {
-						gl.state = GAMEOVER; 
-						return; 
-					}
-				}
 
 
 				if (gl.spaceship) { //draw ui space bars
