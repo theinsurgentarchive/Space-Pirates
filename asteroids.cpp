@@ -471,6 +471,9 @@ int main()
 			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
 			physics(foe, &w);
 			render();
+			if (gl.state == GAMEOVER) {
+				sleep(2)
+			}
 			x11.swapBuffers();
 		}
 		usleep(1000);
@@ -1568,7 +1571,6 @@ void render() {
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
 			glMatrixMode(GL_MODELVIEW);
-			sleep(2);
 			break; 
 
 		case EXIT: 
