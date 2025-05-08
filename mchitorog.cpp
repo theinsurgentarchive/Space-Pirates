@@ -1220,7 +1220,7 @@ void loadWeaponSprites(std::unordered_map<std::string,
 				loadTexture("./resources/textures/player/idle_sword.webp", true),
 				{1,1}, {24,32})
 	.loadStatic("player-idle-back-sword",
-			loadTexture("./resources/textures/player/idle_back_sword.webp", true),
+			loadTexture("./resources/textures/player/idle_back_sword.webp", false),
 			{1,1}, {24,32})
 	.loadStatic("player-right-idle-sword",
 			loadTexture("./resources/textures/player/right_stand_sword.webp", true),
@@ -1229,7 +1229,7 @@ void loadWeaponSprites(std::unordered_map<std::string,
 			loadTexture("./resources/textures/player/front_sword.webp", true),
 			{1,3}, {26,32}, true)
 	.loadStatic("player-back-sword",
-			loadTexture("./resources/textures/player/back_sword.webp", false),
+			loadTexture("./resources/textures/player/back_sword.webp", true),
 			{1,3}, {26,32}, true)
 	.loadStatic("player-right-sword",
 			loadTexture("./resources/textures/player/right_sword.webp", true),
