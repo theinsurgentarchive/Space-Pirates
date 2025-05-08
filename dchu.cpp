@@ -133,8 +133,7 @@ AStar::AStar()
     DINFO("Completed Default A* Node Generation\n");
 }
 
-//Initialize a A* Grid at origin, with 4x the input size,
-//at equal distance of tile_dim for each position
+//Initialize A* Grid at origin equal to the distance of tile_dim each position
 AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
 {
     //Initialize Variables
