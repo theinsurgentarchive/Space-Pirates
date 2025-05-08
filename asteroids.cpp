@@ -310,6 +310,7 @@ void handle_space_key_release();
 //==========================================================================
 const ecs::Entity* player;
 const ecs::Entity* spaceship;
+float gold = 0;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
 ecs::RenderSystem rs {ecs::ecs,60};
@@ -335,20 +336,22 @@ int main()
 {
 	LootTable loot_table;
 	loot_table.addLoot({
-			{LOOT_OXYGEN, 5.0f, 1.0f},
-			{LOOT_OXYGEN, 10.0f, 1.5f},
-			{LOOT_OXYGEN, 2.0f, 0.5f},
-			{LOOT_FUEL, 5.0f, 1.0f},
-			{LOOT_FUEL, 8.0f, 2.0f},
-			{LOOT_FUEL, 3.0f, 0.8f},
-			{PLAYER_HEALTH, 5.0f, 1.0f},
-			{SHIP_HEALTH, 3.0f, 1.0f},
-			{SHIP_HEALTH, 8.0f, 0.5f},
-			{SHIP_HEALTH, 15.0f, 0.75f},
-			{PLAYER_HEALTH, 8.0f, 0.5f},
-			{PLAYER_HEALTH, 15.0f, 0.25f},
-			});
-
+		{GOLD, 100.0f, 5.0f},
+        {GOLD, 50.0f, 2.5f},
+        {GOLD, 25.0f, 1.25f},
+        {LOOT_OXYGEN, 5.0f, 1.0f},
+		{LOOT_OXYGEN, 10.0f, 1.5f},
+		{LOOT_OXYGEN, 2.0f, 0.5f},
+		{LOOT_FUEL, 5.0f, 1.0f},
+		{LOOT_FUEL, 8.0f, 2.0f},
+		{LOOT_FUEL, 3.0f, 0.8f},
+        {PLAYER_HEALTH, 5.0f, 1.0f},
+        {SHIP_HEALTH, 3.0f, 1.0f},
+        {SHIP_HEALTH, 8.0f, 0.5f},
+        {SHIP_HEALTH, 15.0f, 0.75f},
+        {PLAYER_HEALTH, 8.0f, 0.5f},
+        {PLAYER_HEALTH, 15.0f, 0.25f},
+	});
 	std::signal(SIGINT,sig_handle);
 	std::signal(SIGTERM,sig_handle);
 	gl.spaceship = ecs::ecs.entity().checkout(); 
@@ -363,10 +366,10 @@ int main()
 
 	WorldGenerationSettings settings {
 		planetAttr->temperature,
-			planetAttr->humidity,
-			static_cast<u16>(planetAttr->size * 30),
-			static_cast<u32>(2),
-			static_cast<int>(planetAttr->size * 5)
+		planetAttr->humidity,
+		static_cast<u16>(((int) planetAttr->size % 10) * 30),
+		static_cast<u32>(2),
+		static_cast<int>(((int) planetAttr->size % 10) * 5)
 	};
 	settings.origin = {0,0};
 	// Initialize audio system
@@ -375,23 +378,17 @@ int main()
 	// Initialize Textures
 	loadTextures(ssheets);  //load planet textures
 	loadShipAndAsteroids(ssheets); // load ship and asteroids
-	player = ecs::ecs.entity().checkout();
-	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component().assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
-	v2u margin = {64,64};
+	World w {settings, loot_table};
+	extern const ecs::Entity* createPlayer(World& world);
+	player = createPlayer(w);
+	auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
+    v2u margin = {64,64};
 	updateAudioState(gl.state);
 	Camera camera = {
 		transform->pos,
 		gl.res,
 		margin
 	};
-	name->name = "Juancarlos Sandoval";
-	name->offset = {0,-25};
-	sprite->ssheet = "player-idle";
-	sprite->render_order = 65536 - 2;
-	collider->offset = {0.0f,-8.0f};
-	collider->dim = v2u {5,4};
-	health->health = 100.0f;
-	health->max = 100.0f;
 
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	v2u space_margin = {64,64};
@@ -419,7 +416,6 @@ int main()
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
 	c = &camera;
-	World w {settings, loot_table};
 	astar->setObstacles(&w);
 	rs.sample();
 	ps.sample();
@@ -1480,10 +1476,13 @@ void render() {
 							gl.res[1] - 50, 0xF00FF00
 						 );
 			}
-			ggprint8b(&r, 0, 0xffffffff, "position: %f %f", cameraX, cameraY);
 			if (gl.state == PLAYING) {
 				renderAmmoUI(gl.res[0], gl.res[1]);
 			}
+      r.left = 160;
+			ggprint13(&r, 0, 0xffffffff, "Position: %f %f", cameraX, cameraY);
+      r.left = gl.res[0] - 40;
+      ggprint13(&r, 0, 0x00ffff00, "Gold: %f",gold);
 			break; 
 
 		case SPACE:

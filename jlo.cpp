@@ -50,6 +50,7 @@ std::random_device rd;
 std::mt19937 generator(rd());
 v2i dirs[4] {{0,1},{0,-1},{-1,0},{1,0}};
 Direction opposite[4] {BOTTOM,TOP,RIGHT,LEFT};
+extern float gold;
 extern std::unordered_map<
 std::string,
 	std::shared_ptr<SpriteSheet>> ssheets;
@@ -766,7 +767,8 @@ const ecs::Entity* createWorldTile(WorldGenerationSettings& settings,
 }
 
 const ecs::Entity* createChest(WorldGenerationSettings& settings, 
-    const v2u& tile_sprite_dim, const v2f& tile_scale, v2i& cell_pos, LootTable& loot_table)
+    const v2u& tile_sprite_dim, const v2f& tile_scale, 
+	v2i& cell_pos, LootTable& loot_table)
 {
     const ecs::Entity* entity = ecs::ecs.entity().checkout();
     auto [transform,sprite,collider,chest] = ecs::ecs.component()
@@ -789,8 +791,8 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
             chest->opened = true;
             Loot loot = loot_table.random();
             auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
-            auto [shealth,fuel,oxygen] = ecs::ecs.component().fetch<HEALTH,ecs::Fuel,
-				ecs::Oxygen>(spaceship);
+            auto [shealth,fuel,oxygen] = ecs::ecs.component()
+				.fetch<HEALTH,ecs::Fuel,ecs::Oxygen>(spaceship);
             switch (loot.type) {
                 case PLAYER_HEALTH:
                     health->health += loot.amount;
@@ -804,6 +806,9 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
                 case LOOT_OXYGEN:
                     oxygen->oxygen += loot.amount;
                     break;
+                case GOLD:
+                    gold += loot.amount;
+                    break;
             }
             std::cout << "You got: " << loot.type << ' ' << 
                 loot.amount << std::endl;
@@ -813,7 +818,8 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
     return entity;
 }
 
-void populateWithChests(World& world, const v2u& grid_size, std::mt19937& generator, LootTable& loot_table)
+void populateWithChests(World& world, const v2u& grid_size, 
+	std::mt19937& generator, LootTable& loot_table)
 {
     using WorldCell = std::vector<const ecs::Entity*>;
     auto chest = ssheets.find("chest");
@@ -824,8 +830,10 @@ void populateWithChests(World& world, const v2u& grid_size, std::mt19937& genera
     for (int i = 0; i < grid_size[1]; ++i) {
         for (int j = 0; j < grid_size[0]; ++j) {
             WorldCell& cell = world.cells[i][j];
-            auto [collider,sprite] = ecs::ecs.component().fetch<COLLIDER,SPRITE>(cell[0]);
-            if (cell.size() != 1 || (collider != nullptr && !collider->passable) || 
+            auto [collider,sprite] = ecs::ecs.component()
+				.fetch<COLLIDER,SPRITE>(cell[0]);
+            if (cell.size() != 1 || 
+				(collider != nullptr && !collider->passable) || 
 				(sprite->ssheet.find("water") != std::string::npos || 
 				sprite->ssheet.find("lava") != std::string::npos))
                 continue;
@@ -837,12 +845,14 @@ void populateWithChests(World& world, const v2u& grid_size, std::mt19937& genera
         auto pair = local_cells[i];
         WorldCell* cell = pair.first;
 		const ecs::Entity* tile = cell->at(0);
-		auto [sprite,transform] = ecs::ecs.component().fetch<SPRITE,TRANSFORM>(tile);
+		auto [sprite,transform] = ecs::ecs.component()
+			.fetch<SPRITE,TRANSFORM>(tile);
 		auto ssheet_it = ssheets.find(sprite->ssheet);
 		if (ssheet_it == ssheets.end())
 			continue;
         cell->push_back(createChest(world.getSettings(),
-            ssheet_it->second->sprite_dim,transform->scale, pair.second, loot_table));
+            ssheet_it->second->sprite_dim,
+			transform->scale, pair.second, loot_table));
     }
 }
 
@@ -852,7 +862,10 @@ WorldGenerationSettings& World::getSettings()
 }
 
 World::World(WorldGenerationSettings& settings, LootTable& loot_table) 
-    : settings_{settings},generator_{std::random_device{}()},loot_table_{loot_table}
+    : 
+	settings_{settings},
+	generator_{std::random_device{}()},
+	loot_table_{loot_table}
 {
     Biome biome = selectBiome(
         settings.temperature,
@@ -928,7 +941,7 @@ World::~World()
 namespace wfc
 {
 
-	////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 	TileMeta::TileMeta(
 			float weight, 
@@ -943,7 +956,7 @@ namespace wfc
 	{        
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 	TileBuilder::TileBuilder(
 			float weight, 
@@ -1422,7 +1435,8 @@ namespace ecs
 	void RenderSystem::update([[maybe_unused]]float dt)
 	{
 		for (auto& entity : _entities) {
-			auto [transform, sprite] = _ecs.component().fetch<TRANSFORM, SPRITE>(entity);
+			auto [transform, sprite] = _ecs.component()
+				.fetch<TRANSFORM, SPRITE>(entity);
 
 			if (!transform || !sprite) continue;
 			if (!c->visible(transform->pos)) continue;
@@ -1433,7 +1447,8 @@ namespace ecs
 			if (ssheet->tex == nullptr) continue;
 
 			// Render sprite
-			ssheet->render(sprite->frame, transform->pos, transform->scale, sprite->invert_y);
+			ssheet->render(sprite->frame, transform->pos,
+				transform->scale, sprite->invert_y);
 
 			// Handle animation
 			if (ssheet->animated) {
@@ -1651,4 +1666,99 @@ Loot LootTable::random()
         }
     }
     return loot_[0];
+}
+
+
+std::pair<int, v2f> bfs(std::vector<std::vector<std::vector<const ecs::Entity*>>>& cells, 
+	std::vector<std::vector<bool>>& visited, int x, int y)
+{
+	int m = cells.size();
+	int n = cells[0].size();
+	int area = 0;
+	v2f pos_sum = {0.f, 0.f};
+
+	std::queue<std::pair<int, int>> q;
+	q.push({x, y});
+	visited[x][y] = true;
+
+	while (!q.empty()) {
+		auto [r, c] = q.front();
+		q.pop();
+		area++;
+
+		const ecs::Entity* entity = cells[r][c][0];
+		auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(entity);
+		if (transform != nullptr)
+		pos_sum += transform->pos;
+
+		for (const auto& dir : dirs) {
+			int nr = r + dir[0];
+			int nc = c + dir[1];
+
+			if (nr >= 0 && nr < m && nc >= 0 && nc < n &&
+			!visited[nr][nc] && !cells[nr][nc].empty()) {
+
+				const ecs::Entity* neighbor = cells[nr][nc][0];
+				auto [collider] = ecs::ecs.component()
+					.fetch<COLLIDER>(neighbor);
+
+				if (collider != nullptr && !collider->passable)
+				continue;
+
+				visited[nr][nc] = true;
+				q.push({nr, nc});
+			}
+		}
+	}
+
+	return {area, pos_sum};
+}
+
+
+v2f World::getCenterOfLargestIsland() {
+    int m = cells.size();
+    int n = cells[0].size();
+
+    std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
+
+    int max_area = 0;
+    v2f best_position = {0.f, 0.f};
+
+    for (int i = 0; i < m; ++i) {
+        for (int j = 0; j < n; ++j) {
+            if (!visited[i][j] && !cells[i][j].empty()) {
+                const ecs::Entity* entity = cells[i][j][0];
+                auto [collider] = ecs::ecs.component().fetch<COLLIDER>(entity);
+
+                if (collider != nullptr && !collider->passable)
+                    continue;
+
+                auto [area, pos_sum] = bfs(cells, visited, i, j);
+                if (area > max_area) {
+                    max_area = area;
+                    best_position = {pos_sum[0] / static_cast<float>(area),
+						pos_sum[1] / static_cast<float>(area)};
+                }
+            }
+        }
+    }
+
+    return best_position;
+}
+
+const ecs::Entity* createPlayer(World& world)
+{
+	const ecs::Entity* player = ecs::ecs.entity().checkout();
+	auto [transform,sprite,name,collider,health,p] = ecs::ecs.component()
+		.assign<TRANSFORM,SPRITE,NAME,COLLIDER, HEALTH,PHYSICS>(player);
+	transform->pos = world.getCenterOfLargestIsland();
+	name->name = "Juancarlos Sandoval";
+	name->offset = {0,-25};
+	sprite->ssheet = "player-idle";
+	sprite->render_order = 65536 - 2;
+	collider->offset = {0.0f,-8.0f};
+	collider->dim = v2u {5,4};
+	health->health = 100.0f;
+	health->max = 100.0f;
+	return player;
 }
