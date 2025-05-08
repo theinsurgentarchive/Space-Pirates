@@ -230,7 +230,7 @@ void loadTextures(
 	.loadStatic("player-right-idle",
 		loadTexture(
 			"./resources/textures/player/right_stand.webp",true
-		), {1,1},{26,32}, false);
+		), {1,1},{30,34}, false);
 }
 
 void checkRequiredSprites() {
@@ -248,7 +248,7 @@ void checkRequiredSprites() {
     
     bool allFound = true;
     allFound &= checkSprite("player-idle");
-    allFound &= checkSprite("player-idle-back");
+    allFound &= checkSprite("player-back-idle");
     allFound &= checkSprite("player-right-stand");
     allFound &= checkSprite("player-front");
     allFound &= checkSprite("player-back");
