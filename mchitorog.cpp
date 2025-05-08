@@ -579,6 +579,7 @@ void playBiomeMusic(BiomeType biomeType) {
 // Update audio based on game state
 void updateAudioState(GameState state) {
 	switch (state) {
+		case SPLASH:
 		case MENU:
 			playGameMusic(MENU_MUSIC);
 			break;

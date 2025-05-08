@@ -88,7 +88,7 @@ class Global {
 			res[1] = 600;
 			memset(keys, 0, 65536);
 			// mouse value 1 = true = mouse is a regular mouse.
-			state = MENU; // default 
+			state = SPLASH; // default 
 			previous_state = MENU;
 			controls_from_state = MENU;
 			pause_selected_option = 0;
@@ -286,7 +286,7 @@ void init_opengl(void);
 void check_mouse(XEvent *e);
 
 int check_keys(XEvent *e);
-void physics(Enemy&, World*);
+void physics(Enemy&);
 
 void render();
 // For transparent title.webp background
@@ -313,6 +313,7 @@ const ecs::Entity* spaceship;
 float gold = 0;
 ecs::Entity* dummy;
 ecs::Entity* planetPtr;
+ecs::Entity* splash;
 ecs::RenderSystem rs {ecs::ecs,60};
 ecs::PhysicsSystem ps {ecs::ecs,5};
 Camera* c;
@@ -332,6 +333,10 @@ std::unordered_map<std::string, std::shared_ptr
 void loadShipAndAsteroids(std::unordered_map
 		<std::string, std::shared_ptr<SpriteSheet>>& shipAndAsteroidsSheets);
 ecs::RenderSystem spaceRenderer {ecs::ecs, 60};
+//Load Splash Animation
+std::unordered_map<std::string, std::shared_ptr
+<SpriteSheet>> splashSSheets;
+u16 intro_timer = 8;
 int main()
 {
 	LootTable loot_table;
@@ -360,7 +365,6 @@ int main()
 	DINFOF("spaceship initialized spaceship %s", "");
 	planetPtr = ecs::GeneratePlanet();
 	dummy = ecs::ecs.entity().checkout();
-	Enemy foe(dummy);
 	ThreadPool tp {4};
 	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 
@@ -389,7 +393,16 @@ int main()
 		gl.res,
 		margin
 	};
-
+	splash = ecs::ecs.entity().checkout();
+	auto [tsc, ssc] = ecs::ecs.component().assign<TRANSFORM, SPRITE>(splash);
+	v2u splash_margin = {64,64};
+	Camera intro = {
+		tsc->pos,
+		gl.res,
+		splash_margin
+	};
+	ssc->ssheet = "SPLASH";
+	ssc->render_order = 65536 - 1;
 	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
 	v2u space_margin = {64,64};
 	Camera space_Camera = {
@@ -399,12 +412,15 @@ int main()
 	};
 	spaceCamera = &space_Camera; 
 	ps.sample();
+	rs.sample();
+	
 
 	[[maybe_unused]]float dt = getDeltaTime();  
 	v2u t_grid_size = {
 		static_cast<u16>(planetAttr->size * 50), 
 		static_cast<u16>(planetAttr->size * 50)
 	};
+  Enemy foe(dummy, {0.1f, 2.0f}, &w, 48.0f);
 	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
 	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
 	navc->setAStar(astar);
@@ -412,15 +428,15 @@ int main()
 			astar->findClosestNode({0.0f, 0.0f}),
 			astar->findClosestNode({1000.0f, 1000.0f})
 		     );
-
+	loadSplash(ssheets);
 	loadTextures(ssheets);
 	loadEnemyTex(ssheets);
-	c = &camera;
+	c = &intro;
 	astar->setObstacles(&w);
-	rs.sample();
 	ps.sample();
-	init_opengl();
+	rs.sample();
 	checkRequiredSprites();
+	init_opengl();
 	logOpen();
 	srand(time(NULL));
 	clock_gettime(CLOCK_REALTIME, &timePause);
@@ -429,15 +445,21 @@ int main()
 	x11.show_mouse_cursor(gl.mouse_cursor_on);
 	auto last = std::chrono::steady_clock::now();
 	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
+	DINFO("loading into intro\n");
 	while (!done) {
 		auto now = std::chrono::steady_clock::now();
+		static std::chrono::steady_clock::time_point l =
+											std::chrono::steady_clock::now();
 		while (x11.getXPending()) {
 			XEvent e = x11.getXNextEvent();
 			x11.check_resize(&e);
 			check_mouse(&e);
 			done = check_keys(&e);
 		}
-		switch (gl.state) { //camera switch 
+		switch (gl.state) { //State Checking
+			case SPLASH:
+				c = &intro;
+				break;
 			case SPACE:
 				c = &space_Camera; 
 				break; 
@@ -451,11 +473,10 @@ int main()
 				} else if (gl.previous_state == PLAYING) {
 					c = &camera;
 				}
-				break; 
+				break;
 			case GAMEOVER:
 				//sleep(2);
 				//done = true;
-
 				break;
 			default: 
 				c = nullptr;
@@ -467,12 +488,25 @@ int main()
 		timeCopy(&timeStart, &timeCurrent);
 		getAudioManager()->update();
 		if (std::chrono::duration_cast<
-				std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
-			physics(foe, &w);
+			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
+			physics(foe);
 			render();
 			x11.swapBuffers();
 		}
 		usleep(1000);
+		std::chrono::steady_clock::time_point c =
+											std::chrono::steady_clock::now();
+		std::chrono::seconds t_e = (
+						std::chrono::duration_cast<std::chrono::seconds>(c - l)
+		);
+		if (gl.state == SPLASH) {
+			if (t_e.count() >= intro_timer) {
+				gl.state = MENU;
+				updateAudioState(gl.state);
+				ecs::ecs.entity().ret(splash);
+				DINFO("Intro Ended\n");
+			}
+		}
 	}
 	shutdownAudioSystem();
 	cleanup_fonts();
@@ -739,8 +773,9 @@ int check_keys(XEvent *e)
 					getAudioManager()->pauseMusic();
 					return 0;
 
-				case MENU:
-					return 1; // Exit the game
+				case MENU: // Exit the game
+				case SPLASH:
+					return 1;
 
 				case PAUSED:
 					playGameSound(MENU_CLICK);
@@ -878,6 +913,9 @@ int check_keys(XEvent *e)
 	}
 	// Playing state handling
 	if (gl.state == PLAYING) {
+		if (getAudioManager()->getCurrentMusic() != GAME_MUSIC) {
+			updateAudioState(PLAYING);	
+		}
 		if (!ecs::ecs.component().has<PHYSICS>(player)) {
 			return 0;
 		}
@@ -994,6 +1032,9 @@ int check_keys(XEvent *e)
 	}
 
 	if (gl.state == SPACE) {
+		if (getAudioManager()->getCurrentMusic() != SPACE_MUSIC) {
+			updateAudioState(SPACE);
+		}
 		auto [traits] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 		float parallaxScale = 0.0003f;
 
@@ -1292,7 +1333,7 @@ void handle_space_key_release()
 	}
 }
 
-void physics(Enemy& foe, World* w)
+void physics(Enemy& foe)
 {
 	if (gl.state == PAUSED) {
 		return; 
@@ -1306,7 +1347,7 @@ void physics(Enemy& foe, World* w)
 		// ecs::updatePlanetSpin();
 	} else if (gl.state == PLAYING) {
 		if(dummy) {
-			foe.action(w);
+			foe.action();
 		}
 		updateFootstepSounds();
 		updateProjectiles(getDeltaTime());
@@ -1353,7 +1394,7 @@ void SampleSpaceEntities() {  // written by chat
 void render() {
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
+	
 	Rect r;
 	r.left = 100;
 	r.bot = gl.res[1] - 20;
@@ -1362,6 +1403,29 @@ void render() {
 	float cameraX = static_cast<float>(tc->pos[0]);
 	float cameraY = static_cast<float>(tc->pos[1]);
 	switch(gl.state) {
+		case SPLASH:
+			// Reset for game state
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, gl.res[0], 0, gl.res[1], -1, 1);
+
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+
+			glPushMatrix();
+			c->update();
+			rs.update(getDeltaTime());
+			glPopMatrix();
+
+			DisableFor2D();
+
+			// merge splash sprites into ssheets once
+			static bool splashLoaded = false;
+			if (!splashLoaded) {
+				ssheets.insert(splashSSheets.begin(), splashSSheets.end());
+				splashLoaded = true; 
+			}
+			break;
 		case MENU:
 			// Setup for 2D rendering (menu interface)
 			glMatrixMode(GL_PROJECTION);

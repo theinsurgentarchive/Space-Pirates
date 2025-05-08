@@ -6,6 +6,9 @@
 #define COMBAT ecs::Combat
 #define NAVIGATE ecs::Navigate
 
+//Load Splash Screen
+void loadSplash(std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>&);
+
 //Can The Given Entity be Rendered?
 bool canRender(ecs::Entity*);
 
@@ -109,6 +112,9 @@ namespace ecs
         private:
             std::vector<Node*> nodes;
             
+            //Get the Total Size of Path by Number of Nodes
+            u16 dist_from_tar;
+            
             //Get The Current Position Within The Node Vector
             u16 current_node_pos;
 
@@ -130,6 +136,7 @@ namespace ecs
             //Getter
             AStar* getAStar();
             bool getStatus();
+            u16 getDist();
 
             //Setter
             void setAStar(AStar*);
@@ -139,7 +146,7 @@ namespace ecs
 
 //Move an Entity to a Position or Entity with a Transform
 void moveTo(const ecs::Entity*, v2f);
-void moveTo(const ecs::Entity*, const ecs::Entity*);
+void moveTo(const ecs::Entity*, const ecs::Entity*, float);
 void moveTo(const ecs::Entity*, Node*);
 //Enemy Generation
 enum EnemyT 
@@ -164,12 +171,12 @@ class Enemy
     public:
         //Constructor
         Enemy(ecs::Entity*);
-        Enemy(ecs::Entity*, v2f t_mod);
+        Enemy(ecs::Entity*, v2f t_mod, World*, float);
         
         //Function
-        void initEnemy();
+        void initEnemy(World*, float);
         bool doDamage(const ecs::Entity*, const ecs::Entity*);
-        void action(World*);
+        void action();
 
         //Getter
         u16 getAtkTimer();
