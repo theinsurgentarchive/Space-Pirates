@@ -339,174 +339,180 @@ std::unordered_map<std::string, std::shared_ptr
 u16 intro_timer = 8;
 int main()
 {
-	LootTable loot_table;
-	loot_table.addLoot({
-		{GOLD, 100.0f, 5.0f},
-        {GOLD, 50.0f, 2.5f},
-        {GOLD, 25.0f, 1.25f},
-        {LOOT_OXYGEN, 5.0f, 1.0f},
-		{LOOT_OXYGEN, 10.0f, 1.5f},
-		{LOOT_OXYGEN, 2.0f, 0.5f},
-		{LOOT_FUEL, 5.0f, 1.0f},
-		{LOOT_FUEL, 8.0f, 2.0f},
-		{LOOT_FUEL, 3.0f, 0.8f},
-        {PLAYER_HEALTH, 5.0f, 1.0f},
-        {SHIP_HEALTH, 3.0f, 1.0f},
-        {SHIP_HEALTH, 8.0f, 0.5f},
-        {SHIP_HEALTH, 15.0f, 0.75f},
-        {PLAYER_HEALTH, 8.0f, 0.5f},
-        {PLAYER_HEALTH, 15.0f, 0.25f},
-	});
-	std::signal(SIGINT,sig_handle);
-	std::signal(SIGTERM,sig_handle);
-	gl.spaceship = ecs::ecs.entity().checkout(); 
-	spaceship = gl.spaceship;
-	initializeEntity(gl.spaceship); 
-	DINFOF("spaceship initialized spaceship %s", "");
-	planetPtr = ecs::GeneratePlanet();
-	dummy = ecs::ecs.entity().checkout();
-	ThreadPool tp {4};
-	auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
+	try {
+		LootTable loot_table;
+		loot_table.addLoot({
+			{GOLD, 100.0f, 5.0f},
+    	    {GOLD, 50.0f, 2.5f},
+    	    {GOLD, 25.0f, 1.25f},
+    	    {LOOT_OXYGEN, 5.0f, 1.0f},
+			{LOOT_OXYGEN, 10.0f, 1.5f},
+			{LOOT_OXYGEN, 2.0f, 0.5f},
+			{LOOT_FUEL, 5.0f, 1.0f},
+			{LOOT_FUEL, 8.0f, 2.0f},
+			{LOOT_FUEL, 3.0f, 0.8f},
+    	    {PLAYER_HEALTH, 5.0f, 1.0f},
+    	    {SHIP_HEALTH, 3.0f, 1.0f},
+    	    {SHIP_HEALTH, 8.0f, 0.5f},
+    	    {SHIP_HEALTH, 15.0f, 0.75f},
+    	    {PLAYER_HEALTH, 8.0f, 0.5f},
+    	    {PLAYER_HEALTH, 15.0f, 0.25f},
+		});
+		std::signal(SIGINT,sig_handle);
+		std::signal(SIGTERM,sig_handle);
+		gl.spaceship = ecs::ecs.entity().checkout(); 
+		spaceship = gl.spaceship;
+		initializeEntity(gl.spaceship); 
+		DINFOF("spaceship initialized spaceship %s", "");
+		planetPtr = ecs::GeneratePlanet();
+		dummy = ecs::ecs.entity().checkout();
+		ThreadPool tp {4};
+		auto [planetAttr] = ecs::ecs.component().fetch<PLANET>(planetPtr);
 
-	WorldGenerationSettings settings {
-		planetAttr->temperature,
-		planetAttr->humidity,
-		static_cast<u16>(((int) planetAttr->size % 10) * 30),
-		static_cast<u32>(2),
-		static_cast<int>(((int) planetAttr->size % 10) * 5)
-	};
-	settings.origin = {0,0};
-	// Initialize audio system
-	initAudioSystem();
+		WorldGenerationSettings settings {
+			planetAttr->temperature,
+			planetAttr->humidity,
+			static_cast<u16>(((int) planetAttr->size % 10) * 30),
+			static_cast<u32>(2),
+			static_cast<int>(((int) planetAttr->size % 10) * 5)
+		};
+		settings.origin = {0,0};
+		// Initialize audio system
+		initAudioSystem();
 
-	// Initialize Textures
-	loadTextures(ssheets);  //load planet textures
-	loadShipAndAsteroids(ssheets); // load ship and asteroids
-	World w {settings, loot_table};
-	extern const ecs::Entity* createPlayer(World& world);
-	player = createPlayer(w);
-	auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
-    v2u margin = {64,64};
-	updateAudioState(gl.state);
-	Camera camera = {
-		transform->pos,
-		gl.res,
-		margin
-	};
-	splash = ecs::ecs.entity().checkout();
-	auto [tsc, ssc] = ecs::ecs.component().assign<TRANSFORM, SPRITE>(splash);
-	v2u splash_margin = {64,64};
-	Camera intro = {
-		tsc->pos,
-		gl.res,
-		splash_margin
-	};
-	ssc->ssheet = "SPLASH";
-	ssc->render_order = 65536 - 1;
-	auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
-	v2u space_margin = {64,64};
-	Camera space_Camera = {
-		SpaceTransform->pos,
-		gl.res,
-		space_margin
-	};
-	spaceCamera = &space_Camera; 
-	ps.sample();
-	rs.sample();
-	
+		// Initialize Textures
+		loadTextures(ssheets);  //load planet textures
+		loadShipAndAsteroids(ssheets); // load ship and asteroids
+		World w {settings, loot_table};
+		extern const ecs::Entity* createPlayer(World& world);
+		player = createPlayer(w);
+		auto [transform] = ecs::ecs.component().fetch<TRANSFORM>(player);
+    	v2u margin = {64,64};
+		updateAudioState(gl.state);
+		Camera camera = {
+			transform->pos,
+			gl.res,
+			margin
+		};
+		splash = ecs::ecs.entity().checkout();
+		auto [tsc, ssc] = ecs::ecs.component().assign<TRANSFORM, SPRITE>(splash);
+		v2u splash_margin = {64,64};
+		Camera intro = {
+			tsc->pos,
+			gl.res,
+			splash_margin
+		};
+		ssc->ssheet = "SPLASH";
+		ssc->render_order = 65536 - 1;
+		auto [SpaceTransform] = ecs::ecs.component().fetch<TRANSFORM>(gl.spaceship);
+		v2u space_margin = {64,64};
+		Camera space_Camera = {
+			SpaceTransform->pos,
+			gl.res,
+			space_margin
+		};
+		spaceCamera = &space_Camera; 
+		ps.sample();
+		rs.sample();
 
-	[[maybe_unused]]float dt = getDeltaTime();  
-	v2u t_grid_size = {
-		static_cast<u16>(planetAttr->size * 50), 
-		static_cast<u16>(planetAttr->size * 50)
-	};
-  Enemy foe(dummy, {0.1f, 2.0f}, &w, 48.0f);
-	AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
-	auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
-	navc->setAStar(astar);
-	navc->genPath(
-			astar->findClosestNode({0.0f, 0.0f}),
-			astar->findClosestNode({1000.0f, 1000.0f})
-		     );
-	loadSplash(ssheets);
-	loadTextures(ssheets);
-	loadEnemyTex(ssheets);
-	c = &intro;
-	astar->setObstacles(&w);
-	ps.sample();
-	rs.sample();
-	checkRequiredSprites();
-	init_opengl();
-	logOpen();
-	srand(time(NULL));
-	clock_gettime(CLOCK_REALTIME, &timePause);
-	clock_gettime(CLOCK_REALTIME, &timeStart);
-	x11.set_mouse_position(200, 200);
-	x11.show_mouse_cursor(gl.mouse_cursor_on);
-	auto last = std::chrono::steady_clock::now();
-	tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
-	DINFO("loading into intro\n");
-	while (!done) {
-		auto now = std::chrono::steady_clock::now();
-		static std::chrono::steady_clock::time_point l =
+
+		[[maybe_unused]]float dt = getDeltaTime();  
+		v2u t_grid_size = {
+			static_cast<u16>(planetAttr->size * 50), 
+			static_cast<u16>(planetAttr->size * 50)
+		};
+  		Enemy foe(dummy, {0.1f, 2.0f}, &w, 48.0f);
+		AStar* astar = new AStar({0.0f, 0.0f}, t_grid_size, {48.0f, 48.0f});
+		auto [navc] = ecs::ecs.component().fetch<NAVIGATE>(dummy);
+		navc->setAStar(astar);
+		navc->genPath(
+				astar->findClosestNode({0.0f, 0.0f}),
+				astar->findClosestNode({1000.0f, 1000.0f})
+			     );
+		loadSplash(ssheets);
+		loadTextures(ssheets);
+		loadEnemyTex(ssheets);
+		c = &intro;
+		astar->setObstacles(&w);
+		ps.sample();
+		rs.sample();
+		checkRequiredSprites();
+		init_opengl();
+		logOpen();
+		srand(time(NULL));
+		clock_gettime(CLOCK_REALTIME, &timePause);
+		clock_gettime(CLOCK_REALTIME, &timeStart);
+		x11.set_mouse_position(200, 200);
+		x11.show_mouse_cursor(gl.mouse_cursor_on);
+		auto last = std::chrono::steady_clock::now();
+		tp.enqueue([&camera,&tp]() { collisions(camera,tp); });
+		DINFO("loading into intro\n");
+		while (!done) {
+			auto now = std::chrono::steady_clock::now();
+			static std::chrono::steady_clock::time_point l =
+												std::chrono::steady_clock::now();
+			while (x11.getXPending()) {
+				XEvent e = x11.getXNextEvent();
+				x11.check_resize(&e);
+				check_mouse(&e);
+				done = check_keys(&e);
+			}
+			switch (gl.state) { //State Checking
+				case SPLASH:
+					c = &intro;
+					break;
+				case SPACE:
+					c = &space_Camera; 
+					break; 
+				case PLAYING:
+					c = &camera; 
+					break;
+				case PAUSED:
+					// Keep the previous camera based on what state we paused from
+					if (gl.previous_state == SPACE) {
+						c = &space_Camera;
+					} else if (gl.previous_state == PLAYING) {
+						c = &camera;
+					}
+					break;
+				case GAMEOVER:
+					//sleep(2);
+					//done = true;
+					break;
+				default: 
+					c = nullptr;
+					break; 
+			}
+			clock_gettime(CLOCK_REALTIME, &timeCurrent);
+			//moveTo(gl.dummy, player);		
+			timeSpan = timeDiff(&timeStart, &timeCurrent);
+			timeCopy(&timeStart, &timeCurrent);
+			getAudioManager()->update();
+			if (std::chrono::duration_cast<
+				std::chrono::duration<float>>(now - last).count() > 
+				0.01666666f
+			) {
+				physics(foe);
+				render();
+				x11.swapBuffers();
+			}
+			usleep(1000);
+			std::chrono::steady_clock::time_point c =
 											std::chrono::steady_clock::now();
-		while (x11.getXPending()) {
-			XEvent e = x11.getXNextEvent();
-			x11.check_resize(&e);
-			check_mouse(&e);
-			done = check_keys(&e);
-		}
-		switch (gl.state) { //State Checking
-			case SPLASH:
-				c = &intro;
-				break;
-			case SPACE:
-				c = &space_Camera; 
-				break; 
-			case PLAYING:
-				c = &camera; 
-				break;
-			case PAUSED:
-				// Keep the previous camera based on what state we paused from
-				if (gl.previous_state == SPACE) {
-					c = &space_Camera;
-				} else if (gl.previous_state == PLAYING) {
-					c = &camera;
-				}
-				break;
-			case GAMEOVER:
-				//sleep(2);
-				//done = true;
-				break;
-			default: 
-				c = nullptr;
-				break; 
-		}
-		clock_gettime(CLOCK_REALTIME, &timeCurrent);
-		//moveTo(gl.dummy, player);		
-		timeSpan = timeDiff(&timeStart, &timeCurrent);
-		timeCopy(&timeStart, &timeCurrent);
-		getAudioManager()->update();
-		if (std::chrono::duration_cast<
-			std::chrono::duration<float>>(now - last).count() > 0.01666666f) {
-			physics(foe);
-			render();
-			x11.swapBuffers();
-		}
-		usleep(1000);
-		std::chrono::steady_clock::time_point c =
-											std::chrono::steady_clock::now();
-		std::chrono::seconds t_e = (
+			std::chrono::seconds t_e = (
 						std::chrono::duration_cast<std::chrono::seconds>(c - l)
-		);
-		if (gl.state == SPLASH) {
-			if (t_e.count() >= intro_timer) {
-				gl.state = MENU;
-				updateAudioState(gl.state);
-				ecs::ecs.entity().ret(splash);
-				DINFO("Intro Ended\n");
+			);
+			if (gl.state == SPLASH) {
+				if (t_e.count() >= intro_timer) {
+					gl.state = MENU;
+					updateAudioState(gl.state);
+					ecs::ecs.entity().ret(splash);
+					DINFO("Intro Ended\n");
+				}
 			}
 		}
+	} catch(...) {
+		cout << "An Error Has Occurred.\n";
 	}
 	shutdownAudioSystem();
 	cleanup_fonts();
