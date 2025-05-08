@@ -511,13 +511,14 @@ int main()
 				}
 			}
 		}
+		shutdownAudioSystem();
+		cleanup_fonts();
+		logClose();
+		delete astar;
 	} catch(...) {
 		cout << "An Error Has Occurred.\n";
+		return 1;
 	}
-	shutdownAudioSystem();
-	cleanup_fonts();
-	logClose();
-	delete astar;
 	return 0;
 }
 GLuint tex;
