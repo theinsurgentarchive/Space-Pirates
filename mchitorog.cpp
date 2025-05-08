@@ -579,6 +579,7 @@ void playBiomeMusic(BiomeType biomeType) {
 // Update audio based on game state
 void updateAudioState(GameState state) {
 	switch (state) {
+		case SPLASH:
 		case MENU:
 			playGameMusic(MENU_MUSIC);
 			break;
@@ -1217,13 +1218,13 @@ void loadWeaponSprites(std::unordered_map<std::string,
 	loader
 		.loadStatic("player-idle-sword",
 				loadTexture("./resources/textures/player/idle_sword.webp", true),
-				{1,1}, {24,32})
+				{1,1}, {24,32}, false)
 	.loadStatic("player-idle-back-sword",
 			loadTexture("./resources/textures/player/idle_back_sword.webp", true),
-			{1,1}, {24,32})
+			{1,1}, {24,32}, false)
 	.loadStatic("player-right-idle-sword",
 			loadTexture("./resources/textures/player/right_stand_sword.webp", true),
-			{1,1}, {26,32})
+			{1,1}, {26,32}, false)
 	.loadStatic("player-front-sword",
 			loadTexture("./resources/textures/player/front_sword.webp", true),
 			{1,3}, {26,32}, true)

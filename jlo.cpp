@@ -755,7 +755,7 @@ const ecs::Entity* createWorldTile(WorldGenerationSettings& settings,
         static_cast<float>(sprite_dim[1] * cell_pos[1] * transform->scale[1])
     };
     sprite->ssheet = tile_meta.ssheet;
-    sprite->render_order = 65536 - 3;
+    sprite->render_order = 65536 - 17;
     if (sprite->ssheet.find("water") != std::string::npos || 
     sprite->ssheet.find("lava") != std::string::npos) {
         auto [collider] = ecs::ecs.component().assign<COLLIDER>(entity);
@@ -770,52 +770,65 @@ const ecs::Entity* createChest(WorldGenerationSettings& settings,
     const v2u& tile_sprite_dim, const v2f& tile_scale, 
 	v2i& cell_pos, LootTable& loot_table)
 {
-    const ecs::Entity* entity = ecs::ecs.entity().checkout();
-    auto [transform,sprite,collider,chest] = ecs::ecs.component()
-        .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
-    transform->pos = settings.origin + v2f {
-        static_cast<float>(tile_sprite_dim[0] * tile_scale[0] * cell_pos[0]),
-        static_cast<float>(tile_sprite_dim[1] * tile_scale[1] * cell_pos[1])
-    };
-    sprite->ssheet = "chest";
-    sprite->render_order = 65536 - 1;
-    collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
-    collider->callback = [sprite,chest,&loot_table]
-		([[maybe_unused]] const ecs::Entity* first, 
-			[[maybe_unused]] const ecs::Entity* second) {
-		if (first != player && second != player) {
-			return;
+    try{
+		const ecs::Entity* entity = ecs::ecs.entity().checkout();
+		if (entity == nullptr) {
+			DERROR("Entity was Not Generated.\n");
+			return nullptr;
 		}
-        if (!chest->opened) {
-            sprite->ssheet = "chest-open";
-            chest->opened = true;
-            Loot loot = loot_table.random();
-            auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
-            auto [shealth,fuel,oxygen] = ecs::ecs.component()
-				.fetch<HEALTH,ecs::Fuel,ecs::Oxygen>(spaceship);
-            switch (loot.type) {
-                case PLAYER_HEALTH:
-                    health->health += loot.amount;
-                    break;
-                case SHIP_HEALTH:
-                    shealth->health += loot.amount;
-                    break;
-                case LOOT_FUEL:
-                    fuel->fuel += loot.amount;
-                    break;
-                case LOOT_OXYGEN:
-                    oxygen->oxygen += loot.amount;
-                    break;
-                case GOLD:
-                    gold += loot.amount;
-                    break;
-            }
-            std::cout << "You got: " << loot.type << ' ' << 
-                loot.amount << std::endl;
-        }
-    };
+    	auto [transform,sprite,collider,chest] = ecs::ecs.component()
+    	    .assign<TRANSFORM,SPRITE,COLLIDER,CHEST>(entity);
+		if (transform == nullptr || sprite == nullptr ||
+			collider == nullptr || chest == nullptr)
+		{
+			return nullptr;
+		}
+    	transform->pos = settings.origin + v2f {
+    	static_cast<float>(tile_sprite_dim[0] * tile_scale[0] * cell_pos[0]),
+    	static_cast<float>(tile_sprite_dim[1] * tile_scale[1] * cell_pos[1])};
+    	sprite->ssheet = "chest";
+    	sprite->render_order = 65536 - 16;
+    	collider->dim = {static_cast<u16>(32),static_cast<u16>(32)};
+    	collider->callback = [sprite,chest,&loot_table]
+			([[maybe_unused]] const ecs::Entity* first, 
+				[[maybe_unused]] const ecs::Entity* second) {
+			if (first != player && second != player) {
+				return;
+			}
+    	    if (!chest->opened) {
+    	        sprite->ssheet = "chest-open";
+    	        chest->opened = true;
+    	        Loot loot = loot_table.random();
+    	        auto [health] = ecs::ecs.component().fetch<HEALTH>(player);
+    	        auto [shealth,fuel,oxygen] = ecs::ecs.component()
+					.fetch<HEALTH,ecs::Fuel,ecs::Oxygen>(spaceship);
+    	        switch (loot.type) {
+    	            case PLAYER_HEALTH:
+    	                health->health += loot.amount;
+    	                break;
+    	            case SHIP_HEALTH:
+    	                shealth->health += loot.amount;
+    	                break;
+    	            case LOOT_FUEL:
+    	                fuel->fuel += loot.amount;
+    	                break;
+    	            case LOOT_OXYGEN:
+    	                oxygen->oxygen += loot.amount;
+    	                break;
+    	            case GOLD:
+    	                gold += loot.amount;
+    	                break;
+    	        }
+    	        std::cout << "You got: " << loot.type << ' ' << 
+    	            loot.amount << std::endl;
+    	    }
+    	};
 
-    return entity;
+    	return entity;
+	} catch (...) {
+		DERROR("A Error has been Caught\n");
+		return nullptr;
+	}
 }
 
 void populateWithChests(World& world, const v2u& grid_size, 
@@ -850,9 +863,13 @@ void populateWithChests(World& world, const v2u& grid_size,
 		auto ssheet_it = ssheets.find(sprite->ssheet);
 		if (ssheet_it == ssheets.end())
 			continue;
-        cell->push_back(createChest(world.getSettings(),
-            ssheet_it->second->sprite_dim,
-			transform->scale, pair.second, loot_table));
+		const ecs::Entity* check = createChest(
+							world.getSettings(), ssheet_it->second->sprite_dim,
+									transform->scale, pair.second, loot_table);
+		if (check == nullptr) {
+			continue;
+		}
+        cell->push_back(check);
     }
 }
 
@@ -915,7 +932,7 @@ World::World(WorldGenerationSettings& settings, LootTable& loot_table)
                 auto [dtransform,dsprite] = ecs::ecs.component()
                     .assign<TRANSFORM,SPRITE>(decor);
                 dsprite->ssheet = decors[decor_index];
-                dsprite->render_order = 65536 - 1;
+                dsprite->render_order = 65536 - 15;
                 dtransform->pos = transform->pos;
                 dtransform->pos[1] += (decor_sd[1] / 2);
                 cells[i][j].push_back(decor);
@@ -1716,13 +1733,21 @@ std::pair<int, v2f> bfs(std::vector<std::vector<std::vector<const ecs::Entity*>>
 
 
 v2f World::getCenterOfLargestIsland() {
-    int m = cells.size();
-    int n = cells[0].size();
+    v2f best_position = {0.0f, 0.0f};
+	u16 m = 0;
+	u16 n = 0;
+	if (cells.empty()){
+		return best_position;
+	}
+	if (cells[0].empty()) {
+    	return best_position;
+	}
+	m = cells.size();
+	n = cells[0].size();
 
     std::vector<std::vector<bool>> visited(m, std::vector<bool>(n, false));
 
     int max_area = 0;
-    v2f best_position = {0.f, 0.f};
 
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j) {
@@ -1755,7 +1780,7 @@ const ecs::Entity* createPlayer(World& world)
 	name->name = "Juancarlos Sandoval";
 	name->offset = {0,-25};
 	sprite->ssheet = "player-idle";
-	sprite->render_order = 65536 - 2;
+	sprite->render_order = 65536 - 16;
 	collider->offset = {0.0f,-8.0f};
 	collider->dim = v2u {5,4};
 	health->health = 100.0f;

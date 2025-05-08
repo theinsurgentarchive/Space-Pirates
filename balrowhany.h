@@ -16,7 +16,8 @@ enum GameState {
     SPACE,         // 4
     GAMEOVER,      // 5 
     EXIT,          // 6
-    PAUSED         // 7
+    PAUSED,        // 7
+    SPLASH         // 8     
 };
 
 //ecs Components
