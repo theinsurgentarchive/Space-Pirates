@@ -1229,7 +1229,7 @@ void loadWeaponSprites(std::unordered_map<std::string,
 			loadTexture("./resources/textures/player/front_sword.webp", true),
 			{1,3}, {26,32}, true)
 	.loadStatic("player-back-sword",
-			loadTexture("./resources/textures/player/back_sword.webp", true),
+			loadTexture("./resources/textures/player/back_sword1.webp", true),
 			{1,3}, {26,32}, true)
 	.loadStatic("player-right-sword",
 			loadTexture("./resources/textures/player/right_sword.webp", true),
