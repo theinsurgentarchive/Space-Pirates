@@ -8,6 +8,21 @@
 
 extern const ecs::Entity* player;
 
+//Load Splash Screen Texture
+void loadSplash(
+    std::unordered_map<std::string, std::shared_ptr<SpriteSheet>>& ssheets
+)
+{
+    DINFO("Start Loading Splash Screen\n");
+    SpriteSheetLoader loader {ssheets};
+    loader.loadStatic(
+        "SPLASH",
+        loadTexture("./resources/textures/SPLASH.webp", false),
+        {1, 18}, {800, 600}, true
+    );
+    DINFO("Finished Loading Splash Screen\n");
+}
+
 //Renderability Check
 bool canRender(const ecs::Entity* ent)
 {
@@ -118,8 +133,7 @@ AStar::AStar()
     DINFO("Completed Default A* Node Generation\n");
 }
 
-//Initialize a A* Grid at origin, with 4x the input size,
-//at equal distance of tile_dim for each position
+//Initialize A* Grid at origin equal to the distance of tile_dim each position
 AStar::AStar(v2f origin, v2u grid_dim, v2f tile_dim)
 {
     //Initialize Variables
@@ -472,7 +486,7 @@ Node* AStar::aStar(v2u begin_node, v2u ending_node)
     return nullptr;
 }
 
-void moveTo(const ecs::Entity* ent, v2f target)
+void moveTo(const ecs::Entity* ent, v2f target, float speed = 1.0f)
 {
     auto [physics, transform] = 
                             ecs::ecs.component().fetch<PHYSICS, TRANSFORM>(ent);
@@ -493,14 +507,17 @@ void moveTo(const ecs::Entity* ent, v2f target)
     }
 
     //Set Acceleration
-    float accel = 30.0f;
+    float accel = 40.0f;
     float dist = v2fDist(target, transform->pos);
     float reduce = 1.0f;
     if (dist < (accel /4.0f)) {
         reduce = dist / (accel / 4.0f);
     }
     v2f dir = v2fNormal(dif);
-    v2f move {((accel * dir[0]) * reduce), ((accel * dir[1]) * reduce)};
+    v2f move {
+        ((accel * dir[0] * speed) * reduce),
+        ((accel * dir[1] * speed) * reduce)
+    };
     physics->vel[0] = move[0];
     physics->vel[1] = move[1];
 
@@ -534,7 +551,7 @@ void moveTo(const ecs::Entity* ent, const ecs::Entity* target)
         );
         return;
     }
-    moveTo(ent, tar->pos);
+    moveTo(ent, tar->pos, 1.0f);
 }
 
 void loadEnemyTex(
@@ -563,22 +580,45 @@ void loadEnemyTex(
     DINFO("Finished Loading Enemy Sprites\n");
 }
 
-Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f})
+Enemy::Enemy(ecs::Entity* ent) : Enemy(ent, {0.1f, 2.0f}, nullptr, 48.0f)
 {}
 
-Enemy::Enemy(ecs::Entity* ent, v2f t_mod)
+Enemy::Enemy(ecs::Entity* ent, v2f t_mod, World* w, float mag = 48.0f)
 {
     atk_Timer = (u16)(t_mod[0] * 1000.0f);
     path_Timer = (u16)(t_mod[1] * 1000.0f);
     can_damage = true;
     can_gen_path = true;
     this->ent = ent;
-    initEnemy();
+    initEnemy(w, mag);
 }
 
-void Enemy::initEnemy()
+void Enemy::initEnemy(World* w, float mag)
 {
+    float m_mag = mag;
+    u16 x = 1;
+    u16 y = 1;
     //Initialize Components
+    if (w != nullptr) {
+        if (w->cells.empty()) {
+            DWARN("Error, World Empty\n");
+        } else {
+            x = w->cells.size();
+            if (w->cells[0].empty()) {
+                DWARN("Error, World Missing Columns\n");
+            } else {
+                y = w->cells[0].size();
+            }
+        }
+    } else {
+        DWARN("Error, World Not Found\n");
+    }
+    v2f w_max = {
+        static_cast<float>(x),
+        static_cast<float>(y)
+    };
+    w_max[0] *= m_mag;
+    w_max[1] *= m_mag;
     auto [health, collide, sprite, transform, physics, navigate] = 
     ecs::ecs.component()
         .assign<HEALTH, COLLIDER, SPRITE, TRANSFORM, PHYSICS, NAVIGATE>(ent);
@@ -587,8 +627,8 @@ void Enemy::initEnemy()
     health->max = 50.0f;
     health->health = health->max;
     sprite->ssheet = "enemy-idle";
-    sprite->render_order = 65536-2;
-    transform->pos = {floatRand(1000.0f, 100.0f), floatRand(1000.0f, 100.0f)};
+    transform->pos = {floatRand(w_max[0], 0.0f), floatRand(w_max[1], 0.0f)};
+    sprite->render_order = 65536 - 16;
     physics->acc = {0.0f, 0.0f};
     physics->vel = {0.0f, 0.0f};
     collide->passable = true;
@@ -610,18 +650,20 @@ bool Enemy::doDamage(const ecs::Entity* ent, const ecs::Entity* ent2)
     return false;
 }
 
-void Enemy::action(World* w)
-{
+void Enemy::action()
+{  
+    float speed = 1.0f;
     float m_mag = 25.0f;
     bool in_bounds = true;
-    auto cells = w->cells;
     auto [navi, s_trans, phys, sprite] = (
         ecs::ecs.component().fetch<NAVIGATE, TRANSFORM, PHYSICS, SPRITE>(ent)
     );
     auto [p_trans] = ecs::ecs.component().fetch<TRANSFORM>(player);
     static std::chrono::high_resolution_clock::time_point last_time;
     float* node_pos = navi->nodePos();
-    
+    if (navi->getDist() > 1 && navi->getDist() < 15) {
+        speed = (static_cast<float>(navi->getDist()) * 0.2f);
+    }
     //Check if nodePos Returned a nullptr
     if (node_pos == nullptr) {
         navi->setStatus(true);
@@ -673,7 +715,7 @@ void Enemy::action(World* w)
                     DINFO("Destination Reached, Finished Status Enabled\n");
                 }
             } else {
-                moveTo(ent, {node_pos[0], node_pos[1]});
+                moveTo(ent, {node_pos[0], node_pos[1]}, speed);
             }
         }
         //Check if The Enemy has Hit The Player
@@ -773,6 +815,7 @@ float* ecs::Navigate::nodePos()
 void ecs::Navigate::reset()
 {
     current_node_pos = 0;
+    dist_from_tar = 0;
     nodes.clear();
     finished = false;
 }
@@ -792,6 +835,7 @@ void ecs::Navigate::genPath(Node* start, Node* end)
     while (current != nullptr && current != start_node) {
         if (current != goal_node) {
             nodes.push_back(current);
+            dist_from_tar++;
         }
         current = current->parent;
     }
@@ -817,6 +861,11 @@ AStar* ecs::Navigate::getAStar()
 bool ecs::Navigate::getStatus()
 {
     return finished;
+}
+
+u16 ecs::Navigate::getDist()
+{
+    return dist_from_tar;
 }
 
 void ecs::Navigate::setAStar(AStar* astar)

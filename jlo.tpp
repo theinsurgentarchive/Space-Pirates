@@ -75,6 +75,10 @@ namespace ecs
             pools[cid] = std::make_unique<ComponentPool>(sizeof(T));
         }
         void *mem = pools[cid]->get(e_ptr->id);
+        if (mem == nullptr) {
+            DERRORF("An Error Occurred during mem Allocation for (%d)\n", cid);
+            return nullptr;
+        }
         DINFOF("creating new component (%d) at (%p)\n", cid, mem);
         auto *ptr_component = new (mem) T();
         e_ptr->mask.set(cid);
@@ -107,6 +111,11 @@ namespace ecs
             return nullptr;
         }
         void *mem = pools[cid]->get(entity->id);
+        if (mem == nullptr) {
+            DERRORF("An Error has Occurred during mem Allocation at (%d)\n",
+                                                                        cid);
+            return nullptr;
+        }
         return reinterpret_cast<T *>(mem);
     }
 
